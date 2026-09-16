@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1329"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background Rounded Rect -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="#0ea5e9" stroke-width="3" stroke-opacity="0.3"/>
+
+  <!-- Insole Foot Silhouette Contour -->
+  <path d="M 230 70 
+           C 275 70, 320 95, 335 145 
+           C 345 180, 335 220, 315 255 
+           C 295 290, 290 320, 305 375 
+           C 315 410, 295 442, 256 442 
+           C 217 442, 197 410, 207 375 
+           C 222 320, 217 290, 197 255 
+           C 177 220, 167 180, 177 145 
+           C 192 95, 205 70, 230 70 Z"
+        fill="#0f1d3a"
+        stroke="url(#cyanGrad)"
+        stroke-width="12"
+        stroke-linejoin="round"
+        filter="url(#glow)"/>
+
+  <!-- Sensor Nodes & Pressure Rings -->
+  <!-- Forefoot / Ball (FSR 2) -->
+  <circle cx="256" cy="170" r="38" fill="#0284c7" fill-opacity="0.25" stroke="#38bdf8" stroke-width="5"/>
+  <circle cx="256" cy="170" r="20" fill="#22d3ee" filter="url(#glow)"/>
+
+  <!-- Heel (FSR 1) -->
+  <circle cx="256" cy="380" r="32" fill="#0284c7" fill-opacity="0.25" stroke="#38bdf8" stroke-width="5"/>
+  <circle cx="256" cy="380" r="16" fill="#22d3ee" filter="url(#glow)"/>
+
+  <!-- Biomechanical AI Synapse Link -->
+  <path d="M 256 195 L 256 355" stroke="#38bdf8" stroke-width="4" stroke-dasharray="8 8" stroke-linecap="round"/>
+
+  <!-- Center Pulse Dot -->
+  <circle cx="256" cy="275" r="8" fill="#38bdf8"/>
+</svg>

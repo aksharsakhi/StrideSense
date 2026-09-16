@@ -1,0 +1,17 @@
+{
+  "short_name": "StrideSense",
+  "name": "StrideSense AI Smart Insole",
+  "description": "AI-Powered Smart Insole for Gait Analysis & Fall Detection",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#090d16",
+  "theme_color": "#06b6d4",
+  "display": "standalone",
+  "orientation": "portrait"
+}
