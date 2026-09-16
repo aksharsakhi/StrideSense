@@ -39,18 +39,21 @@ export default function DeviceStatus({
         {/* Network / Connectivity */}
         <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4">
           <div className="flex justify-between items-center text-slate-400 text-xs mb-1.5">
-            <span>Connection</span>
+            <span>Backend Link</span>
             <Wifi className="w-4 h-4 text-cyan-400" />
           </div>
           <div className="text-xl font-bold text-white flex items-center gap-2">
             {isSimulated ? (
-              <span className="text-cyan-400 font-mono text-lg">SIMULATOR</span>
+              <span className="text-cyan-400 font-mono text-base sm:text-lg">SIMULATOR</span>
             ) : (
-              <span className="text-emerald-400 font-mono text-lg">Wi-Fi LIVE</span>
+              <span className="text-emerald-400 font-mono text-base sm:text-lg flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                SUPABASE LIVE
+              </span>
             )}
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">
-            {isSimulated ? 'In-Memory Stream' : '-58 dBm (Strong)'}
+          <div className="text-[11px] text-slate-400 mt-1 truncate">
+            {isSimulated ? 'In-Memory Telemetry Stream' : 'sgooptohhldguitvhbrl (Realtime)'}
           </div>
         </div>
 
