@@ -14,7 +14,12 @@
 #include "filter.h"
 #include "fall_detector.h"
 #include "tinyml_infer.h"
+
+#if BACKEND_USE_SUPABASE
+#include "supabase_client.h"
+#else
 #include "firebase_client.h"
+#endif
 
 // Global System State
 static unsigned long last_sample_time = 0;
@@ -40,7 +45,12 @@ void setup() {
     FallEngine.begin();
     Sensors.begin();
     Sensors.calibrateZeroBaseline(40);
+
+#if BACKEND_USE_SUPABASE
+    Supabase.begin();
+#else
     Cloud.begin();
+#endif
 
     current_inference.activity = ACTIVITY_STANDING;
     current_inference.confidence = 1.0f;
@@ -95,7 +105,11 @@ void loop() {
     }
 
     // Wi-Fi status check and auto-reconnect
+#if BACKEND_USE_SUPABASE
+    Supabase.updateNetwork();
+#else
     Cloud.updateNetwork();
+#endif
 
     // 6. Transmit Cloud Telemetry every 1000 ms
     if (now - last_cloud_time >= CLOUD_TELEMETRY_MS) {
@@ -103,12 +117,40 @@ void loop() {
 
         SensorSample latest = SensorWindow.get(SensorWindow.count() - 1);
 
+#if BACKEND_USE_SUPABASE
+        SupabaseTelemetryPayload payload;
+        payload.activity = current_inference.activity_name;
+        payload.confidence = current_inference.confidence;
+        payload.step_count = step_counter;
+        payload.cadence_spm = current_inference.cadence_spm;
+        payload.symmetry_index = constrain(100.0f - (fabsf(1.0f - current_inference.medial_lateral_ratio) * 40.0f), 60.0f, 100.0f);
+        payload.fall_alert = FallEngine.isFallPending();
+        payload.p1 = latest.p1;
+        payload.p2 = latest.p2;
+        payload.p3 = latest.p3;
+        payload.p4 = latest.p4;
+        payload.p5 = latest.p5;
+        payload.p6 = latest.p6;
+        payload.pitch = latest.pitch;
+        payload.roll = latest.roll;
+        payload.svm_a = sqrtf(latest.ax * latest.ax + latest.ay * latest.ay + latest.az * latest.az);
+
+        bool sent = Supabase.sendTelemetry(payload);
+        if (sent) {
+            Serial.println(F("[Supabase] Telemetry sent successfully (HTTP 201)"));
+        }
+
+        if (FallEngine.isEmergencyDispatched()) {
+            Supabase.logFallIncident(3.5f, "EMERGENCY_DISPATCHED");
+        } else if (FallEngine.isFallPending()) {
+            Supabase.logFallIncident(2.9f, "PENDING_CONFIRMATION");
+        }
+#else
         CloudPayload payload;
         payload.activity = current_inference.activity_name;
         payload.confidence = current_inference.confidence;
         payload.step_count = step_counter;
         payload.cadence_spm = current_inference.cadence_spm;
-        // Symmetry index: 100% - deviation between medial and lateral balance
         payload.symmetry_index = constrain(100.0f - (fabsf(1.0f - current_inference.medial_lateral_ratio) * 40.0f), 60.0f, 100.0f);
         payload.fall_alert = FallEngine.isFallPending();
         payload.fall_emergency = FallEngine.isEmergencyDispatched();
@@ -129,5 +171,6 @@ void loop() {
         if (FallEngine.isEmergencyDispatched()) {
             Cloud.sendEmergencyAlert("Unresponsive user after confirmed fall");
         }
+#endif
     }
 }

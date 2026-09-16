@@ -19,11 +19,13 @@ SensorsManager::SensorsManager()
 bool SensorsManager::begin() {
     // Configure FSR ADC pins as inputs
     pinMode(PIN_FSR_S1_HEEL, INPUT);
-    pinMode(PIN_FSR_S2_MID_LAT, INPUT);
+    pinMode(PIN_FSR_S2_FOREFOOT, INPUT);
+#if FSR_SENSOR_COUNT >= 6
     pinMode(PIN_FSR_S3_MID_MED, INPUT);
     pinMode(PIN_FSR_S4_FORE_LAT, INPUT);
     pinMode(PIN_FSR_S5_FORE_MED, INPUT);
     pinMode(PIN_FSR_S6_TOE, INPUT);
+#endif
     pinMode(PIN_BATTERY_ADC, INPUT);
 
     // Set 12-bit ADC resolution (0 - 4095)
@@ -112,13 +114,21 @@ void SensorsManager::readMPU6050(float &ax, float &ay, float &az, float &gx, flo
 bool SensorsManager::readSample(SensorSample &sample) {
     sample.timestamp_ms = millis();
 
-    // Read 6 FSR ADC values with multi-sample smoothing
+    // Read FSR ADC values with multi-sample smoothing
     sample.p1 = readAveragedADC(PIN_FSR_S1_HEEL);
-    sample.p2 = readAveragedADC(PIN_FSR_S2_MID_LAT);
+    sample.p2 = readAveragedADC(PIN_FSR_S2_FOREFOOT);
+#if FSR_SENSOR_COUNT == 2
+    // 2-Square-FSR kit mode: Heel and Forefoot/Ball
+    sample.p3 = 0;
+    sample.p4 = 0;
+    sample.p5 = sample.p2; // Map forefoot reading to metatarsal zone for TinyML feature balance
+    sample.p6 = 0;
+#else
     sample.p3 = readAveragedADC(PIN_FSR_S3_MID_MED);
     sample.p4 = readAveragedADC(PIN_FSR_S4_FORE_LAT);
     sample.p5 = readAveragedADC(PIN_FSR_S5_FORE_MED);
     sample.p6 = readAveragedADC(PIN_FSR_S6_TOE);
+#endif
 
     // Apply baseline subtraction (zero-tare)
     sample.p1 = (sample.p1 > fsr_baseline[0]) ? (sample.p1 - fsr_baseline[0]) : 0;
@@ -146,11 +156,13 @@ void SensorsManager::calibrateZeroBaseline(int samples) {
 
     for (int i = 0; i < samples; i++) {
         p_sums[0] += analogRead(PIN_FSR_S1_HEEL);
-        p_sums[1] += analogRead(PIN_FSR_S2_MID_LAT);
+        p_sums[1] += analogRead(PIN_FSR_S2_FOREFOOT);
+#if FSR_SENSOR_COUNT >= 6
         p_sums[2] += analogRead(PIN_FSR_S3_MID_MED);
         p_sums[3] += analogRead(PIN_FSR_S4_FORE_LAT);
         p_sums[4] += analogRead(PIN_FSR_S5_FORE_MED);
         p_sums[5] += analogRead(PIN_FSR_S6_TOE);
+#endif
 
         float a_x, a_y, a_z, g_x, g_y, g_z;
         readMPU6050(a_x, a_y, a_z, g_x, g_y, g_z);

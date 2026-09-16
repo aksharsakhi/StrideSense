@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ==========================================================================
    STRIDESENSE DESIGN SYSTEM - ULTRA-PREMIUM DARK GLASSMORPHISM
    ========================================================================== */

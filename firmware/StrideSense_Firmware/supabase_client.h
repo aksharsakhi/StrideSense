@@ -28,10 +28,13 @@ class SupabaseClient {
 public:
     SupabaseClient();
     void begin();
+    void updateNetwork();
+    bool isConnected() const;
     bool sendTelemetry(const SupabaseTelemetryPayload &payload);
     bool logFallIncident(float impact_g, const char* status);
 
 private:
+    unsigned long last_wifi_check;
     WiFiClientSecure secureClient;
 };
 
