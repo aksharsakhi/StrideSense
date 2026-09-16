@@ -54,12 +54,19 @@
 #define FALL_CANCEL_WINDOW_MS 15000  // 15 seconds to cancel accidental fall alert
 
 // ==========================================
-// 4. WI-FI & FIREBASE CONFIGURATION
+// 4. WI-FI & BACKEND CONFIGURATION
 // ==========================================
 #define WIFI_SSID             "YOUR_WIFI_SSID"
 #define WIFI_PASSWORD         "YOUR_WIFI_PASSWORD"
+#define DEVICE_ID             "insole_left_01"
+
+// Firebase Configuration (Optional)
 #define FIREBASE_HOST         "https://stridesense-iot-default-rtdb.firebaseio.com"
 #define FIREBASE_AUTH_KEY     "YOUR_FIREBASE_DATABASE_SECRET"
-#define DEVICE_ID             "insole_left_01"
+
+// Supabase Configuration (PostgreSQL / PostgREST)
+#define SUPABASE_HOST         "https://sgooptohhldguitvhbrl.supabase.co"
+#define SUPABASE_PUBLISHABLE_KEY "sb_publishable_XOwUeGn_OBNf0XoAMNmT9g_3M91ATSI"
+#define SUPABASE_ENDPOINT     "/rest/v1/telemetry"
 
 #endif // STRIDESENSE_CONFIG_H
