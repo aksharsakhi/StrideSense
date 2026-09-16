@@ -30,45 +30,81 @@ static const char* const ACTIVITY_NAMES[] = {
 
 #define STRIDESENSE_NUM_FEATURES 24
 #define STRIDESENSE_NUM_CLASSES  5
-#define STRIDESENSE_NUM_TREES    7
+#define STRIDESENSE_NUM_TREES    8
 
 
 static inline int evaluate_tree_0(const float* features) {
-    if (features[22] <= 488.55998f) { // heel_force_mean
-        if (features[15] <= 192.05500f) { // svm_gyro_mean
-            if (features[13] <= 1.39674f) { // svm_acc_max
-                if (features[0] <= 0.44825f) { // acc_x_mean
+    if (features[22] <= 598.78000f) { // heel_force_mean
+        if (features[15] <= 197.11295f) { // svm_gyro_mean
+            if (features[13] <= 1.40230f) { // svm_acc_max
+                if (features[0] <= 0.44469f) { // acc_x_mean
                     return 3; // Sitting
                 } else {
                     return 4; // Fall
                 }
             } else {
-                return 1; // Walking
+                if (features[3] <= 0.31003f) { // acc_y_std
+                    return 4; // Fall
+                } else {
+                    return 1; // Walking
+                }
             }
         } else {
             return 2; // Running
         }
     } else {
-        if (features[3] <= 0.31520f) { // acc_y_std
-            if (features[23] <= 824.17001f) { // forefoot_force_mean
-                if (features[9] <= 1.10561f) { // gyro_y_std
-                    return 4; // Fall
+        if (features[16] <= 130.00928f) { // svm_gyro_max
+            if (features[12] <= 1.00507f) { // svm_acc_mean
+                if (features[23] <= 711.72000f) { // forefoot_force_mean
+                    if (features[11] <= 0.75378f) { // gyro_z_std
+                        return 4; // Fall
+                    } else {
+                        return 0; // Standing
+                    }
                 } else {
-                    return 0; // Standing
+                    if (features[21] <= 0.49764f) { // medial_lateral_ratio
+                        if (features[22] <= 1533.94000f) { // heel_force_mean
+                            return 4; // Fall
+                        } else {
+                            return 0; // Standing
+                        }
+                    } else {
+                        if (features[10] <= 0.16370f) { // gyro_z_mean
+                            return 0; // Standing
+                        } else {
+                            if (features[18] <= 61.13674f) { // force_total_std
+                                return 0; // Standing
+                            } else {
+                                return 0; // Standing
+                            }
+                        }
+                    }
                 }
             } else {
-                if (features[21] <= 0.91417f) { // medial_lateral_ratio
-                    if (features[11] <= 0.81105f) { // gyro_z_std
-                        return 0; // Standing
-                    } else {
-                        if (features[21] <= 0.89883f) { // medial_lateral_ratio
+                if (features[11] <= 0.86269f) { // gyro_z_std
+                    if (features[13] <= 1.07958f) { // svm_acc_max
+                        if (features[7] <= 1.29471f) { // gyro_x_std
                             return 0; // Standing
                         } else {
                             return 4; // Fall
                         }
+                    } else {
+                        return 0; // Standing
                     }
                 } else {
-                    return 0; // Standing
+                    if (features[4] <= 1.00408f) { // acc_z_mean
+                        return 4; // Fall
+                    } else {
+                        if (features[10] <= 0.04550f) { // gyro_z_mean
+                            return 0; // Standing
+                        } else {
+                            if (features[19] <= 2714.00000f) { // force_total_max
+                                return 4; // Fall
+                            } else {
+                                return 0; // Standing
+                            }
+                        }
+                    }
                 }
             }
         } else {
@@ -79,31 +115,39 @@ static inline int evaluate_tree_0(const float* features) {
 
 
 static inline int evaluate_tree_1(const float* features) {
-    if (features[11] <= 45.51701f) { // gyro_z_std
-        if (features[9] <= 109.86705f) { // gyro_y_std
-            if (features[22] <= 215.68000f) { // heel_force_mean
+    if (features[11] <= 47.03712f) { // gyro_z_std
+        if (features[9] <= 91.75208f) { // gyro_y_std
+            if (features[22] <= 213.34000f) { // heel_force_mean
                 return 3; // Sitting
             } else {
-                if (features[9] <= 1.06409f) { // gyro_y_std
-                    if (features[13] <= 1.12775f) { // svm_acc_max
-                        if (features[21] <= 0.90419f) { // medial_lateral_ratio
-                            return 4; // Fall
-                        } else {
-                            return 4; // Fall
-                        }
-                    } else {
-                        return 0; // Standing
-                    }
+                if (features[12] <= 0.98475f) { // svm_acc_mean
+                    return 4; // Fall
                 } else {
-                    if (features[3] <= 0.07799f) { // acc_y_std
-                        return 0; // Standing
+                    if (features[8] <= 3.50984f) { // gyro_y_mean
+                        if (features[12] <= 1.00453f) { // svm_acc_mean
+                            if (features[5] <= 0.04744f) { // acc_z_std
+                                return 0; // Standing
+                            } else {
+                                return 0; // Standing
+                            }
+                        } else {
+                            if (features[11] <= 0.95963f) { // gyro_z_std
+                                return 0; // Standing
+                            } else {
+                                return 4; // Fall
+                            }
+                        }
                     } else {
                         return 4; // Fall
                     }
                 }
             }
         } else {
-            return 1; // Walking
+            if (features[22] <= 582.53000f) { // heel_force_mean
+                return 1; // Walking
+            } else {
+                return 4; // Fall
+            }
         }
     } else {
         return 2; // Running
@@ -112,31 +156,108 @@ static inline int evaluate_tree_1(const float* features) {
 
 
 static inline int evaluate_tree_2(const float* features) {
-    if (features[11] <= 45.57764f) { // gyro_z_std
-        if (features[11] <= 13.52843f) { // gyro_z_std
-            if (features[17] <= 1214.92001f) { // force_total_mean
-                return 3; // Sitting
+    if (features[11] <= 11.59991f) { // gyro_z_std
+        if (features[9] <= 1.01201f) { // gyro_y_std
+            if (features[13] <= 1.00013f) { // svm_acc_max
+                return 4; // Fall
             } else {
-                if (features[21] <= 0.75953f) { // medial_lateral_ratio
-                    return 4; // Fall
-                } else {
-                    if (features[3] <= 0.03425f) { // acc_y_std
-                        if (features[15] <= 1.57755f) { // svm_gyro_mean
-                            return 0; // Standing
+                return 3; // Sitting
+            }
+        } else {
+            if (features[8] <= 0.51170f) { // gyro_y_mean
+                if (features[3] <= 0.03503f) { // acc_y_std
+                    if (features[11] <= 0.93317f) { // gyro_z_std
+                        if (features[5] <= 0.04744f) { // acc_z_std
+                            if (features[21] <= 0.52408f) { // medial_lateral_ratio
+                                return 0; // Standing
+                            } else {
+                                return 0; // Standing
+                            }
                         } else {
-                            return 0; // Standing
+                            if (features[17] <= 2770.84998f) { // force_total_mean
+                                return 4; // Fall
+                            } else {
+                                return 0; // Standing
+                            }
                         }
                     } else {
-                        if (features[9] <= 1.02940f) { // gyro_y_std
-                            return 4; // Fall
-                        } else {
+                        if (features[3] <= 0.03025f) { // acc_y_std
                             return 0; // Standing
+                        } else {
+                            if (features[9] <= 1.42103f) { // gyro_y_std
+                                return 4; // Fall
+                            } else {
+                                return 0; // Standing
+                            }
+                        }
+                    }
+                } else {
+                    if (features[10] <= 0.06050f) { // gyro_z_mean
+                        return 0; // Standing
+                    } else {
+                        if (features[20] <= 1.12611f) { // heel_forefoot_ratio
+                            return 0; // Standing
+                        } else {
+                            return 4; // Fall
                         }
                     }
                 }
+            } else {
+                if (features[15] <= 2.03166f) { // svm_gyro_mean
+                    return 0; // Standing
+                } else {
+                    return 4; // Fall
+                }
+            }
+        }
+    } else {
+        if (features[13] <= 2.67345f) { // svm_acc_max
+            return 1; // Walking
+        } else {
+            return 2; // Running
+        }
+    }
+}
+
+
+static inline int evaluate_tree_3(const float* features) {
+    if (features[3] <= 0.92328f) { // acc_y_std
+        if (features[19] <= 3987.50000f) { // force_total_max
+            if (features[17] <= 633.08000f) { // force_total_mean
+                return 3; // Sitting
+            } else {
+                if (features[2] <= 0.06946f) { // acc_y_mean
+                    if (features[17] <= 1379.78998f) { // force_total_mean
+                        return 1; // Walking
+                    } else {
+                        if (features[20] <= 1.31275f) { // heel_forefoot_ratio
+                            if (features[17] <= 1935.85999f) { // force_total_mean
+                                return 0; // Standing
+                            } else {
+                                return 0; // Standing
+                            }
+                        } else {
+                            if (features[6] <= -0.04510f) { // gyro_x_mean
+                                return 4; // Fall
+                            } else {
+                                return 0; // Standing
+                            }
+                        }
+                    }
+                } else {
+                    return 4; // Fall
+                }
             }
         } else {
-            return 1; // Walking
+            if (features[13] <= 2.76295f) { // svm_acc_max
+                return 1; // Walking
+            } else {
+                if (features[13] <= 4.28785f) { // svm_acc_max
+                    return 2; // Running
+                } else {
+                    return 4; // Fall
+                }
+            }
         }
     } else {
         return 2; // Running
@@ -144,105 +265,108 @@ static inline int evaluate_tree_2(const float* features) {
 }
 
 
-static inline int evaluate_tree_3(const float* features) {
-    if (features[3] <= 0.23784f) { // acc_y_std
-        if (features[19] <= 1413.00000f) { // force_total_max
-            return 3; // Sitting
-        } else {
-            if (features[17] <= 2378.83997f) { // force_total_mean
-                return 4; // Fall
-            } else {
-                if (features[2] <= 0.02992f) { // acc_y_mean
-                    if (features[9] <= 0.99065f) { // gyro_y_std
-                        if (features[20] <= 0.95716f) { // heel_forefoot_ratio
-                            return 0; // Standing
-                        } else {
-                            return 4; // Fall
-                        }
-                    } else {
-                        return 0; // Standing
-                    }
-                } else {
-                    return 4; // Fall
-                }
-            }
-        }
-    } else {
-        if (features[19] <= 6586.00000f) { // force_total_max
-            return 1; // Walking
-        } else {
-            if (features[19] <= 9780.00000f) { // force_total_max
-                return 2; // Running
-            } else {
-                return 4; // Fall
-            }
-        }
-    }
-}
-
-
 static inline int evaluate_tree_4(const float* features) {
-    if (features[17] <= 1940.48999f) { // force_total_mean
-        if (features[11] <= 45.51701f) { // gyro_z_std
-            if (features[15] <= 57.47792f) { // svm_gyro_mean
-                return 3; // Sitting
-            } else {
-                return 1; // Walking
-            }
-        } else {
-            return 2; // Running
-        }
+    if (features[17] <= 633.08000f) { // force_total_mean
+        return 3; // Sitting
     } else {
-        if (features[12] <= 1.46021f) { // svm_acc_mean
-            if (features[21] <= 0.75840f) { // medial_lateral_ratio
-                return 4; // Fall
-            } else {
-                if (features[14] <= 0.04350f) { // svm_acc_std
-                    if (features[6] <= 0.07460f) { // gyro_x_mean
-                        return 0; // Standing
-                    } else {
-                        if (features[20] <= 1.07184f) { // heel_forefoot_ratio
-                            return 0; // Standing
+        if (features[11] <= 11.43052f) { // gyro_z_std
+            if (features[0] <= 0.06455f) { // acc_x_mean
+                if (features[12] <= 1.01507f) { // svm_acc_mean
+                    if (features[10] <= 0.30460f) { // gyro_z_mean
+                        if (features[19] <= 2416.00000f) { // force_total_max
+                            if (features[19] <= 2390.50000f) { // force_total_max
+                                return 0; // Standing
+                            } else {
+                                return 4; // Fall
+                            }
                         } else {
-                            return 4; // Fall
+                            if (features[1] <= 0.03474f) { // acc_x_std
+                                return 0; // Standing
+                            } else {
+                                return 0; // Standing
+                            }
                         }
+                    } else {
+                        return 4; // Fall
                     }
                 } else {
                     return 4; // Fall
                 }
+            } else {
+                return 4; // Fall
             }
         } else {
-            return 2; // Running
+            if (features[14] <= 0.67323f) { // svm_acc_std
+                return 1; // Walking
+            } else {
+                return 2; // Running
+            }
         }
     }
 }
 
 
 static inline int evaluate_tree_5(const float* features) {
-    if (features[13] <= 1.43423f) { // svm_acc_max
-        if (features[9] <= 1.06409f) { // gyro_y_std
-            if (features[19] <= 1435.00000f) { // force_total_max
+    if (features[13] <= 1.46672f) { // svm_acc_max
+        if (features[7] <= 1.04968f) { // gyro_x_std
+            if (features[19] <= 1483.00000f) { // force_total_max
                 return 3; // Sitting
             } else {
-                if (features[5] <= 0.04019f) { // acc_z_std
-                    return 4; // Fall
-                } else {
-                    return 0; // Standing
-                }
+                return 4; // Fall
             }
         } else {
-            if (features[14] <= 0.04839f) { // svm_acc_std
-                return 0; // Standing
+            if (features[10] <= 0.10290f) { // gyro_z_mean
+                if (features[14] <= 0.04937f) { // svm_acc_std
+                    if (features[17] <= 1922.63000f) { // force_total_mean
+                        return 4; // Fall
+                    } else {
+                        if (features[16] <= 3.50689f) { // svm_gyro_max
+                            if (features[2] <= 0.01597f) { // acc_y_mean
+                                return 0; // Standing
+                            } else {
+                                return 4; // Fall
+                            }
+                        } else {
+                            return 0; // Standing
+                        }
+                    }
+                } else {
+                    return 4; // Fall
+                }
             } else {
-                return 4; // Fall
+                if (features[8] <= 0.43080f) { // gyro_y_mean
+                    if (features[21] <= 2.13990f) { // medial_lateral_ratio
+                        if (features[4] <= 1.01116f) { // acc_z_mean
+                            return 0; // Standing
+                        } else {
+                            return 4; // Fall
+                        }
+                    } else {
+                        if (features[20] <= 0.90161f) { // heel_forefoot_ratio
+                            return 0; // Standing
+                        } else {
+                            return 4; // Fall
+                        }
+                    }
+                } else {
+                    return 4; // Fall
+                }
             }
         }
     } else {
-        if (features[19] <= 6586.50000f) { // force_total_max
-            return 1; // Walking
+        if (features[19] <= 5933.50000f) { // force_total_max
+            if (features[11] <= 51.05316f) { // gyro_z_std
+                return 1; // Walking
+            } else {
+                return 2; // Running
+            }
         } else {
-            if (features[12] <= 1.44588f) { // svm_acc_mean
-                return 4; // Fall
+            if (features[12] <= 1.66043f) { // svm_acc_mean
+                if (features[5] <= 0.52764f) { // acc_z_std
+                    return 1; // Walking
+                } else {
+                    return 4; // Fall
+                }
             } else {
                 return 2; // Running
             }
@@ -252,40 +376,93 @@ static inline int evaluate_tree_5(const float* features) {
 
 
 static inline int evaluate_tree_6(const float* features) {
-    if (features[19] <= 3641.00000f) { // force_total_max
-        if (features[23] <= 541.51001f) { // forefoot_force_mean
+    if (features[16] <= 96.87159f) { // svm_gyro_max
+        if (features[23] <= 468.47002f) { // forefoot_force_mean
             return 3; // Sitting
         } else {
-            if (features[9] <= 0.94684f) { // gyro_y_std
+            if (features[9] <= 0.82944f) { // gyro_y_std
                 return 4; // Fall
             } else {
-                if (features[12] <= 0.99252f) { // svm_acc_mean
-                    if (features[20] <= 1.30639f) { // heel_forefoot_ratio
+                if (features[20] <= 1.07211f) { // heel_forefoot_ratio
+                    return 0; // Standing
+                } else {
+                    if (features[20] <= 1.08216f) { // heel_forefoot_ratio
                         return 4; // Fall
                     } else {
-                        return 0; // Standing
-                    }
-                } else {
-                    if (features[23] <= 1020.81000f) { // forefoot_force_mean
-                        if (features[14] <= 0.04337f) { // svm_acc_std
-                            return 0; // Standing
+                        if (features[21] <= 2.13777f) { // medial_lateral_ratio
+                            if (features[22] <= 794.28000f) { // heel_force_mean
+                                return 4; // Fall
+                            } else {
+                                return 0; // Standing
+                            }
                         } else {
                             return 4; // Fall
                         }
-                    } else {
-                        return 0; // Standing
                     }
                 }
             }
         }
     } else {
-        if (features[3] <= 0.51960f) { // acc_y_std
+        if (features[7] <= 29.26570f) { // gyro_x_std
             return 1; // Walking
         } else {
-            if (features[11] <= 30.23428f) { // gyro_z_std
+            if (features[11] <= 30.77182f) { // gyro_z_std
                 return 4; // Fall
             } else {
                 return 2; // Running
+            }
+        }
+    }
+}
+
+
+static inline int evaluate_tree_7(const float* features) {
+    if (features[15] <= 83.74666f) { // svm_gyro_mean
+        if (features[7] <= 1.01393f) { // gyro_x_std
+            if (features[21] <= 0.56220f) { // medial_lateral_ratio
+                return 4; // Fall
+            } else {
+                return 3; // Sitting
+            }
+        } else {
+            if (features[2] <= 0.04664f) { // acc_y_mean
+                if (features[10] <= 0.30720f) { // gyro_z_mean
+                    if (features[1] <= 0.03488f) { // acc_x_std
+                        if (features[11] <= 0.72977f) { // gyro_z_std
+                            if (features[3] <= 0.02998f) { // acc_y_std
+                                return 4; // Fall
+                            } else {
+                                return 0; // Standing
+                            }
+                        } else {
+                            if (features[10] <= 0.16400f) { // gyro_z_mean
+                                return 0; // Standing
+                            } else {
+                                return 0; // Standing
+                            }
+                        }
+                    } else {
+                        if (features[9] <= 1.53620f) { // gyro_y_std
+                            return 4; // Fall
+                        } else {
+                            return 0; // Standing
+                        }
+                    }
+                } else {
+                    return 4; // Fall
+                }
+            } else {
+                return 4; // Fall
+            }
+        }
+    } else {
+        if (features[14] <= 0.67220f) { // svm_acc_std
+            return 1; // Walking
+        } else {
+            if (features[19] <= 10533.00000f) { // force_total_max
+                return 2; // Running
+            } else {
+                return 4; // Fall
             }
         }
     }
@@ -308,6 +485,7 @@ static inline ActivityClass predict_activity(const float* features, float* out_c
     votes[evaluate_tree_4(features)]++;
     votes[evaluate_tree_5(features)]++;
     votes[evaluate_tree_6(features)]++;
+    votes[evaluate_tree_7(features)]++;
 
     int max_votes = -1;
     int best_class = 0;
