@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+*.hex
+*.bin
+*.elf
+
+# Environment & local configurations
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Editor & OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Large dataset archives (keep generated CSVs or small test fixtures only)
+*.zip
+*.tar.gz
+*.rar
+*.7z
