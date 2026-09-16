@@ -31,7 +31,7 @@ import HistoricalTrends from './components/HistoricalTrends.jsx';
 import FallGuardMobile from './components/FallGuardMobile.jsx';
 
 import { simulator } from './services/simulator.js';
-import { firebaseService } from './services/firebase.js';
+import { supabaseService } from './services/supabase.js';
 import { nativeBridge } from './services/native.js';
 
 export default function App() {
@@ -41,13 +41,15 @@ export default function App() {
   const [simMode, setSimMode] = useState('WALKING');
   const [telemetry, setTelemetry] = useState(() => simulator.generateSample());
   const [fallModalOpen, setFallModalOpen] = useState(false);
+  const [supabaseReady, setSupabaseReady] = useState(() => supabaseService.isConfigured());
 
   // Initialize Native Bridge (Capacitor status bar & haptics)
   useEffect(() => {
     nativeBridge.init();
+    setSupabaseReady(supabaseService.isConfigured());
   }, []);
 
-  // Subscribe to telemetry stream
+  // Subscribe to telemetry stream (Simulator or Supabase Realtime)
   useEffect(() => {
     let unsubscribe;
 
@@ -61,20 +63,29 @@ export default function App() {
         }
       });
     } else {
-      firebaseService.connect();
-      unsubscribe = firebaseService.subscribe((data) => {
-        setTelemetry(data);
-        if (data.fallAlert && !fallModalOpen) {
-          nativeBridge.triggerEmergencyVibration();
-          setFallModalOpen(true);
-        }
-      });
+      if (supabaseService.isConfigured()) {
+        supabaseService.connectRealtime();
+        unsubscribe = supabaseService.subscribeTelemetry((data) => {
+          setTelemetry(data);
+          if (data.fallAlert && !fallModalOpen) {
+            nativeBridge.triggerEmergencyVibration();
+            setFallModalOpen(true);
+          }
+        });
+        // Initial fetch
+        supabaseService.fetchLatestTelemetry().then((latest) => {
+          if (latest) setTelemetry(latest);
+        });
+      } else {
+        // Fallback if key is not yet set in .env
+        setUseSimulator(true);
+      }
     }
 
     return () => {
       if (unsubscribe) unsubscribe();
       if (useSimulator) simulator.stop();
-      else firebaseService.disconnect();
+      else supabaseService.disconnectRealtime();
     };
   }, [useSimulator]);
 
