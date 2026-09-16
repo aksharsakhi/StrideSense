@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Move3d, ShieldAlert } from 'lucide-react';
+import { Compass, Move3d, ShieldAlert, Gauge } from 'lucide-react';
 
 export default function MotionVisualizer({ imu = {} }) {
   const ax = imu.ax || 0;
@@ -12,121 +12,135 @@ export default function MotionVisualizer({ imu = {} }) {
   const roll = imu.roll || 0;
   const svmA = imu.svmA || 1.0;
 
-  // Threshold flags
   const isFreeFall = svmA < 0.6;
   const isHighImpact = svmA > 2.8;
 
+  const gBarColor = isHighImpact ? 'from-rose-500 to-red-500' : (isFreeFall ? 'from-amber-400 to-amber-500' : 'from-cyan-500 to-emerald-400');
+  const gTextColor = isHighImpact ? 'text-rose-400' : (isFreeFall ? 'text-amber-400' : 'text-cyan-400');
+
   return (
-    <div className="glass-panel p-6 flex flex-col justify-between h-full">
+    <div className="glass-panel p-5 animate-fade-in-scale">
+      {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold font-display text-white tracking-wide">Kinematics & IMU</h2>
-            <span className="badge badge-cyan text-xs">MPU-6050</span>
+            <h2 className="text-lg font-bold font-display text-white tracking-wide">IMU Kinematics</h2>
+            <span className="badge badge-cyan text-[9px]">MPU-6050</span>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">6-DOF spatial acceleration & gyroscopic orientation</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">6-DOF spatial acceleration & gyroscopic orientation</p>
         </div>
-        <span className="badge badge-emerald text-xs flex items-center gap-1">
-          <Compass className="w-3.5 h-3.5" />
+        <span className="badge badge-emerald text-[9px]">
+          <Compass className="w-3 h-3" />
           ±8g / ±1000°/s
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-auto">
-        {/* Foot Pitch & Roll Horizon Sphere */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden">
-          <span className="text-xs font-semibold text-slate-400 absolute top-3 left-3 flex items-center gap-1">
-            <Move3d className="w-3.5 h-3.5 text-cyan-400" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Attitude Sphere */}
+        <div className="metric-card flex flex-col items-center justify-center relative">
+          <span className="absolute top-3 left-3 text-[10px] font-semibold text-slate-500 flex items-center gap-1">
+            <Move3d className="w-3 h-3 text-cyan-400" />
             Foot Attitude
           </span>
 
-          <div className="relative w-32 h-32 rounded-full border-2 border-slate-700/80 bg-slate-950 flex items-center justify-center my-3 overflow-hidden shadow-inner">
-            {/* Pitch / Roll Animated Horizon Line */}
+          <div className="relative w-[120px] h-[120px] rounded-full border-2 border-slate-700/60 bg-gradient-to-b from-slate-900 to-slate-950 flex items-center justify-center my-4 overflow-hidden shadow-inner">
+            {/* Grid lines */}
+            <div className="absolute w-full h-[1px] bg-slate-700/40" />
+            <div className="absolute w-[1px] h-full bg-slate-700/40" />
+
+            {/* Horizon line */}
             <div
-              className="absolute w-44 h-0.5 bg-cyan-400/80 transition-transform duration-100 ease-out"
+              className="absolute w-[140px] h-[2px] rounded-full transition-transform duration-100 ease-out"
               style={{
-                transform: `rotate(${roll}deg) translateY(${pitch * 0.8}px)`,
-                boxShadow: '0 0 10px rgba(0, 229, 255, 0.8)'
+                transform: `rotate(${roll}deg) translateY(${pitch * 0.7}px)`,
+                background: 'linear-gradient(90deg, transparent, #00e5ff, transparent)',
+                boxShadow: '0 0 12px rgba(0, 229, 255, 0.6)'
               }}
             />
-            {/* Center crosshair */}
-            <div className="w-2.5 h-2.5 rounded-full border border-white/60 bg-cyan-400/40 z-10" />
-            <div className="absolute top-1 text-[9px] font-mono text-slate-500">0°</div>
-            <div className="absolute bottom-1 text-[9px] font-mono text-slate-500">180°</div>
+
+            {/* Center dot */}
+            <div className="w-2.5 h-2.5 rounded-full border border-white/50 bg-cyan-400/50 z-10 shadow-glow-cyan" />
+
+            {/* Cardinal labels */}
+            <span className="absolute top-1.5 text-[8px] font-mono text-slate-600">0°</span>
+            <span className="absolute bottom-1.5 text-[8px] font-mono text-slate-600">180°</span>
+            <span className="absolute left-2 text-[8px] font-mono text-slate-600">L</span>
+            <span className="absolute right-2 text-[8px] font-mono text-slate-600">R</span>
           </div>
 
-          <div className="flex justify-around w-full text-xs font-mono mt-1">
+          <div className="flex justify-around w-full text-xs font-mono">
             <div className="text-center">
-              <span className="text-slate-500 block text-[10px]">Pitch</span>
+              <span className="text-slate-600 block text-[9px]">Pitch</span>
               <span className="text-white font-bold">{pitch > 0 ? `+${pitch}` : pitch}°</span>
             </div>
+            <div className="w-px bg-slate-800 mx-2" />
             <div className="text-center">
-              <span className="text-slate-500 block text-[10px]">Roll</span>
+              <span className="text-slate-600 block text-[9px]">Roll</span>
               <span className="text-white font-bold">{roll > 0 ? `+${roll}` : roll}°</span>
             </div>
           </div>
         </div>
 
-        {/* Signal Vector Magnitude & G-Force Meter */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+        {/* G-Force Meter */}
+        <div className="metric-card flex flex-col justify-between">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold text-slate-400 flex items-center gap-1">
-              <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
+              <Gauge className="w-3 h-3 text-amber-400" />
               Impact Shock (SVM)
             </span>
-            <span className="font-mono text-xs text-slate-400">
-              <span className={`font-bold ${isHighImpact ? 'text-rose-400' : (isFreeFall ? 'text-amber-400' : 'text-cyan-400')}`}>
-                {svmA.toFixed(2)}
-              </span> g
+            <span className={`font-mono text-sm font-bold ${gTextColor}`}>
+              {svmA.toFixed(2)}<span className="text-slate-500 font-normal text-[10px]">g</span>
             </span>
           </div>
 
-          {/* G-Force Level Bar with threshold marks */}
-          <div className="my-3">
-            <div className="relative w-full bg-slate-800 rounded-full h-3 overflow-hidden">
+          {/* G-Force bar */}
+          <div className="my-4">
+            <div className="relative w-full bg-slate-800/70 rounded-full h-3 overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-100 ${
-                  isHighImpact ? 'bg-rose-500 shadow-glow-rose' : (isFreeFall ? 'bg-amber-400' : 'bg-cyan-500')
-                }`}
+                className={`bg-gradient-to-r ${gBarColor} h-full rounded-full transition-all duration-150`}
                 style={{ width: `${Math.min(100, (svmA / 4.5) * 100)}%` }}
               />
-              {/* Threshold Indicators */}
-              <div className="absolute top-0 bottom-0 left-[13%] w-0.5 bg-amber-400/70" title="Free fall (<0.6g)" />
-              <div className="absolute top-0 bottom-0 left-[62%] w-0.5 bg-rose-500/70" title="Impact Shock (>2.8g)" />
+              {/* Threshold markers */}
+              <div className="absolute top-0 bottom-0 left-[13.3%] w-px bg-amber-400/60" />
+              <div className="absolute top-0 bottom-0 left-[62.2%] w-px bg-rose-500/60" />
             </div>
-            <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-1">
+            <div className="flex justify-between text-[9px] text-slate-600 font-mono mt-1.5">
               <span>0g</span>
-              <span className="text-amber-400">0.6g (Free-fall)</span>
-              <span className="text-rose-400">2.8g (Impact)</span>
+              <span className="text-amber-400/80">0.6g</span>
+              <span className="text-rose-400/80">2.8g</span>
               <span>4.5g</span>
             </div>
           </div>
 
-          {/* Triaxial Raw Values */}
-          <div className="grid grid-cols-3 gap-1 text-[11px] font-mono pt-2 border-t border-slate-800/80 text-center">
-            <div>
-              <span className="text-slate-500 block text-[9px]">Ax</span>
-              <span className="text-slate-300">{ax.toFixed(2)}g</span>
-            </div>
-            <div>
-              <span className="text-slate-500 block text-[9px]">Ay</span>
-              <span className="text-slate-300">{ay.toFixed(2)}g</span>
-            </div>
-            <div>
-              <span className="text-slate-500 block text-[9px]">Az</span>
-              <span className="text-slate-300">{az.toFixed(2)}g</span>
-            </div>
+          {/* Triaxial raw values */}
+          <div className="grid grid-cols-3 gap-1 text-[10px] font-mono pt-2.5 border-t border-white/[0.05] text-center">
+            {[
+              { label: 'Ax', val: ax },
+              { label: 'Ay', val: ay },
+              { label: 'Az', val: az }
+            ].map((axis) => (
+              <div key={axis.label}>
+                <span className="text-slate-600 block text-[8px]">{axis.label}</span>
+                <span className="text-slate-300 font-semibold">{axis.val.toFixed(2)}g</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Gyroscope Rates Footer */}
-      <div className="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs font-mono text-slate-400">
-        <span>Angular Velocity:</span>
-        <div className="flex gap-4">
-          <span>Gx: <span className="text-slate-200">{gx > 0 ? `+${gx}` : gx}°/s</span></span>
-          <span>Gy: <span className="text-slate-200">{gy > 0 ? `+${gy}` : gy}°/s</span></span>
-          <span>Gz: <span className="text-slate-200">{gz > 0 ? `+${gz}` : gz}°/s</span></span>
+      {/* Gyroscope Footer */}
+      <div className="mt-3.5 pt-3 border-t border-white/[0.05] flex flex-wrap justify-between items-center text-[10px] font-mono text-slate-500">
+        <span className="font-semibold text-slate-400">Angular Velocity:</span>
+        <div className="flex gap-3">
+          {[
+            { label: 'Gx', val: gx },
+            { label: 'Gy', val: gy },
+            { label: 'Gz', val: gz }
+          ].map((g) => (
+            <span key={g.label}>
+              {g.label}: <span className="text-slate-300">{g.val > 0 ? `+${g.val}` : g.val}°/s</span>
+            </span>
+          ))}
         </div>
       </div>
     </div>
