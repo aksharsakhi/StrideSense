@@ -1,0 +1,19 @@
+{
+  "appId": "com.stridesense.app",
+  "appName": "StrideSense",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#080c14"
+    },
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#080c14",
+      "showSpinner": false
+    }
+  }
+}

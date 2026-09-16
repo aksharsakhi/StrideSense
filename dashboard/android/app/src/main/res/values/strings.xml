@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">StrideSense</string>
+    <string name="title_activity_main">StrideSense</string>
+    <string name="package_name">com.stridesense.app</string>
+    <string name="custom_url_scheme">com.stridesense.app</string>
+</resources>

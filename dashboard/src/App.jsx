@@ -13,7 +13,12 @@ import {
   RotateCcw,
   Layers,
   HeartPulse,
-  Battery
+  Battery,
+  ShieldAlert,
+  Sliders,
+  Flame,
+  UserCheck,
+  Armchair
 } from 'lucide-react';
 
 import FootHeatmap from './components/FootHeatmap.jsx';
@@ -23,26 +28,35 @@ import MotionVisualizer from './components/MotionVisualizer.jsx';
 import FallAlertModal from './components/FallAlertModal.jsx';
 import DeviceStatus from './components/DeviceStatus.jsx';
 import HistoricalTrends from './components/HistoricalTrends.jsx';
+import FallGuardMobile from './components/FallGuardMobile.jsx';
 
 import { simulator } from './services/simulator.js';
 import { firebaseService } from './services/firebase.js';
+import { nativeBridge } from './services/native.js';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('live'); // 'live', 'history', 'device'
+  // Mobile & Desktop Navigation Tabs: 'heatmap', 'gait', 'motion', 'safety', 'settings'
+  const [activeTab, setActiveTab] = useState('heatmap');
   const [useSimulator, setUseSimulator] = useState(true);
   const [simMode, setSimMode] = useState('WALKING');
   const [telemetry, setTelemetry] = useState(() => simulator.generateSample());
   const [fallModalOpen, setFallModalOpen] = useState(false);
 
-  // Subscribe to telemetry stream (Simulator or Firebase)
+  // Initialize Native Bridge (Capacitor status bar & haptics)
+  useEffect(() => {
+    nativeBridge.init();
+  }, []);
+
+  // Subscribe to telemetry stream
   useEffect(() => {
     let unsubscribe;
 
     if (useSimulator) {
-      simulator.start(40); // 25 fps UI update matching 50 Hz sensor sampling
+      simulator.start(40);
       unsubscribe = simulator.subscribe((data) => {
         setTelemetry(data);
         if (data.fallAlert && !fallModalOpen) {
+          nativeBridge.triggerEmergencyVibration();
           setFallModalOpen(true);
         }
       });
@@ -51,6 +65,7 @@ export default function App() {
       unsubscribe = firebaseService.subscribe((data) => {
         setTelemetry(data);
         if (data.fallAlert && !fallModalOpen) {
+          nativeBridge.triggerEmergencyVibration();
           setFallModalOpen(true);
         }
       });
@@ -63,15 +78,23 @@ export default function App() {
     };
   }, [useSimulator]);
 
+  const handleTabChange = (tab) => {
+    nativeBridge.impactLight();
+    setActiveTab(tab);
+  };
+
   const handleSimModeChange = (mode) => {
+    nativeBridge.impactMedium();
     setSimMode(mode);
     simulator.setMode(mode);
     if (mode === 'FALL') {
+      nativeBridge.triggerEmergencyVibration();
       setFallModalOpen(true);
     }
   };
 
   const handleCancelFall = () => {
+    nativeBridge.impactMedium();
     setFallModalOpen(false);
     simulator.cancelFall();
     setSimMode('STANDING');
@@ -79,117 +102,122 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-cyan-500 selection:text-black">
-      {/* Fall Alert Emergency Modal */}
+      {/* High-Priority Emergency Fall Modal */}
       <FallAlertModal
         isOpen={fallModalOpen}
         onCancel={handleCancelFall}
         initialSeconds={15}
       />
 
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 px-4 lg:px-8 py-3.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Brand Logo & Tagline */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-emerald-400 p-0.5 shadow-lg shadow-cyan-500/20">
-              <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                <Footprints className="w-5 h-5 text-cyan-400" />
+      {/* Top Mobile & Desktop App Header (Safe-Area Insets for iOS & Android) */}
+      <header className="sticky top-0 z-40 bg-slate-950/85 backdrop-blur-xl border-b border-slate-800/80 px-4 lg:px-8 py-3 mobile-header-safe">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          {/* Brand Logo & Telemetry Pill */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-400 p-0.5 shadow-md shadow-cyan-500/20">
+              <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                <Footprints className="w-4.5 h-4.5 text-cyan-400" />
               </div>
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-extrabold font-display tracking-tight text-white">Stride<span className="text-cyan-400">Sense</span></span>
-                <span className="badge badge-cyan text-[10px] hidden sm:inline-flex">AI Smart Insole</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-extrabold font-display tracking-tight text-white">
+                  Stride<span className="text-cyan-400">Sense</span>
+                </span>
+                <span className="badge badge-cyan text-[9px] py-0.5 px-2">MOBILE AI</span>
               </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">Edge TinyML Gait Analysis & Fall Detection</p>
+              <p className="text-[10px] text-slate-400 hidden sm:block">Smart Insole Biomechanics & Fall Shield</p>
             </div>
           </div>
 
           {/* Desktop Navigation Tabs */}
           <nav className="hidden md:flex items-center gap-1 bg-slate-900/90 border border-slate-800 p-1 rounded-2xl">
-            <button
-              onClick={() => setActiveTab('live')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                activeTab === 'live' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Live Telemetry
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                activeTab === 'history' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Historical Trends
-            </button>
-            <button
-              onClick={() => setActiveTab('device')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                activeTab === 'device' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Hardware & Specs
-            </button>
+            {[
+              { id: 'heatmap', label: 'Heatmap' },
+              { id: 'gait', label: 'Gait Analytics' },
+              { id: 'motion', label: 'IMU Motion' },
+              { id: 'safety', label: 'Fall Guard' },
+              { id: 'settings', label: 'Device & Specs' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </nav>
 
-          {/* Right Status Actions */}
-          <div className="flex items-center gap-3">
-            {/* Stream Mode Switcher */}
-            <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-2xl p-1 text-xs">
-              <button
-                onClick={() => setUseSimulator(true)}
-                className={`px-3 py-1.5 rounded-xl font-semibold transition-all flex items-center gap-1.5 ${
-                  useSimulator ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-black shadow-md' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Radio className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Simulator</span>
-              </button>
-              <button
-                onClick={() => setUseSimulator(false)}
-                className={`px-3 py-1.5 rounded-xl font-semibold transition-all flex items-center gap-1.5 ${
-                  !useSimulator ? 'bg-gradient-to-r from-emerald-500 to-cyan-400 text-black shadow-md' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Hardware Wi-Fi</span>
-              </button>
+          {/* Right Status Badges & SOS */}
+          <div className="flex items-center gap-2">
+            {/* Battery Indicator */}
+            <div className="flex items-center gap-1.5 bg-slate-900/80 border border-slate-800 px-2.5 py-1 rounded-xl text-xs font-mono">
+              <Battery className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-white font-bold">{telemetry.batteryPct}%</span>
             </div>
 
-            {/* Quick Emergency SOS Button */}
+            {/* Mode Switcher */}
+            <button
+              onClick={() => {
+                nativeBridge.impactLight();
+                setUseSimulator(!useSimulator);
+              }}
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold border flex items-center gap-1 transition-all ${
+                useSimulator
+                  ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-400'
+                  : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
+              }`}
+              title="Toggle Hardware Link vs In-App Simulator"
+            >
+              <Radio className="w-3 h-3" />
+              <span>{useSimulator ? 'SIM' : 'Wi-Fi'}</span>
+            </button>
+
+            {/* Instant Panic / Fall Test */}
             <button
               onClick={() => handleSimModeChange('FALL')}
-              className="p-2.5 sm:px-3 sm:py-2 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-400 font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95"
-              title="Trigger Emergency Fall Test"
+              className="p-1.5 sm:px-3 sm:py-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-400 font-bold text-xs flex items-center gap-1 active-press"
+              title="Simulate Fall"
             >
               <AlertTriangle className="w-4 h-4 text-rose-400" />
-              <span className="hidden lg:inline">TEST FALL</span>
+              <span className="hidden sm:inline">SOS</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Simulator Quick Action Toolbar */}
+      {/* Simulator Action Ribbon */}
       {useSimulator && (
         <div className="bg-slate-900/40 border-b border-slate-800/60 px-4 py-2">
-          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
-            <span className="text-slate-400 flex items-center gap-1.5">
-              <Play className="w-3.5 h-3.5 text-cyan-400" />
-              Biomechanical Simulator Preset:
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar text-xs">
+            <span className="text-slate-400 flex items-center gap-1 text-[11px] whitespace-nowrap">
+              <Play className="w-3 h-3 text-cyan-400" />
+              Activity:
             </span>
-            <div className="flex flex-wrap items-center gap-2">
-              {['STANDING', 'WALKING', 'RUNNING', 'SITTING', 'FALL'].map((mode) => (
+            <div className="flex items-center gap-1.5">
+              {[
+                { mode: 'STANDING', icon: UserCheck, label: 'Stand' },
+                { mode: 'WALKING', icon: Footprints, label: 'Walk' },
+                { mode: 'RUNNING', icon: Flame, label: 'Run' },
+                { mode: 'SITTING', icon: Armchair, label: 'Sit' },
+                { mode: 'FALL', icon: AlertTriangle, label: 'Fall' }
+              ].map(({ mode, icon: Icon, label }) => (
                 <button
                   key={mode}
                   onClick={() => handleSimModeChange(mode)}
-                  className={`px-3 py-1 rounded-xl font-semibold uppercase tracking-wider text-[11px] transition-all ${
+                  className={`px-2.5 py-1 rounded-lg font-semibold text-[11px] flex items-center gap-1 active-press transition-all whitespace-nowrap ${
                     simMode === mode
                       ? (mode === 'FALL' ? 'bg-rose-500 text-white shadow-glow-rose' : 'bg-cyan-400 text-black shadow-glow-cyan')
                       : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
-                  {mode}
+                  <Icon className="w-3 h-3" />
+                  {label}
                 </button>
               ))}
             </div>
@@ -197,58 +225,53 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6">
-        {activeTab === 'live' && (
-          <div className="flex flex-col gap-6 animate-fade-in">
-            {/* Top Row: Activity Card & Gait Metrics */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-4">
-                <ActivityCard
-                  activity={telemetry.activity}
-                  confidence={telemetry.confidence}
-                />
-              </div>
-              <div className="lg:col-span-8">
-                <GaitMetrics
-                  steps={telemetry.steps}
-                  cadence={telemetry.cadence}
-                  symmetry={telemetry.symmetry}
-                  activity={telemetry.activity}
-                />
-              </div>
-            </div>
-
-            {/* Middle Row: Plantar Heatmap & IMU Kinematics */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-7">
-                <FootHeatmap sensors={telemetry.sensors} />
-              </div>
-              <div className="lg:col-span-5">
-                <MotionVisualizer imu={telemetry.imu} />
-              </div>
-            </div>
-
-            {/* Bottom Row: Hardware Telemetry */}
-            <div>
-              <DeviceStatus
-                batteryPct={telemetry.batteryPct}
-                batteryVoltage={telemetry.batteryVoltage}
-                isCloudConnected={!useSimulator}
-                isSimulated={useSimulator}
-              />
-            </div>
+      {/* Main Tab Content */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-5">
+        {activeTab === 'heatmap' && (
+          <div className="flex flex-col gap-5 animate-fade-in">
+            {/* Top Activity Summary */}
+            <ActivityCard
+              activity={telemetry.activity}
+              confidence={telemetry.confidence}
+            />
+            {/* Plantar Pressure Heatmap */}
+            <FootHeatmap sensors={telemetry.sensors} />
           </div>
         )}
 
-        {activeTab === 'history' && (
-          <div className="animate-fade-in">
+        {activeTab === 'gait' && (
+          <div className="flex flex-col gap-5 animate-fade-in">
+            <GaitMetrics
+              steps={telemetry.steps}
+              cadence={telemetry.cadence}
+              symmetry={telemetry.symmetry}
+              activity={telemetry.activity}
+            />
             <HistoricalTrends />
           </div>
         )}
 
-        {activeTab === 'device' && (
-          <div className="flex flex-col gap-6 animate-fade-in">
+        {activeTab === 'motion' && (
+          <div className="flex flex-col gap-5 animate-fade-in">
+            <MotionVisualizer imu={telemetry.imu} />
+            <ActivityCard
+              activity={telemetry.activity}
+              confidence={telemetry.confidence}
+            />
+          </div>
+        )}
+
+        {activeTab === 'safety' && (
+          <div className="animate-fade-in">
+            <FallGuardMobile
+              onTriggerFall={() => handleSimModeChange('FALL')}
+              isFallActive={telemetry.fallAlert}
+            />
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="flex flex-col gap-5 animate-fade-in">
             <DeviceStatus
               batteryPct={telemetry.batteryPct}
               batteryVoltage={telemetry.batteryVoltage}
@@ -256,111 +279,68 @@ export default function App() {
               isSimulated={useSimulator}
             />
 
-            {/* Hardware BOM & Pinout Summary */}
-            <div className="glass-panel p-6">
-              <h2 className="text-xl font-bold font-display text-white mb-4">Prototype Pinout & Circuit Schematic</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-800 text-slate-400">
-                      <th className="py-2.5 px-3">Peripheral</th>
-                      <th className="py-2.5 px-3">ESP32 Pin</th>
-                      <th className="py-2.5 px-3">Protocol</th>
-                      <th className="py-2.5 px-3">Biomechanical Role</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono text-slate-300">
-                    <tr>
-                      <td className="py-2.5 px-3 font-semibold text-white">S1 (Heel FSR)</td>
-                      <td className="py-2.5 px-3 text-cyan-400">GPIO 36 (VP)</td>
-                      <td className="py-2.5 px-3">ADC1_CH0</td>
-                      <td className="py-2.5 px-3">Initial heel strike contact force</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2.5 px-3 font-semibold text-white">S2 (Midfoot Lateral)</td>
-                      <td className="py-2.5 px-3 text-cyan-400">GPIO 39 (VN)</td>
-                      <td className="py-2.5 px-3">ADC1_CH3</td>
-                      <td className="py-2.5 px-3">Lateral arch support & roll stability</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2.5 px-3 font-semibold text-white">S3 (Midfoot Medial)</td>
-                      <td className="py-2.5 px-3 text-cyan-400">GPIO 34</td>
-                      <td className="py-2.5 px-3">ADC1_CH6</td>
-                      <td className="py-2.5 px-3">Medial longitudinal arch compression</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2.5 px-3 font-semibold text-white">S4 (Forefoot Lateral)</td>
-                      <td className="py-2.5 px-3 text-cyan-400">GPIO 35</td>
-                      <td className="py-2.5 px-3">ADC1_CH7</td>
-                      <td className="py-2.5 px-3">4th-5th Metatarsal weight transfer</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2.5 px-3 font-semibold text-white">S5 (Forefoot Medial)</td>
-                      <td className="py-2.5 px-3 text-cyan-400">GPIO 32</td>
-                      <td className="py-2.5 px-3">ADC1_CH4</td>
-                      <td className="py-2.5 px-3">1st Metatarsal (Ball) primary propulsion</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2.5 px-3 font-semibold text-white">S6 (Hallux / Toe)</td>
-                      <td className="py-2.5 px-3 text-cyan-400">GPIO 33</td>
-                      <td className="py-2.5 px-3">ADC1_CH5</td>
-                      <td className="py-2.5 px-3">Terminal stance toe-off timing</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2.5 px-3 font-semibold text-white">MPU-6050 IMU</td>
-                      <td className="py-2.5 px-3 text-emerald-400">GPIO 21 (SDA), 22 (SCL)</td>
-                      <td className="py-2.5 px-3">I2C (400 kHz)</td>
-                      <td className="py-2.5 px-3">3D Linear Accel + 3D Gyroscopic Angular Rate</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2.5 px-3 font-semibold text-white">SOS / Cancel Button</td>
-                      <td className="py-2.5 px-3 text-amber-400">GPIO 14</td>
-                      <td className="py-2.5 px-3">GPIO (Pull-up)</td>
-                      <td className="py-2.5 px-3">15s Fall cancel & emergency alert trigger</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2.5 px-3 font-semibold text-white">Haptic Motor / Buzzer</td>
-                      <td className="py-2.5 px-3 text-purple-400">GPIO 12</td>
-                      <td className="py-2.5 px-3">GPIO / PWM</td>
-                      <td className="py-2.5 px-3">Haptic confirmation pulses on fall anomaly</td>
-                    </tr>
-                  </tbody>
-                </table>
+            {/* Mobile Architecture Specs */}
+            <div className="glass-panel p-5">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">
+                Mobile & Embedded Stack
+              </h3>
+              <div className="space-y-2 text-xs text-slate-300">
+                <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
+                  <span className="text-slate-500">Framework</span>
+                  <span className="font-mono text-cyan-400 font-semibold">Capacitor 6 + React 19</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
+                  <span className="text-slate-500">Target Platforms</span>
+                  <span className="font-mono text-white font-semibold">Android (APK) / iOS (IPA) / Web</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
+                  <span className="text-slate-500">Haptics Engine</span>
+                  <span className="font-mono text-emerald-400 font-semibold">@capacitor/haptics</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
+                  <span className="text-slate-500">Microcontroller</span>
+                  <span className="font-mono text-white font-semibold">ESP32 240 MHz Tensilica</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Edge TinyML Latency</span>
+                  <span className="font-mono text-cyan-400 font-semibold">&lt; 0.27 us (Zero-heap C)</span>
+                </div>
               </div>
             </div>
           </div>
         )}
       </main>
 
-      {/* Mobile Bottom Navigation Bar (iOS & Android thumb-friendly) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 px-6 py-2.5 flex items-center justify-around text-xs">
-        <button
-          onClick={() => setActiveTab('live')}
-          className={`flex flex-col items-center gap-1 py-1 transition-colors ${
-            activeTab === 'live' ? 'text-cyan-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Activity className="w-5 h-5" />
-          <span>Live</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`flex flex-col items-center gap-1 py-1 transition-colors ${
-            activeTab === 'history' ? 'text-cyan-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Layers className="w-5 h-5" />
-          <span>History</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('device')}
-          className={`flex flex-col items-center gap-1 py-1 transition-colors ${
-            activeTab === 'device' ? 'text-cyan-400 font-bold' : 'text-slate-400'
-          }`}
-        >
-          <Cpu className="w-5 h-5" />
-          <span>Hardware</span>
-        </button>
+      {/* Native Mobile Bottom Navigation Bar (iOS & Android) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-2xl border-t border-slate-800/80 px-4 py-2 flex items-center justify-around text-[10px] mobile-bottom-safe shadow-2xl">
+        {[
+          { id: 'heatmap', label: 'Heatmap', icon: Footprints },
+          { id: 'gait', label: 'Gait', icon: Activity },
+          { id: 'motion', label: 'Motion', icon: Compass },
+          { id: 'safety', label: 'Fall Guard', icon: ShieldAlert },
+          { id: 'settings', label: 'Settings', icon: Sliders }
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => handleTabChange(item.id)}
+              className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all active-press ${
+                isActive ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <div
+                className={`p-1 rounded-lg transition-all ${
+                  isActive ? 'bg-cyan-500/20 text-cyan-400 shadow-glow-cyan' : ''
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+              </div>
+              <span className="tracking-tight">{item.label}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

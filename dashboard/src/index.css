@@ -185,9 +185,39 @@ button {
   animation: fadeIn var(--transition-normal) forwards;
 }
 
-/* Mobile Safe Spacing */
+/* Mobile Safe Spacing & Native App Enhancements */
 @media (max-width: 768px) {
   body {
-    padding-bottom: calc(75px + var(--safe-bottom));
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: calc(85px + var(--safe-bottom));
+    user-select: none;
+    -webkit-user-select: none;
   }
+
+  .mobile-header-safe {
+    padding-top: max(12px, env(safe-area-inset-top, 12px));
+  }
+
+  .mobile-bottom-safe {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  }
+}
+
+/* Touch optimization */
+button, a, input, select {
+  touch-action: manipulation;
+}
+
+.active-press:active {
+  transform: scale(0.96);
+  transition: transform 0.1s ease;
+}
+
+/* Native Mobile Scroll Snapping */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
