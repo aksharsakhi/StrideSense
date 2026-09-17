@@ -4,6 +4,7 @@
  */
 
 #include "sensors.h"
+#include <Wire.h>
 #include <math.h>
 
 SensorsManager Sensors;

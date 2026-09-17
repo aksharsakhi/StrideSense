@@ -8,7 +8,6 @@
 
 #include <Arduino.h>
 #include <stdint.h>
-#include <Wire.h>
 #include "config.h"
 
 struct SensorSample {
