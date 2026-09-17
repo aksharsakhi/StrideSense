@@ -5,11 +5,11 @@ import { Sparkles } from 'lucide-react';
  * Returns dynamic color based on normalized pressure (0.0 to 1.0)
  */
 function getPressureColor(val) {
-  if (val < 0.05) return 'rgba(100, 116, 139, 0.35)'; // Idle / Translucent
-  if (val < 0.25) return 'rgba(0, 229, 255, 0.9)'; // Cyan
-  if (val < 0.55) return 'rgba(16, 185, 129, 0.92)'; // Emerald
-  if (val < 0.80) return 'rgba(245, 158, 11, 0.95)'; // Amber
-  return 'rgba(244, 63, 94, 1.0)'; // Crimson (High impact)
+  if (val < 0.05) return 'rgba(148, 163, 184, 0.25)'; // Idle / Translucent
+  if (val < 0.25) return '#00e5ff'; // Cyan
+  if (val < 0.55) return '#10b981'; // Emerald
+  if (val < 0.80) return '#f59e0b'; // Amber
+  return '#f43f5e'; // Crimson (High impact)
 }
 
 function getGlowStyle(val) {
@@ -22,11 +22,11 @@ function getGlowStyle(val) {
 export default function FootHeatmap({ sensors = {} }) {
   const [hardwareMode, setHardwareMode] = useState('2_FSR');
 
-  const p1 = sensors.p1 || 0; // Heel FSR (Ordered)
+  const p1 = sensors.p1 || 0;
   const p2 = sensors.p2 || 0;
   const p3 = sensors.p3 || 0;
   const p4 = sensors.p4 || 0;
-  const p5 = sensors.p5 || (sensors.p4 ? Math.round((sensors.p4 + sensors.p5) / 2) : 0); // Forefoot FSR (Ordered)
+  const p5 = sensors.p5 || (sensors.p4 ? Math.round((sensors.p4 + sensors.p5) / 2) : 0);
   const p6 = sensors.p6 || 0;
 
   // Normalize 12-bit ADC (0 - 4095)
@@ -45,8 +45,8 @@ export default function FootHeatmap({ sensors = {} }) {
 
   // 2 Square FSRs (Matching Hardware Ordered)
   const dualFsrNodes = [
-    { id: 'FSR 2', name: 'Square Forefoot FSR', role: 'Midstance Loading & Propulsion', raw: (p5 || p4), norm: nForefoot, x: 65, y: 95, w: 70, h: 65, rx: 12 },
-    { id: 'FSR 1', name: 'Square Heel FSR', role: 'Initial Contact & Heel Strike Shock', raw: p1, norm: nHeel, x: 65, y: 275, w: 70, h: 65, rx: 12 }
+    { id: 'FSR 2', name: 'Square Forefoot FSR', role: 'Propulsion & Loading', raw: (p5 || p4), norm: nForefoot, x: 65, y: 95, w: 70, h: 65, rx: 12 },
+    { id: 'FSR 1', name: 'Square Heel FSR', role: 'Initial Heel Strike Shock', raw: p1, norm: nHeel, x: 65, y: 275, w: 70, h: 65, rx: 12 }
   ];
 
   // Full 6 FSR Nodes
@@ -120,11 +120,16 @@ export default function FootHeatmap({ sensors = {} }) {
         <div className="md:col-span-6 flex justify-center relative py-2">
           <svg
             viewBox="0 0 200 420"
-            className="w-48 sm:w-56 h-auto drop-shadow-2xl select-none"
-            style={{ filter: 'drop-shadow(0 15px 30px rgba(0, 229, 255, 0.18))' }}
+            className="w-48 sm:w-56 h-auto insole-svg-filter select-none"
           >
             <defs>
-              <linearGradient id="insoleOutline" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id="insoleOutlineLight" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#f1f5f9" />
+                <stop offset="50%" stopColor="#e2e8f0" />
+                <stop offset="100%" stopColor="#cbd5e1" />
+              </linearGradient>
+
+              <linearGradient id="insoleOutlineDark" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#1e293b" />
                 <stop offset="50%" stopColor="#0f172a" />
                 <stop offset="100%" stopColor="#080c14" />
@@ -154,8 +159,7 @@ export default function FootHeatmap({ sensors = {} }) {
                  C 62,285 62,255 55,225 
                  C 42,185 35,145 35,95 
                  C 35,45 55,15 98,15 Z"
-              fill="url(#insoleOutline)"
-              stroke="rgba(255, 255, 255, 0.25)"
+              className="insole-path transition-all duration-300"
               strokeWidth="2.5"
             />
 
@@ -163,7 +167,7 @@ export default function FootHeatmap({ sensors = {} }) {
             <path
               d="M 100,35 C 130,55 145,100 135,180 C 125,240 128,300 100,370"
               fill="none"
-              stroke="rgba(0, 229, 255, 0.25)"
+              className="insole-arch-guide"
               strokeDasharray="4,4"
               strokeWidth="1.5"
             />
@@ -171,96 +175,111 @@ export default function FootHeatmap({ sensors = {} }) {
             {/* Mode 1: 2x Square FSR Sensors */}
             {hardwareMode === '2_FSR' ? (
               <>
-                {dualFsrNodes.map((s) => (
-                  <g key={s.id} className="transition-all duration-150">
-                    <rect
-                      x={s.x - 10}
-                      y={s.y - 10}
-                      width={s.w + 20}
-                      height={s.h + 20}
-                      rx={s.rx + 6}
-                      fill={getPressureColor(s.norm)}
-                      opacity={s.norm > 0.05 ? 0.35 : 0.08}
-                      style={{ filter: 'blur(8px)' }}
-                    />
-                    <rect
-                      x={s.x}
-                      y={s.y}
-                      width={s.w}
-                      height={s.h}
-                      rx={s.rx}
-                      fill={getPressureColor(s.norm)}
-                      stroke="#ffffff"
-                      strokeWidth="2"
-                      strokeOpacity="0.75"
-                      style={{
-                        boxShadow: getGlowStyle(s.norm),
-                        transition: 'all 0.15s ease-out'
-                      }}
-                    />
-                    <text
-                      x={s.x + s.w / 2}
-                      y={s.y + s.h / 2 - 4}
-                      textAnchor="middle"
-                      fill="#ffffff"
-                      fontSize="12"
-                      fontWeight="bold"
-                      fontFamily="JetBrains Mono, monospace"
-                      className="select-none pointer-events-none"
-                    >
-                      {s.id}
-                    </text>
-                    <text
-                      x={s.x + s.w / 2}
-                      y={s.y + s.h / 2 + 12}
-                      textAnchor="middle"
-                      fill="#ffffff"
-                      fontSize="9"
-                      fontWeight="700"
-                      opacity="0.9"
-                      fontFamily="Inter, sans-serif"
-                      className="select-none pointer-events-none"
-                    >
-                      {Math.round(s.norm * 100)}%
-                    </text>
-                  </g>
-                ))}
+                {dualFsrNodes.map((s) => {
+                  const isActive = s.norm > 0.05;
+                  return (
+                    <g key={s.id} className="transition-all duration-150">
+                      {/* Aura */}
+                      <rect
+                        x={s.x - 10}
+                        y={s.y - 10}
+                        width={s.w + 20}
+                        height={s.h + 20}
+                        rx={s.rx + 6}
+                        fill={getPressureColor(s.norm)}
+                        opacity={isActive ? 0.4 : 0.05}
+                        style={{ filter: 'blur(8px)' }}
+                      />
+                      {/* Body */}
+                      <rect
+                        x={s.x}
+                        y={s.y}
+                        width={s.w}
+                        height={s.h}
+                        rx={s.rx}
+                        fill={getPressureColor(s.norm)}
+                        stroke={isActive ? '#ffffff' : 'rgba(148, 163, 184, 0.4)'}
+                        strokeWidth={isActive ? 2 : 1.5}
+                        strokeOpacity={isActive ? 0.9 : 0.4}
+                        style={{
+                          boxShadow: getGlowStyle(s.norm),
+                          transition: 'all 0.15s ease-out'
+                        }}
+                      />
+                      {/* Label */}
+                      <text
+                        x={s.x + s.w / 2}
+                        y={s.y + s.h / 2 - 4}
+                        textAnchor="middle"
+                        fontSize="12"
+                        fontWeight="bold"
+                        fontFamily="JetBrains Mono, monospace"
+                        className={`select-none pointer-events-none ${
+                          isActive ? 'fill-white' : 'fill-slate-700 dark:fill-slate-300'
+                        }`}
+                        style={{ filter: isActive ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' : 'none' }}
+                      >
+                        {s.id}
+                      </text>
+                      {/* Percentage */}
+                      <text
+                        x={s.x + s.w / 2}
+                        y={s.y + s.h / 2 + 12}
+                        textAnchor="middle"
+                        fontSize="10"
+                        fontWeight="700"
+                        fontFamily="Inter, sans-serif"
+                        className={`select-none pointer-events-none ${
+                          isActive ? 'fill-white' : 'fill-slate-600 dark:fill-slate-400'
+                        }`}
+                        style={{ filter: isActive ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' : 'none' }}
+                      >
+                        {Math.round(s.norm * 100)}%
+                      </text>
+                    </g>
+                  );
+                })}
               </>
             ) : (
               /* Mode 2: 6x FSR Sensor Array */
               <>
-                {fullSensorNodes.map((s) => (
-                  <g key={s.id} className="transition-all duration-150">
-                    <circle
-                      cx={s.cx}
-                      cy={s.cy}
-                      r={s.r * (1 + s.norm * 0.3)}
-                      fill={getPressureColor(s.norm)}
-                      style={{ filter: 'blur(5px)', opacity: s.norm > 0.05 ? 0.85 : 0.2 }}
-                    />
-                    <circle
-                      cx={s.cx}
-                      cy={s.cy}
-                      r={s.r * 0.75}
-                      fill={getPressureColor(s.norm)}
-                      stroke="#ffffff"
-                      strokeWidth="1.5"
-                      strokeOpacity="0.6"
-                    />
-                    <text
-                      x={s.cx}
-                      y={s.cy + 4}
-                      textAnchor="middle"
-                      fill="#ffffff"
-                      fontSize="10"
-                      fontWeight="bold"
-                      fontFamily="JetBrains Mono, monospace"
-                      className="select-none pointer-events-none"
-                    >
-                      {s.id}
-                    </text>
-                  </g>
-                ))}
+                {fullSensorNodes.map((s) => {
+                  const isActive = s.norm > 0.05;
+                  return (
+                    <g key={s.id} className="transition-all duration-150">
+                      <circle
+                        cx={s.cx}
+                        cy={s.cy}
+                        r={s.r * (1 + s.norm * 0.3)}
+                        fill={getPressureColor(s.norm)}
+                        style={{ filter: 'blur(5px)', opacity: isActive ? 0.85 : 0.2 }}
+                      />
+                      <circle
+                        cx={s.cx}
+                        cy={s.cy}
+                        r={s.r * 0.75}
+                        fill={getPressureColor(s.norm)}
+                        stroke={isActive ? '#ffffff' : 'rgba(148, 163, 184, 0.4)'}
+                        strokeWidth={isActive ? 1.5 : 1}
+                        strokeOpacity={isActive ? 0.8 : 0.4}
+                      />
+                      <text
+                        x={s.cx}
+                        y={s.cy + 4}
+                        textAnchor="middle"
+                        fontSize="10"
+                        fontWeight="bold"
+                        fontFamily="JetBrains Mono, monospace"
+                        className={`select-none pointer-events-none ${
+                          isActive ? 'fill-white' : 'fill-slate-700 dark:fill-slate-300'
+                        }`}
+                        style={{ filter: isActive ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' : 'none' }}
+                      >
+                        {s.id}
+                      </text>
+                    </g>
+                  );
+                })}
               </>
             )}
           </svg>

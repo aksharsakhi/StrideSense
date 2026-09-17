@@ -9,6 +9,7 @@
 
 /* ─── LIGHT THEME (Default) ─────────────────────────── */
 :root {
+  color-scheme: light;
   /* Core HSL / RGB Palette */
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
@@ -68,6 +69,7 @@
 
 /* ─── DARK THEME ────────────────────────────────────── */
 .dark {
+  color-scheme: dark;
   --bg-primary: #060a12;
   --bg-secondary: #0b1120;
   --bg-card: rgba(12, 20, 38, 0.82);
@@ -348,16 +350,16 @@ button {
 /* ─── MOBILE SAFE AREA & NATIVE APP ENHANCEMENTS ────── */
 @media (max-width: 768px) {
   body {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: 0;
     padding-bottom: calc(76px + var(--safe-bottom));
     user-select: none;
     -webkit-user-select: none;
   }
   .mobile-header-safe {
-    padding-top: max(8px, env(safe-area-inset-top, 8px));
+    padding-top: max(12px, env(safe-area-inset-top, 12px));
   }
   .mobile-bottom-safe {
-    padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
   }
 }
 
@@ -402,3 +404,28 @@ button, a, input, select { touch-action: manipulation; }
   background: var(--accent-cyan);
   box-shadow: 0 0 6px var(--accent-cyan-glow);
 }
+
+/* ─── ANATOMICAL INSOLE SVG THEMING ─────────────────── */
+.insole-svg-filter {
+  filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.08));
+}
+.dark .insole-svg-filter {
+  filter: drop-shadow(0 15px 30px rgba(0, 229, 255, 0.18));
+}
+
+.insole-path {
+  fill: url(#insoleOutlineLight);
+  stroke: rgba(148, 163, 184, 0.5);
+}
+.dark .insole-path {
+  fill: url(#insoleOutlineDark);
+  stroke: rgba(255, 255, 255, 0.22);
+}
+
+.insole-arch-guide {
+  stroke: rgba(2, 132, 199, 0.35);
+}
+.dark .insole-arch-guide {
+  stroke: rgba(0, 229, 255, 0.22);
+}
+

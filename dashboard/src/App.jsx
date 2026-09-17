@@ -79,6 +79,8 @@ export default function App() {
         document.documentElement.classList.remove('dark');
         document.documentElement.setAttribute('data-theme', 'light');
       }
+      const meta = document.getElementById('meta-theme-color');
+      if (meta) meta.setAttribute('content', isDark ? '#060a12' : '#ffffff');
       nativeBridge.setTheme(isDark ? 'dark' : 'light');
     };
 
@@ -177,7 +179,7 @@ export default function App() {
   const pageTitle = PAGE_TITLES[activeTab];
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-cyan-500/30 selection:text-white transition-colors duration-200">
+    <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-100 selection:bg-cyan-500/30 selection:text-white transition-colors duration-200">
 
       {/* ═══ FALL EMERGENCY MODAL ═══ */}
       <FallAlertModal isOpen={fallModalOpen} onCancel={cancelFall} initialSeconds={15} />

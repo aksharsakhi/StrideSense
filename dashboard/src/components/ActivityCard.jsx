@@ -4,48 +4,43 @@ import { Footprints, Flame, UserCheck, Armchair, AlertOctagon, Zap, Brain } from
 const ACTIVITY_CONFIG = {
   Walking: {
     icon: Footprints,
-    color: '#0284c7',
-    darkColor: '#00e5ff',
+    ringColor: '#00e5ff',
+    iconStyle: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400',
     badgeClass: 'badge-cyan',
     desc: 'Periodic heel-to-toe stride cycle detected',
-    glow: 'rgba(2, 132, 199, 0.20)',
-    darkGlow: 'rgba(0, 229, 255, 0.25)'
+    glow: 'rgba(0, 229, 255, 0.20)'
   },
   Running: {
     icon: Flame,
-    color: '#d97706',
-    darkColor: '#f59e0b',
+    ringColor: '#f59e0b',
+    iconStyle: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     badgeClass: 'badge-amber',
     desc: 'High-impact aerobic propulsion phase',
-    glow: 'rgba(217, 119, 6, 0.20)',
-    darkGlow: 'rgba(245, 158, 11, 0.25)'
+    glow: 'rgba(245, 158, 11, 0.20)'
   },
   Standing: {
     icon: UserCheck,
-    color: '#059669',
-    darkColor: '#10b981',
+    ringColor: '#10b981',
+    iconStyle: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
     badgeClass: 'badge-emerald',
     desc: 'Static postural equilibrium sway',
-    glow: 'rgba(5, 150, 105, 0.20)',
-    darkGlow: 'rgba(16, 185, 129, 0.25)'
+    glow: 'rgba(16, 185, 129, 0.20)'
   },
   Sitting: {
     icon: Armchair,
-    color: '#7c3aed',
-    darkColor: '#a78bfa',
+    ringColor: '#8b5cf6',
+    iconStyle: 'bg-violet-500/15 text-violet-600 dark:text-violet-400',
     badgeClass: 'badge-purple',
     desc: 'Non-weight-bearing resting position',
-    glow: 'rgba(124, 58, 237, 0.20)',
-    darkGlow: 'rgba(139, 92, 246, 0.25)'
+    glow: 'rgba(139, 92, 246, 0.20)'
   },
   Fall: {
     icon: AlertOctagon,
-    color: '#e11d48',
-    darkColor: '#f43f5e',
+    ringColor: '#f43f5e',
+    iconStyle: 'bg-rose-500/15 text-rose-600 dark:text-rose-400',
     badgeClass: 'badge-rose',
     desc: 'CRITICAL: High-G kinematic impact shock!',
-    glow: 'rgba(225, 29, 72, 0.35)',
-    darkGlow: 'rgba(244, 63, 94, 0.5)'
+    glow: 'rgba(244, 63, 94, 0.35)'
   }
 };
 
@@ -100,18 +95,20 @@ export default function ActivityCard({ activity = 'Walking', confidence = 0.98 }
             />
             <circle
               cx="34" cy="34" r={ringRadius}
-              stroke="var(--accent-cyan)"
               strokeWidth="4"
               fill="none"
               strokeDasharray={ringCircumference}
               strokeDashoffset={ringOffset}
               strokeLinecap="round"
               className="transition-all duration-700 ease-out"
-              style={{ filter: 'drop-shadow(0 0 6px var(--accent-cyan-glow))' }}
+              style={{
+                stroke: conf.ringColor,
+                filter: `drop-shadow(0 0 6px ${conf.ringColor}55)`
+              }}
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="p-2 rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
+            <div className={`p-2 rounded-xl ${conf.iconStyle}`}>
               <IconComponent className="w-5 h-5" />
             </div>
           </div>

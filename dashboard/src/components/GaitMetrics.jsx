@@ -97,13 +97,12 @@ export default function GaitMetrics({
                         />
                         <circle
                           cx="25" cy="25" r="19"
-                          stroke={m.accent}
                           strokeWidth="4"
                           fill="none"
                           strokeDasharray={2 * Math.PI * 19}
                           strokeDashoffset={2 * Math.PI * 19 * (1 - stepPct / 100)}
                           strokeLinecap="round"
-                          className="transition-all duration-700"
+                          className="transition-all duration-700 stroke-cyan-500"
                         />
                       </svg>
                       <span className="absolute inset-0 flex items-center justify-center text-[10px] font-mono font-bold text-cyan-600 dark:text-cyan-400">

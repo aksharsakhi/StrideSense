@@ -68,14 +68,13 @@ export default function HomePage({ telemetry, onNavigate }) {
               />
               <circle
                 cx="55" cy="55" r={ringR}
-                stroke="var(--accent-cyan)"
                 strokeWidth="7"
                 fill="none"
                 strokeDasharray={ringC}
                 strokeDashoffset={ringOff}
                 strokeLinecap="round"
-                className="transition-all duration-700"
-                style={{ filter: 'drop-shadow(0 0 6px var(--accent-cyan-glow))' }}
+                className="transition-all duration-700 stroke-cyan-500"
+                style={{ filter: 'drop-shadow(0 0 6px rgba(0, 229, 255, 0.35))' }}
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
