@@ -26,7 +26,8 @@ export default function HomePage({ telemetry, onNavigate }) {
     Sitting:  { bg: 'bg-violet-500/15', border: 'border-violet-500/30', text: 'text-violet-600 dark:text-violet-400', dot: 'bg-violet-500' },
     Fall:     { bg: 'bg-rose-500/15', border: 'border-rose-500/30', text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500' }
   };
-  const actColor = ACTIVITY_COLORS[activity] || ACTIVITY_COLORS.Walking;
+  const normAct = activity ? (activity.charAt(0).toUpperCase() + activity.slice(1).toLowerCase()) : 'Walking';
+  const actColor = ACTIVITY_COLORS[normAct] || ACTIVITY_COLORS.Walking;
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in stagger-children">

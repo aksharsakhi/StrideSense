@@ -9,8 +9,14 @@ export default function GaitMetrics({
 }) {
   const stepGoal = 10000;
   const stepPct = Math.min(100, Math.round((steps / stepGoal) * 100));
-  const stancePct = activity === 'Running' ? 42 : (activity === 'Walking' ? 62 : 0);
-  const swingPct = activity === 'Running' ? 58 : (activity === 'Walking' ? 38 : 0);
+
+  const act = (activity || '').toUpperCase();
+  const isRunning = act.includes('RUN');
+  const isWalking = act.includes('WALK');
+  const isStanding = act.includes('STAND');
+
+  const stancePct = isRunning ? 42 : (isWalking ? 62 : (isStanding ? 100 : 60));
+  const swingPct = isRunning ? 58 : (isWalking ? 38 : (isStanding ? 0 : 40));
 
   const METRICS = [
     {

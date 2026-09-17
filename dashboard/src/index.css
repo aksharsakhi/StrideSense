@@ -347,11 +347,53 @@ button {
   stroke: rgba(255, 255, 255, 0.06);
 }
 
+/* ─── FIXED NATIVE APP CHROME (Header & Bottom Nav) ─── */
+.mobile-top-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background-color: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+.dark .mobile-top-header {
+  background-color: rgba(6, 10, 18, 0.94) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+.dark .mobile-bottom-nav {
+  background-color: rgba(6, 10, 18, 0.95) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
 /* ─── MOBILE SAFE AREA & NATIVE APP ENHANCEMENTS ────── */
+.mobile-header-safe {
+  padding-top: max(0px, env(safe-area-inset-top, 0px));
+}
+.mobile-bottom-safe {
+  padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));
+}
+
 @media (max-width: 768px) {
   body {
     padding-top: 0;
-    padding-bottom: calc(76px + var(--safe-bottom));
+    padding-bottom: 0;
     user-select: none;
     -webkit-user-select: none;
   }
@@ -359,7 +401,7 @@ button {
     padding-top: max(12px, env(safe-area-inset-top, 12px));
   }
   .mobile-bottom-safe {
-    padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
   }
 }
 

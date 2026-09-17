@@ -177,6 +177,7 @@ export default function App() {
     settings: null
   };
   const pageTitle = PAGE_TITLES[activeTab];
+  const hasSimBar = useSimulator && activeTab !== 'home' && activeTab !== 'settings';
 
   return (
     <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-100 selection:bg-cyan-500/30 selection:text-white transition-colors duration-200">
@@ -184,9 +185,9 @@ export default function App() {
       {/* ═══ FALL EMERGENCY MODAL ═══ */}
       <FallAlertModal isOpen={fallModalOpen} onCancel={cancelFall} initialSeconds={15} />
 
-      {/* ═══ TOP HEADER BAR ═══ */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-950/85 backdrop-blur-2xl border-b border-slate-200/80 dark:border-white/[0.05] px-4 sm:px-6 lg:px-8 mobile-header-safe">
-        <div className="max-w-7xl mx-auto flex items-center justify-between h-14">
+      {/* ═══ TOP FIXED APP CHROME (Header + Simulator Bar) ═══ */}
+      <header className="mobile-top-header mobile-header-safe">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
 
           {/* Brand or Page Title */}
           <div className="flex items-center gap-3">
@@ -283,36 +284,40 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        {/* ═══ SIMULATOR CONTROLS BAR (Inside fixed chrome) ═══ */}
+        {hasSimBar && (
+          <div className="border-t border-slate-200/60 dark:border-white/[0.05] bg-slate-100/80 dark:bg-slate-900/70 px-4 sm:px-6 lg:px-8 py-2 transition-colors">
+            <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5 whitespace-nowrap mr-1">
+                <CircleDot className="w-3 h-3 text-cyan-500" />
+                Simulate:
+              </span>
+              {SIM_MODES.map(({ mode, icon: Icon, label, color }) => {
+                const isActive = simMode === mode;
+                const style = isActive ? COLOR_MAP[color].active : COLOR_MAP[color].idle;
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => changeSimMode(mode)}
+                    className={`px-3 py-1 rounded-lg font-semibold text-[11px] flex items-center gap-1.5 active-press transition-all whitespace-nowrap ${style}`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </header>
 
-      {/* ═══ SIMULATOR CONTROLS BAR (Visible when simulator active & not on home/settings) ═══ */}
-      {useSimulator && activeTab !== 'home' && activeTab !== 'settings' && (
-        <div className="bg-slate-100/90 dark:bg-slate-900/40 border-b border-slate-200/70 dark:border-white/[0.04] px-4 sm:px-6 lg:px-8 py-2 transition-colors">
-          <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5 whitespace-nowrap mr-1">
-              <CircleDot className="w-3 h-3 text-cyan-500" />
-              Simulate:
-            </span>
-            {SIM_MODES.map(({ mode, icon: Icon, label, color }) => {
-              const isActive = simMode === mode;
-              const style = isActive ? COLOR_MAP[color].active : COLOR_MAP[color].idle;
-              return (
-                <button
-                  key={mode}
-                  onClick={() => changeSimMode(mode)}
-                  className={`px-3 py-1 rounded-lg font-semibold text-[11px] flex items-center gap-1.5 active-press transition-all whitespace-nowrap ${style}`}
-                >
-                  <Icon className="w-3 h-3" />
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* ═══ MAIN CONTENT (Adaptive Grid Container) ═══ */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-24 md:pb-8">
+      <main className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 ${
+        hasSimBar
+          ? 'pt-[calc(env(safe-area-inset-top,12px)+112px)] md:pt-32'
+          : 'pt-[calc(env(safe-area-inset-top,12px)+68px)] md:pt-20'
+      } pb-[calc(env(safe-area-inset-bottom,16px)+88px)] md:pb-8`}>
 
         {activeTab === 'home' && (
           <HomePage
@@ -390,7 +395,7 @@ export default function App() {
       </main>
 
       {/* ═══ MOBILE FLOATING FROSTED BOTTOM NAVIGATION BAR (< md) ═══ */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-slate-950/93 backdrop-blur-2xl border-t border-slate-200/80 dark:border-white/[0.06] mobile-bottom-safe transition-colors">
+      <nav className="md:hidden mobile-bottom-nav mobile-bottom-safe">
         <div className="flex items-stretch justify-around px-1 py-1">
           {TABS.map((item) => {
             const Icon = item.icon;
@@ -402,15 +407,15 @@ export default function App() {
                 className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 active-press transition-all duration-150 ${
                   isActive
                     ? 'text-cyan-600 dark:text-cyan-400'
-                    : 'text-slate-500 dark:text-slate-500'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 <div className={`p-1.5 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'bg-cyan-500/15 dark:bg-cyan-500/12 shadow-glow-cyan'
+                    ? 'bg-cyan-500/15 dark:bg-cyan-500/20 shadow-glow-cyan'
                     : ''
                 }`}>
-                  <Icon className="w-[19px] h-[19px]" strokeWidth={isActive ? 2.4 : 1.6} />
+                  <Icon className="w-[19px] h-[19px]" strokeWidth={isActive ? 2.4 : 1.7} />
                 </div>
                 <span className={`text-[10px] font-semibold leading-none ${
                   isActive
