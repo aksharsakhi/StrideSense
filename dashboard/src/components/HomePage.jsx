@@ -4,7 +4,7 @@ import {
   ShieldCheck, Cpu, Battery, Brain
 } from 'lucide-react';
 
-export default function HomePage({ telemetry, onNavigate }) {
+function HomePageComponent({ telemetry, onNavigate }) {
   const { activity, confidence, steps, cadence, symmetry, batteryPct, sensors, imu } = telemetry;
   const confPct = Math.round(confidence * 100);
   const stepGoal = 10000;
@@ -46,7 +46,9 @@ export default function HomePage({ telemetry, onNavigate }) {
 
       {/* ─── ACTIVITY HERO CARD ─── */}
       <div
-        className={`glass-panel p-5 sm:p-6 relative overflow-hidden cursor-pointer active-press animate-fade-in-scale ${
+        role="button"
+        tabIndex={0}
+        className={`glass-panel p-5 sm:p-6 relative overflow-hidden cursor-pointer active-press touch-manipulation select-none animate-fade-in-scale ${
           activity === 'Fall' ? 'border-rose-500/50 shadow-glow-rose' : ''
         }`}
         onClick={() => onNavigate('pressure')}
@@ -141,8 +143,9 @@ export default function HomePage({ telemetry, onNavigate }) {
 
           {/* Pressure Map Card */}
           <button
+            type="button"
             onClick={() => onNavigate('pressure')}
-            className="metric-card text-left active-press animate-fade-in group flex flex-col justify-between"
+            className="metric-card text-left active-press touch-manipulation select-none animate-fade-in group flex flex-col justify-between"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -163,8 +166,9 @@ export default function HomePage({ telemetry, onNavigate }) {
 
           {/* Gait Analytics Card */}
           <button
+            type="button"
             onClick={() => onNavigate('gait')}
-            className="metric-card text-left active-press animate-fade-in group flex flex-col justify-between"
+            className="metric-card text-left active-press touch-manipulation select-none animate-fade-in group flex flex-col justify-between"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -184,8 +188,9 @@ export default function HomePage({ telemetry, onNavigate }) {
 
           {/* IMU Motion Card */}
           <button
+            type="button"
             onClick={() => onNavigate('motion')}
-            className="metric-card text-left active-press animate-fade-in group flex flex-col justify-between"
+            className="metric-card text-left active-press touch-manipulation select-none animate-fade-in group flex flex-col justify-between"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -206,8 +211,9 @@ export default function HomePage({ telemetry, onNavigate }) {
 
           {/* Fall Guard Card */}
           <button
+            type="button"
             onClick={() => onNavigate('safety')}
-            className="metric-card text-left active-press animate-fade-in group flex flex-col justify-between"
+            className="metric-card text-left active-press touch-manipulation select-none animate-fade-in group flex flex-col justify-between"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -230,7 +236,9 @@ export default function HomePage({ telemetry, onNavigate }) {
 
       {/* ─── DEVICE STATUS STRIP ─── */}
       <div
-        className="glass-panel p-4 flex items-center justify-between animate-fade-in-scale cursor-pointer active-press"
+        role="button"
+        tabIndex={0}
+        className="glass-panel p-4 flex items-center justify-between animate-fade-in-scale cursor-pointer active-press touch-manipulation select-none"
         onClick={() => onNavigate('settings')}
       >
         <div className="flex items-center gap-3">
@@ -254,3 +262,5 @@ export default function HomePage({ telemetry, onNavigate }) {
     </div>
   );
 }
+
+export default React.memo(HomePageComponent);

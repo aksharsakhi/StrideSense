@@ -52,40 +52,52 @@ class NativeMobileBridge {
     }
   }
 
-  async impactLight() {
-    if (this.haptics) {
+  impactLight() {
+    queueMicrotask(() => {
+      if (this.haptics) {
+        try {
+          this.haptics.impact({ style: 'LIGHT' }).catch(() => {});
+          return;
+        } catch (e) {}
+      }
       try {
-        await this.haptics.impact({ style: 'LIGHT' });
-        return;
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(12);
+        }
       } catch (e) {}
-    }
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(15);
-    }
+    });
   }
 
-  async impactMedium() {
-    if (this.haptics) {
+  impactMedium() {
+    queueMicrotask(() => {
+      if (this.haptics) {
+        try {
+          this.haptics.impact({ style: 'MEDIUM' }).catch(() => {});
+          return;
+        } catch (e) {}
+      }
       try {
-        await this.haptics.impact({ style: 'MEDIUM' });
-        return;
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(25);
+        }
       } catch (e) {}
-    }
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(30);
-    }
+    });
   }
 
-  async impactHeavy() {
-    if (this.haptics) {
+  impactHeavy() {
+    queueMicrotask(() => {
+      if (this.haptics) {
+        try {
+          this.haptics.impact({ style: 'HEAVY' }).catch(() => {});
+          return;
+        } catch (e) {}
+      }
       try {
-        await this.haptics.impact({ style: 'HEAVY' });
-        return;
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate([40, 40, 40]);
+        }
       } catch (e) {}
-    }
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate([50, 50, 50]);
-    }
+    });
   }
 
   async triggerEmergencyVibration() {

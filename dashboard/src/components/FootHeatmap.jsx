@@ -83,8 +83,9 @@ export default function FootHeatmap({ sensors = {} }) {
         <div className="flex items-center gap-3">
           <div className="flex bg-slate-200/80 dark:bg-slate-900/90 border border-slate-300/60 dark:border-slate-800 rounded-xl p-0.5 text-xs">
             <button
+              type="button"
               onClick={() => setHardwareMode('2_FSR')}
-              className={`px-3 py-1 rounded-lg font-semibold transition-all flex items-center gap-1 active-press ${
+              className={`px-3 py-1 rounded-lg font-semibold transition-all flex items-center gap-1 active-press touch-manipulation select-none ${
                 hardwareMode === '2_FSR'
                   ? 'bg-cyan-500 text-white dark:text-black shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -93,8 +94,9 @@ export default function FootHeatmap({ sensors = {} }) {
               2-FSR
             </button>
             <button
+              type="button"
               onClick={() => setHardwareMode('6_FSR')}
-              className={`px-3 py-1 rounded-lg font-semibold transition-all flex items-center gap-1 active-press ${
+              className={`px-3 py-1 rounded-lg font-semibold transition-all flex items-center gap-1 active-press touch-manipulation select-none ${
                 hardwareMode === '6_FSR'
                   ? 'bg-cyan-500 text-white dark:text-black shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'

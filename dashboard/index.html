@@ -36,8 +36,12 @@
       })();
     </script>
   </head>
-  <body>
+  <body ontouchstart="">
     <div id="root"></div>
+    <script>
+      // Enable instantaneous touch response on iOS WebKit
+      document.addEventListener('touchstart', function() {}, { passive: true });
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

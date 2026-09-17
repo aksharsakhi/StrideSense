@@ -289,17 +289,17 @@ button {
   50% { box-shadow: 0 0 0 7px rgba(225, 29, 72, 0); }
 }
 
-/* ─── ANIMATIONS ────────────────────────────────────── */
+/* ─── ULTRA-RESPONSIVE ANIMATIONS ─────────────────── */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0.75; }
+  to { opacity: 1; }
 }
 @keyframes fadeInScale {
-  from { opacity: 0; transform: scale(0.97) translateY(6px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from { opacity: 0.85; transform: scale(0.995); }
+  to { opacity: 1; transform: scale(1); }
 }
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0.75; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes shimmer {
@@ -315,9 +315,9 @@ button {
   50% { transform: translateY(-4px); }
 }
 
-.animate-fade-in { animation: fadeIn 0.3s ease forwards; }
-.animate-fade-in-scale { animation: fadeInScale 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-in { animation: fadeIn 0.06s ease-out forwards; }
+.animate-fade-in-scale { animation: fadeInScale 0.07s ease-out forwards; }
+.animate-slide-up { animation: slideUp 0.10s ease-out forwards; }
 .animate-shimmer {
   background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.06) 50%, transparent 70%);
   background-size: 200% 100%;
@@ -326,13 +326,8 @@ button {
 .animate-breathe { animation: breathe 3s ease-in-out infinite; }
 .animate-float { animation: float 3s ease-in-out infinite; }
 
-/* Staggered children animation */
-.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
-.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
-.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
-.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
-.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+/* Zero artificial stagger delay for instantaneous touch responsiveness */
+.stagger-children > * { animation-delay: 0ms !important; }
 
 /* ─── GLOW EFFECTS ──────────────────────────────────── */
 .shadow-glow-cyan { box-shadow: var(--shadow-glow-cyan); }
@@ -406,11 +401,23 @@ button {
 }
 
 /* ─── TOUCH & HAPTIC PRESS EFFECTS ──────────────────── */
-button, a, input, select { touch-action: manipulation; }
+button, a, input, select, [role="button"], .cursor-pointer, .active-press, .metric-card {
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
 
+.active-press {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+  transition: transform 0.025s ease-out, opacity 0.025s ease-out;
+}
 .active-press:active {
-  transform: scale(0.96);
-  transition: transform 0.08s ease;
+  transform: scale(0.96) translateZ(0);
+  opacity: 0.78;
 }
 
 /* ─── SCROLL SUPPRESSION ────────────────────────────── */

@@ -69,8 +69,9 @@ export default function FallGuardMobile({
 
               {/* Toggle Switch */}
               <button
+                type="button"
                 onClick={toggleGuard}
-                className={`w-13 h-7 rounded-full p-0.5 transition-colors duration-200 flex items-center flex-shrink-0 ${
+                className={`w-13 h-7 rounded-full p-0.5 transition-colors duration-150 flex items-center flex-shrink-0 touch-manipulation select-none active-press ${
                   guardActive ? 'bg-emerald-500 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
                 }`}
               >
@@ -97,8 +98,9 @@ export default function FallGuardMobile({
           {/* Action Trigger Buttons */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <button
+              type="button"
               onClick={handleTestFall}
-              className="glass-panel p-4 flex items-center justify-between border-rose-500/30 hover:border-rose-500/50 active-press transition-all bg-rose-500/[0.06] text-left animate-fade-in"
+              className="glass-panel p-4 flex items-center justify-between border-rose-500/30 hover:border-rose-500/50 active-press touch-manipulation select-none transition-all bg-rose-500/[0.06] text-left animate-fade-in"
             >
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">

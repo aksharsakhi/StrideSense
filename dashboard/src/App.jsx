@@ -60,6 +60,195 @@ const COLOR_MAP = {
   rose:    { active: 'bg-rose-500 text-white shadow-glow-rose',                 idle: 'bg-slate-200/80 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700/80' }
 };
 
+/* ─── MEMOIZED TOP HEADER ────────────────────────────── */
+const TopHeader = React.memo(function TopHeader({
+  activeTab,
+  pageTitle,
+  theme,
+  batteryPct,
+  useSimulator,
+  onNavigate,
+  onCycleTheme,
+  onToggleSource,
+  onTriggerFall
+}) {
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
+      {/* Brand or Page Title */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => onNavigate('home')}
+          className="flex items-center gap-2.5 active-press touch-manipulation select-none text-left"
+        >
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-emerald-400 p-[2px] shadow-md shadow-cyan-500/15">
+            <div className="w-full h-full bg-white dark:bg-slate-950 rounded-[9px] flex items-center justify-center">
+              <Footprints className="w-[15px] h-[15px] text-cyan-600 dark:text-cyan-400" />
+            </div>
+          </div>
+          <span className="text-[16px] font-extrabold font-display tracking-tight text-slate-900 dark:text-white">
+            Stride<span className="gradient-text">Sense</span>
+          </span>
+        </button>
+
+        {pageTitle && (
+          <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-800">
+            <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">{pageTitle}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Center Navigation Tabs for Desktop/Tablet (md+) */}
+      <nav className="hidden md:flex items-center gap-1 bg-slate-200/60 dark:bg-slate-900/60 border border-slate-300/40 dark:border-white/[0.06] p-1 rounded-2xl">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onNavigate(tab.id)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 active-press touch-manipulation select-none transition-all duration-150 ${
+                isActive
+                  ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm border border-slate-200 dark:border-white/[0.08]'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/40 dark:hover:bg-white/[0.04]'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" strokeWidth={isActive ? 2.3 : 1.8} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Right Controls */}
+      <div className="flex items-center gap-2">
+        {/* Quick Theme Toggle */}
+        <button
+          type="button"
+          onClick={onCycleTheme}
+          title={`Theme: ${theme} (Click to toggle)`}
+          className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 active-press touch-manipulation select-none transition-all flex items-center gap-1 text-xs"
+        >
+          {theme === 'system' ? (
+            <Monitor className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+          ) : theme === 'light' ? (
+            <Sun className="w-3.5 h-3.5 text-amber-500" />
+          ) : (
+            <Moon className="w-3.5 h-3.5 text-cyan-400" />
+          )}
+          <span className="hidden xl:inline text-[10px] uppercase font-bold tracking-wider opacity-80">
+            {theme}
+          </span>
+        </button>
+
+        {/* Battery Indicator */}
+        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] px-2.5 py-1 rounded-xl">
+          <Battery className={`w-3.5 h-3.5 ${batteryPct > 20 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`} />
+          <span className="text-[11px] font-mono font-bold text-slate-800 dark:text-white">{batteryPct}%</span>
+        </div>
+
+        {/* Data Source Badge */}
+        <button
+          type="button"
+          onClick={onToggleSource}
+          className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border flex items-center gap-1 transition-all active-press touch-manipulation select-none ${
+            useSimulator
+              ? 'bg-cyan-500/10 border-cyan-500/25 text-cyan-600 dark:text-cyan-400'
+              : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400'
+          }`}
+        >
+          {useSimulator ? <Radio className="w-3 h-3" /> : <Wifi className="w-3 h-3" />}
+          <span className="font-mono">{useSimulator ? 'SIM' : 'LIVE'}</span>
+        </button>
+
+        {/* SOS Trigger */}
+        <button
+          type="button"
+          onClick={onTriggerFall}
+          title="Simulate Fall Emergency"
+          className="p-2 rounded-xl bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/25 text-rose-600 dark:text-rose-400 active-press touch-manipulation select-none"
+        >
+          <AlertTriangle className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+});
+
+/* ─── MEMOIZED SIMULATOR CONTROLS BAR ────────────────── */
+const SimulatorBar = React.memo(function SimulatorBar({ simMode, onChangeSimMode }) {
+  return (
+    <div className="border-t border-slate-200/60 dark:border-white/[0.05] bg-slate-100/80 dark:bg-slate-900/70 px-4 sm:px-6 lg:px-8 py-2 transition-colors">
+      <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5 whitespace-nowrap mr-1">
+          <CircleDot className="w-3 h-3 text-cyan-500" />
+          Simulate:
+        </span>
+        {SIM_MODES.map(({ mode, icon: Icon, label, color }) => {
+          const isActive = simMode === mode;
+          const style = isActive ? COLOR_MAP[color].active : COLOR_MAP[color].idle;
+          return (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => onChangeSimMode(mode)}
+              className={`px-3 py-1 rounded-lg font-semibold text-[11px] flex items-center gap-1.5 active-press touch-manipulation select-none transition-all whitespace-nowrap ${style}`}
+            >
+              <Icon className="w-3 h-3" />
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
+
+/* ─── MEMOIZED MOBILE BOTTOM NAVIGATION BAR ─────────── */
+const MobileBottomNav = React.memo(function MobileBottomNav({ activeTab, onNavigate }) {
+  return (
+    <nav className="md:hidden mobile-bottom-nav mobile-bottom-safe">
+      <div className="flex items-stretch justify-around px-1 py-1">
+        {TABS.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onNavigate(item.id)}
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 active-press touch-manipulation select-none transition-all duration-75 ${
+                isActive
+                  ? 'text-cyan-600 dark:text-cyan-400'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              <div className={`p-1.5 rounded-xl transition-all duration-100 ${
+                isActive
+                  ? 'bg-cyan-500/15 dark:bg-cyan-500/20 shadow-glow-cyan'
+                  : ''
+              }`}>
+                <Icon className="w-[19px] h-[19px]" strokeWidth={isActive ? 2.4 : 1.7} />
+              </div>
+              <span className={`text-[10px] font-semibold leading-none ${
+                isActive
+                  ? 'text-cyan-600 dark:text-cyan-400'
+                  : 'text-slate-500 dark:text-slate-400'
+              }`}>
+                {item.label}
+              </span>
+              {isActive && (
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-600 dark:bg-cyan-400 shadow-glow-cyan mt-0.5" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+});
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [useSimulator, setUseSimulator] = useState(true);
@@ -106,7 +295,8 @@ export default function App() {
   useEffect(() => {
     let unsub;
     if (useSimulator) {
-      simulator.start(40);
+      // 125ms = 8 Hz update rate: silky-smooth UI telemetry with zero main-thread blockage
+      simulator.start(125);
       unsub = simulator.subscribe((data) => {
         setTelemetry(data);
         if (data.fallAlert && !fallModalOpen) {
@@ -139,6 +329,19 @@ export default function App() {
   const navigate = useCallback((tab) => {
     nativeBridge.impactLight();
     setActiveTab(tab);
+  }, []);
+
+  const toggleSource = useCallback(() => {
+    nativeBridge.impactLight();
+    setUseSimulator((prev) => !prev);
+  }, []);
+
+  const triggerFallTest = useCallback(() => {
+    nativeBridge.impactHeavy();
+    setSimMode('FALL');
+    simulator.setMode('FALL');
+    nativeBridge.triggerEmergencyVibration();
+    setFallModalOpen(true);
   }, []);
 
   const cycleTheme = useCallback(() => {
@@ -187,128 +390,24 @@ export default function App() {
 
       {/* ═══ TOP FIXED APP CHROME (Header + Simulator Bar) ═══ */}
       <header className="mobile-top-header mobile-header-safe">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
-
-          {/* Brand or Page Title */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('home')}
-              className="flex items-center gap-2.5 active-press text-left"
-            >
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-emerald-400 p-[2px] shadow-md shadow-cyan-500/15">
-                <div className="w-full h-full bg-white dark:bg-slate-950 rounded-[9px] flex items-center justify-center">
-                  <Footprints className="w-[15px] h-[15px] text-cyan-600 dark:text-cyan-400" />
-                </div>
-              </div>
-              <span className="text-[16px] font-extrabold font-display tracking-tight text-slate-900 dark:text-white">
-                Stride<span className="gradient-text">Sense</span>
-              </span>
-            </button>
-
-            {pageTitle && (
-              <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-slate-800">
-                <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">{pageTitle}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Center Navigation Tabs for Desktop/Tablet (md+) */}
-          <nav className="hidden md:flex items-center gap-1 bg-slate-200/60 dark:bg-slate-900/60 border border-slate-300/40 dark:border-white/[0.06] p-1 rounded-2xl">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => navigate(tab.id)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all duration-150 ${
-                    isActive
-                      ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm border border-slate-200 dark:border-white/[0.08]'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/40 dark:hover:bg-white/[0.04]'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" strokeWidth={isActive ? 2.3 : 1.8} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Right Controls */}
-          <div className="flex items-center gap-2">
-
-            {/* Quick Theme Toggle */}
-            <button
-              onClick={cycleTheme}
-              title={`Theme: ${theme} (Click to toggle)`}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 active-press transition-all flex items-center gap-1 text-xs"
-            >
-              {theme === 'system' ? (
-                <Monitor className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-              ) : theme === 'light' ? (
-                <Sun className="w-3.5 h-3.5 text-amber-500" />
-              ) : (
-                <Moon className="w-3.5 h-3.5 text-cyan-400" />
-              )}
-              <span className="hidden xl:inline text-[10px] uppercase font-bold tracking-wider opacity-80">
-                {theme}
-              </span>
-            </button>
-
-            {/* Battery Indicator */}
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] px-2.5 py-1 rounded-xl">
-              <Battery className={`w-3.5 h-3.5 ${telemetry.batteryPct > 20 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`} />
-              <span className="text-[11px] font-mono font-bold text-slate-800 dark:text-white">{telemetry.batteryPct}%</span>
-            </div>
-
-            {/* Data Source Badge */}
-            <button
-              onClick={() => { nativeBridge.impactLight(); setUseSimulator(!useSimulator); }}
-              className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border flex items-center gap-1 transition-all active-press ${
-                useSimulator
-                  ? 'bg-cyan-500/10 border-cyan-500/25 text-cyan-600 dark:text-cyan-400'
-                  : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400'
-              }`}
-            >
-              {useSimulator ? <Radio className="w-3 h-3" /> : <Wifi className="w-3 h-3" />}
-              <span className="font-mono">{useSimulator ? 'SIM' : 'LIVE'}</span>
-            </button>
-
-            {/* SOS Trigger */}
-            <button
-              onClick={() => changeSimMode('FALL')}
-              title="Simulate Fall Emergency"
-              className="p-2 rounded-xl bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/25 text-rose-600 dark:text-rose-400 active-press"
-            >
-              <AlertTriangle className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+        <TopHeader
+          activeTab={activeTab}
+          pageTitle={pageTitle}
+          theme={theme}
+          batteryPct={telemetry.batteryPct}
+          useSimulator={useSimulator}
+          onNavigate={navigate}
+          onCycleTheme={cycleTheme}
+          onToggleSource={toggleSource}
+          onTriggerFall={triggerFallTest}
+        />
 
         {/* ═══ SIMULATOR CONTROLS BAR (Inside fixed chrome) ═══ */}
         {hasSimBar && (
-          <div className="border-t border-slate-200/60 dark:border-white/[0.05] bg-slate-100/80 dark:bg-slate-900/70 px-4 sm:px-6 lg:px-8 py-2 transition-colors">
-            <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5 whitespace-nowrap mr-1">
-                <CircleDot className="w-3 h-3 text-cyan-500" />
-                Simulate:
-              </span>
-              {SIM_MODES.map(({ mode, icon: Icon, label, color }) => {
-                const isActive = simMode === mode;
-                const style = isActive ? COLOR_MAP[color].active : COLOR_MAP[color].idle;
-                return (
-                  <button
-                    key={mode}
-                    onClick={() => changeSimMode(mode)}
-                    className={`px-3 py-1 rounded-lg font-semibold text-[11px] flex items-center gap-1.5 active-press transition-all whitespace-nowrap ${style}`}
-                  >
-                    <Icon className="w-3 h-3" />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <SimulatorBar
+            simMode={simMode}
+            onChangeSimMode={changeSimMode}
+          />
         )}
       </header>
 
@@ -387,7 +486,7 @@ export default function App() {
             isCloudConnected={!useSimulator}
             isSimulated={useSimulator}
             useSimulator={useSimulator}
-            onToggleSource={() => { nativeBridge.impactLight(); setUseSimulator(!useSimulator); }}
+            onToggleSource={toggleSource}
             theme={theme}
             onThemeChange={setTheme}
           />
@@ -395,43 +494,10 @@ export default function App() {
       </main>
 
       {/* ═══ MOBILE FLOATING FROSTED BOTTOM NAVIGATION BAR (< md) ═══ */}
-      <nav className="md:hidden mobile-bottom-nav mobile-bottom-safe">
-        <div className="flex items-stretch justify-around px-1 py-1">
-          {TABS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => navigate(item.id)}
-                className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 active-press transition-all duration-150 ${
-                  isActive
-                    ? 'text-cyan-600 dark:text-cyan-400'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                }`}
-              >
-                <div className={`p-1.5 rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? 'bg-cyan-500/15 dark:bg-cyan-500/20 shadow-glow-cyan'
-                    : ''
-                }`}>
-                  <Icon className="w-[19px] h-[19px]" strokeWidth={isActive ? 2.4 : 1.7} />
-                </div>
-                <span className={`text-[10px] font-semibold leading-none ${
-                  isActive
-                    ? 'text-cyan-600 dark:text-cyan-400'
-                    : 'text-slate-500 dark:text-slate-400'
-                }`}>
-                  {item.label}
-                </span>
-                {isActive && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-600 dark:bg-cyan-400 shadow-glow-cyan mt-0.5" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+      <MobileBottomNav
+        activeTab={activeTab}
+        onNavigate={navigate}
+      />
 
     </div>
   );

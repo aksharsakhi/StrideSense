@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { nativeBridge } from '../services/native.js';
 
-export default function SettingsPage({
+function SettingsPageComponent({
   batteryPct = 88,
   batteryVoltage = 3.96,
   isCloudConnected = false,
@@ -29,9 +29,11 @@ export default function SettingsPage({
 
   const SettingRow = ({ icon: Icon, iconColor, label, subtitle, right, onClick, last }) => (
     <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
       className={`w-full flex items-center justify-between py-3.5 px-1 text-left ${
-        onClick ? 'cursor-pointer active-press' : ''
+        onClick ? 'cursor-pointer active-press touch-manipulation select-none' : ''
       } ${!last ? 'border-b border-slate-200/70 dark:border-white/[0.04]' : ''}`}
     >
       <div className="flex items-center gap-3">
@@ -51,12 +53,13 @@ export default function SettingsPage({
 
   const Toggle = ({ value, onChange }) => (
     <button
+      type="button"
       onClick={(e) => {
         e.stopPropagation();
         nativeBridge.impactLight();
         onChange(!value);
       }}
-      className={`w-12 h-6 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+      className={`w-12 h-6 rounded-full p-0.5 transition-colors duration-150 flex items-center touch-manipulation select-none active-press ${
         value ? 'bg-cyan-500 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
       }`}
     >
@@ -146,8 +149,9 @@ export default function SettingsPage({
                 return (
                   <button
                     key={id}
+                    type="button"
                     onClick={() => handleThemeSelect(id)}
-                    className={`py-2 px-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all duration-150 active-press ${
+                    className={`py-2 px-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all duration-100 active-press touch-manipulation select-none ${
                       isActive
                         ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm border border-slate-200 dark:border-white/[0.08]'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -177,8 +181,9 @@ export default function SettingsPage({
               subtitle={useSimulator ? 'In-app biomechanics simulator active' : 'Supabase Realtime CDC telemetry stream'}
               right={
                 <button
+                  type="button"
                   onClick={(e) => { e.stopPropagation(); nativeBridge.impactMedium(); onToggleSource(); }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active-press ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active-press touch-manipulation select-none ${
                     useSimulator
                       ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-600 dark:text-cyan-400'
                       : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
@@ -284,3 +289,5 @@ export default function SettingsPage({
     </div>
   );
 }
+
+export default React.memo(SettingsPageComponent);
