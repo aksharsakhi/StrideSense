@@ -388,10 +388,10 @@ Open [`firmware/StrideSense_Firmware/config.h`](file:///Users/aksharsakhi/Docume
 // 2. Hardware profile (matches your 2 Square FSRs):
 #define FSR_SENSOR_COUNT      2
 
-// 3. Supabase Cloud Settings:
+// 3. Supabase Cloud Settings (Pre-configured & Ready):
 #define BACKEND_USE_SUPABASE  1
 #define SUPABASE_HOST         "https://sgooptohhldguitvhbrl.supabase.co"
-#define SUPABASE_PUBLISHABLE_KEY "YOUR_SUPABASE_PUBLISHABLE_KEY"
+#define SUPABASE_PUBLISHABLE_KEY "sb_publishable_XOwUeGn_OBNf0XoAMNmT9g_3M91ATSI"
 #define SUPABASE_ENDPOINT     "/rest/v1/telemetry"
 ```
 

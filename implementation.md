@@ -389,8 +389,11 @@ Open `firmware/StrideSense_Firmware/config.h`:
 // The ordered hardware kit uses 2 Square FSRs:
 #define FSR_SENSOR_COUNT  2
 
-// Backend is set to Supabase:
+// Backend is set to Supabase (Pre-configured & Ready):
 #define BACKEND_USE_SUPABASE  1
+#define SUPABASE_HOST         "https://sgooptohhldguitvhbrl.supabase.co"
+#define SUPABASE_PUBLISHABLE_KEY "sb_publishable_XOwUeGn_OBNf0XoAMNmT9g_3M91ATSI"
+#define SUPABASE_ENDPOINT     "/rest/v1/telemetry"
 ```
 
 ### 🚀 Uploading & Serial Output:
