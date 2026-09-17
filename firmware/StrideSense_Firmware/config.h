@@ -70,7 +70,7 @@
 
 // Supabase Configuration (PostgreSQL PostgREST & WebSockets CDC)
 #define SUPABASE_HOST         "https://sgooptohhldguitvhbrl.supabase.co"
-#define SUPABASE_PUBLISHABLE_KEY "YOUR_SUPABASE_PUBLISHABLE_KEY"
+#define SUPABASE_PUBLISHABLE_KEY "sb_publishable_XOwUeGn_OBNf0XoAMNmT9g_3M91ATSI"
 #define SUPABASE_ENDPOINT     "/rest/v1/telemetry"
 
 // Firebase Configuration (Optional Fallback)
