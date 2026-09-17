@@ -1,5 +1,5 @@
 import React from 'react';
-import { Battery, Wifi, WifiOff, Cpu, Sliders, CheckCircle2, Signal, Zap } from 'lucide-react';
+import { Battery, Wifi, Cpu, Sliders, CheckCircle2, Signal } from 'lucide-react';
 
 export default function DeviceStatus({
   batteryPct = 88,
@@ -7,8 +7,12 @@ export default function DeviceStatus({
   isCloudConnected = false,
   isSimulated = true
 }) {
-  const batteryColor = batteryPct > 60 ? 'text-emerald-400' : (batteryPct > 20 ? 'text-amber-400' : 'text-rose-400');
-  const batteryBg = batteryPct > 60 ? 'from-emerald-500 to-cyan-400' : (batteryPct > 20 ? 'from-amber-500 to-orange-400' : 'from-rose-500 to-red-400');
+  const batteryColor = batteryPct > 60
+    ? 'text-emerald-500 dark:text-emerald-400'
+    : (batteryPct > 20 ? 'text-amber-500 dark:text-amber-400' : 'text-rose-500 dark:text-rose-400');
+  const batteryBg = batteryPct > 60
+    ? 'from-emerald-500 to-cyan-400'
+    : (batteryPct > 20 ? 'from-amber-500 to-orange-400' : 'from-rose-500 to-red-400');
   const hoursLeft = Math.max(0, ((batteryPct / 100) * 8.5)).toFixed(1);
 
   return (
@@ -16,8 +20,8 @@ export default function DeviceStatus({
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h2 className="text-lg font-bold font-display text-white tracking-wide">Device Status</h2>
-          <p className="text-[10px] text-slate-500 mt-0.5">ESP32 smart insole telemetry link</p>
+          <h2 className="text-lg font-bold font-display text-slate-900 dark:text-white tracking-wide">Device Status</h2>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">ESP32 smart insole telemetry link</p>
         </div>
         <span className="badge badge-emerald text-[10px] flex items-center gap-1">
           <CheckCircle2 className="w-3 h-3" />
@@ -29,20 +33,19 @@ export default function DeviceStatus({
         {/* Battery */}
         <div className="metric-card animate-fade-in">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Battery</span>
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Battery</span>
             <Battery className={`w-4 h-4 ${batteryColor}`} />
           </div>
-          <div className="text-2xl font-mono font-bold text-white tracking-tight leading-none">
-            {batteryPct}<span className="text-xs font-normal text-slate-500">%</span>
+          <div className="text-2xl font-mono font-bold text-slate-900 dark:text-white tracking-tight leading-none">
+            {batteryPct}<span className="text-xs font-normal text-slate-400 ml-0.5">%</span>
           </div>
-          {/* Mini battery bar */}
-          <div className="w-full bg-slate-800/80 rounded-full h-1.5 mt-2.5 overflow-hidden">
+          <div className="w-full bg-slate-200 dark:bg-slate-800/80 rounded-full h-1.5 mt-2.5 overflow-hidden">
             <div
               className={`bg-gradient-to-r ${batteryBg} h-full rounded-full transition-all duration-500`}
               style={{ width: `${batteryPct}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] text-slate-500 mt-1.5">
+          <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 font-mono">
             <span>{batteryVoltage.toFixed(2)} V</span>
             <span className={batteryColor}>~{hoursLeft} hrs</span>
           </div>
@@ -51,20 +54,20 @@ export default function DeviceStatus({
         {/* Network / Backend */}
         <div className="metric-card animate-fade-in">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Backend</span>
-            {isSimulated ? <Signal className="w-4 h-4 text-cyan-400" /> : <Wifi className="w-4 h-4 text-emerald-400" />}
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Backend</span>
+            {isSimulated ? <Signal className="w-4 h-4 text-cyan-600 dark:text-cyan-400" /> : <Wifi className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
           </div>
-          <div className="text-base font-bold text-white flex items-center gap-2 leading-none">
+          <div className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 leading-none">
             {isSimulated ? (
-              <span className="text-cyan-400 font-mono">SIMULATOR</span>
+              <span className="text-cyan-600 dark:text-cyan-400 font-mono">SIMULATOR</span>
             ) : (
-              <span className="text-emerald-400 font-mono flex items-center gap-1.5">
+              <span className="text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1.5">
                 <span className="live-dot" />
                 SUPABASE
               </span>
             )}
           </div>
-          <div className="text-[10px] text-slate-500 mt-2 truncate">
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 truncate">
             {isSimulated ? 'In-memory telemetry stream' : 'sgooptohhldguitvhbrl (CDC)'}
           </div>
         </div>
@@ -72,33 +75,33 @@ export default function DeviceStatus({
         {/* Sampling Rate */}
         <div className="metric-card animate-fade-in">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Sampling</span>
-            <Cpu className="w-4 h-4 text-violet-400" />
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Sampling</span>
+            <Cpu className="w-4 h-4 text-violet-600 dark:text-violet-400" />
           </div>
-          <div className="text-2xl font-mono font-bold text-white tracking-tight leading-none">
-            50<span className="text-xs font-normal text-slate-500 ml-1">Hz</span>
+          <div className="text-2xl font-mono font-bold text-slate-900 dark:text-white tracking-tight leading-none">
+            50<span className="text-xs font-normal text-slate-400 ml-1">Hz</span>
           </div>
-          <div className="text-[10px] text-violet-300 mt-1.5">20ms cycle • 6-DOF</div>
+          <div className="text-[10px] text-violet-600 dark:text-violet-300 mt-1.5">20ms cycle • 6-DOF</div>
         </div>
 
         {/* Calibration */}
         <div className="metric-card animate-fade-in">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Calibration</span>
-            <Sliders className="w-4 h-4 text-amber-400" />
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Calibration</span>
+            <Sliders className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </div>
           <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span className="text-base font-bold text-white">Calibrated</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-base font-bold text-slate-900 dark:text-white">Calibrated</span>
           </div>
-          <div className="text-[10px] text-amber-300 mt-1.5">Zero-tare baseline: OK</div>
+          <div className="text-[10px] text-amber-600 dark:text-amber-300 mt-1.5">Zero-tare baseline: OK</div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="mt-4 pt-3 border-t border-white/[0.05] flex flex-wrap justify-between items-center text-[10px] text-slate-500">
-        <div>Device: <span className="font-mono text-slate-300">insole_left_01</span></div>
-        <div>FW: <span className="font-mono text-cyan-400">v1.4.2-TinyML</span></div>
+      <div className="mt-4 pt-3 border-t border-slate-200/70 dark:border-white/[0.05] flex flex-wrap justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
+        <div>Device: <span className="font-mono text-slate-700 dark:text-slate-300">insole_left_01</span></div>
+        <div>FW: <span className="font-mono text-cyan-600 dark:text-cyan-400 font-bold">v1.4.2-TinyML</span></div>
       </div>
     </div>
   );

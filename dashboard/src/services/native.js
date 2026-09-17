@@ -25,14 +25,30 @@ class NativeMobileBridge {
         const statusBarModule = await import('@capacitor/status-bar');
         this.statusBar = statusBarModule.StatusBar;
 
-        // Configure dark status bar
+        // Initial status bar config (defaults to dark or current theme)
         if (this.statusBar) {
-          await this.statusBar.setStyle({ style: 'DARK' });
-          await this.statusBar.setBackgroundColor({ color: '#080c14' });
+          const isDark = document.documentElement.classList.contains('dark');
+          await this.setTheme(isDark ? 'dark' : 'light');
         }
       }
     } catch (e) {
       this.isNative = false;
+    }
+  }
+
+  async setTheme(theme = 'dark') {
+    if (this.statusBar) {
+      try {
+        if (theme === 'dark') {
+          await this.statusBar.setStyle({ style: 'DARK' });
+          await this.statusBar.setBackgroundColor({ color: '#080c14' });
+        } else {
+          await this.statusBar.setStyle({ style: 'LIGHT' });
+          await this.statusBar.setBackgroundColor({ color: '#f8fafc' });
+        }
+      } catch (e) {
+        // StatusBar not supported on platform
+      }
     }
   }
 
