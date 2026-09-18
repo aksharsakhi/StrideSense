@@ -37,14 +37,27 @@ This folder contains the complete, modular embedded C++ firmware for the StrideS
 
 ---
 
-## 🛠️ Flashing Instructions
+## 🛠️ Flashing & Upload Instructions
 
-1. Install **Arduino IDE** (or VS Code + PlatformIO).
-2. Install the **esp32** board package (by Espressif Systems).
-3. Select Board: `ESP32 Dev Module`.
-4. Open `StrideSense_Firmware/config.h` and configure:
-   - `WIFI_SSID`: Your Wi-Fi network name.
-   - `WIFI_PASSWORD`: Your Wi-Fi password.
-   - `FIREBASE_HOST`: Your Firebase Realtime Database URL.
-5. Connect your ESP32 via USB and click **Upload**.
-6. Open Serial Monitor at **115200 baud** to view real-time inference telemetry.
+### ⚡ Option A (Recommended): 1-Click Terminal / AI Assistant Flashing
+You do **not** need to open Arduino IDE or configure ports manually:
+
+1. **Ask Antigravity**: Plug your ESP32 in via USB and tell the assistant:
+   > *"I connected the ESP32, upload the code"*
+   The assistant will auto-detect the serial port, compile, and flash the board.
+2. **Or run the automated script**:
+   ```bash
+   ./upload_esp32.sh
+   ```
+   This script auto-detects `/dev/cu.usbserial-*`, compiles the sketch, and flashes it directly.
+
+---
+
+### 🛠️ Option B: Manual Upload via Arduino IDE
+1. Open **Arduino IDE** (`/Applications/Arduino IDE.app`).
+2. Open `StrideSense_Firmware/StrideSense_Firmware.ino`.
+3. In `StrideSense_Firmware/config.h`, set your `WIFI_SSID` and `WIFI_PASSWORD` (Supabase credentials are pre-configured).
+4. Select **Tools ➔ Board ➔ esp32 ➔ ESP32 Dev Module**.
+5. Select **Tools ➔ Port** (`/dev/cu.usbserial-...`).
+6. Click **Upload** (Arrow icon `➔`).
+7. Open **Serial Monitor** at **115200 baud** to view real-time TinyML inference and Supabase streaming.

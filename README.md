@@ -360,25 +360,7 @@ Once bench testing is verified, transfer the sensors to the insole:
 The complete firmware is located in:
 👉 [`firmware/StrideSense_Firmware/StrideSense_Firmware.ino`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/StrideSense_Firmware.ino)
 
-### 🧰 Step 1: Install Arduino IDE & ESP32 Board Core
-1. Download and install [Arduino IDE (v2.x recommended)](https://www.arduino.cc/en/software).
-2. Open **Arduino IDE** $\to$ **Settings** (or **Preferences** on macOS: `Cmd + ,`).
-3. In the field **Additional boards manager URLs**, add:
-   ```
-   https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
-   ```
-4. In the left panel, click **Boards Manager** (icon with board), search for **`esp32`** by Espressif Systems, and click **Install**.
-
----
-
-### 📦 Step 2: Install Required Arduino Libraries
-In Arduino IDE, go to **Tools** $\to$ **Manage Libraries...** (or click the library book icon on the left) and install:
-1. **`Adafruit MPU6050`** (by Adafruit) — Click *Install All* to automatically include `Adafruit Unified Sensor` and `Adafruit BusIO`.
-2. **`ArduinoJson`** (by Benoit Blanchon) — Version 6.x or 7.x.
-
----
-
-### ⚙️ Step 3: Configure Wi-Fi & Backend Credentials
+### ⚙️ Step 1: Configure Wi-Fi Credentials
 Open [`firmware/StrideSense_Firmware/config.h`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/config.h):
 ```cpp
 // 1. Enter your Wi-Fi credentials (2.4 GHz network or mobile hotspot):
@@ -397,22 +379,53 @@ Open [`firmware/StrideSense_Firmware/config.h`](file:///Users/aksharsakhi/Docume
 
 ---
 
-### 🚀 Step 4: Flash the Board
-1. Connect the ESP32 to your Mac/PC using your micro-USB cable.
-2. Under **Tools** in the top menu, configure:
-   - **Board**: `ESP32 Dev Module` (or `NodeMCU-32S`)
-   - **Upload Speed**: `921600`
-   - **CPU Frequency**: `240MHz (WiFi/BT)`
-   - **Flash Frequency**: `80MHz`
-   - **Partition Scheme**: `Default 4MB with spiffs (1.2MB APP / 1.5MB SPIFFS)`
-   - **Port**: Select `/dev/cu.usbserial-XXXX` (macOS) or `COMx` (Windows).
-3. Click the **Upload** button (Arrow icon `→`).
-4. *Tip*: If the IDE outputs `Connecting........_____`, press and hold down the physical **BOOT** button on your ESP32 for 2 seconds until the upload starts.
+### 🚀 Option A (Recommended): 1-Click Automated Terminal / AI Assistant Flashing
+
+You do **not** need to open Arduino IDE or install third-party libraries. You can flash the board directly through your terminal or by asking your AI assistant:
+
+#### Method 1: Ask Antigravity AI Assistant
+1. Plug your ESP32 into your Mac via USB data cable.
+2. In this chat, simply say:
+   > *"I have connected the ESP32, upload the code"*
+3. The AI assistant will automatically:
+   - Detect the connected serial port (`/dev/cu.usbserial-...` or `/dev/cu.wchusbserial...`).
+   - Compile the C++ firmware and embedded TinyML model using the native toolchain.
+   - Flash the binary to the ESP32 chip.
+   - Verify the serial monitor to confirm initialization and Supabase streaming.
+
+#### Method 2: Run the 1-Click Script
+Open your terminal and run:
+```bash
+./firmware/upload_esp32.sh
+```
+This automated script scans USB ports, detects your board, compiles the sketch, and flashes it in under 15 seconds.
 
 ---
 
-### 🖥️ Step 5: Verify via Serial Monitor
-Open **Tools** $\to$ **Serial Monitor** and set the baud rate to **115200**:
+### 🛠️ Option B: Manual Upload via Arduino IDE
+
+If you prefer using the Arduino IDE graphical interface:
+
+#### 1. Open the Sketch in Arduino IDE
+1. Open **Arduino IDE** (`/Applications/Arduino IDE.app`).
+2. Go to **File ➔ Open...** and select:
+   ```
+   firmware/StrideSense_Firmware/StrideSense_Firmware.ino
+   ```
+3. All supporting files (`config.h`, `model_data.h`, `sensors.cpp`, etc.) will open automatically as tabs.
+
+#### 2. Configure Board & Port
+Under **Tools** in the top menu bar, select:
+- **Board**: `ESP32 Dev Module` (or `DOIT ESP32 DEVKIT V1` under `esp32`).
+- **Port**: Select `/dev/cu.usbserial-XXXX` (macOS) or `COMx` (Windows).
+- **Upload Speed**: `921600` (or `115200` if connection is noisy).
+- **CPU Frequency**: `240MHz (WiFi/BT)`.
+- *Note on Libraries*: StrideSense is **zero-dependency** — it uses the built-in `Wire.h`, `WiFi.h`, and `HTTPClient.h` included in the ESP32 board core. No external third-party libraries needed!
+
+#### 3. Upload & Monitor
+1. Click the **Upload** button (Arrow icon `➔`).
+2. *Tip*: If the console shows `Connecting........_____`, press and hold down the physical **BOOT** button on your ESP32 for 1–2 seconds until upload begins.
+3. Open **Tools ➔ Serial Monitor** at **115200 baud**:
 ```
 ==========================================
      STRIDESENSE - AI SMART INSOLE       
