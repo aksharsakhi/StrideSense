@@ -12,21 +12,15 @@ SensorsManager Sensors;
 SensorsManager::SensorsManager()
     : ax_offset(0), ay_offset(0), az_offset(0),
       gx_offset(0), gy_offset(0), gz_offset(0) {
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 2; i++) {
         fsr_baseline[i] = 0;
     }
 }
 
 bool SensorsManager::begin() {
-    // Configure FSR ADC pins as inputs
+    // Configure dual square FSR ADC pins as inputs
     pinMode(PIN_FSR_S1_HEEL, INPUT);
     pinMode(PIN_FSR_S2_FOREFOOT, INPUT);
-#if FSR_SENSOR_COUNT >= 6
-    pinMode(PIN_FSR_S3_MID_MED, INPUT);
-    pinMode(PIN_FSR_S4_FORE_LAT, INPUT);
-    pinMode(PIN_FSR_S5_FORE_MED, INPUT);
-    pinMode(PIN_FSR_S6_TOE, INPUT);
-#endif
     pinMode(PIN_BATTERY_ADC, INPUT);
 
     // Set 12-bit ADC resolution (0 - 4095)
@@ -44,7 +38,7 @@ bool SensorsManager::begin() {
     }
 
     initMPU6050();
-    Serial.println(F("[Sensors] MPU-6050 and ADC initialized successfully."));
+    Serial.println(F("[Sensors] MPU-6050 and Dual-FSR ADC initialized successfully."));
     return true;
 }
 
@@ -115,29 +109,18 @@ void SensorsManager::readMPU6050(float &ax, float &ay, float &az, float &gx, flo
 bool SensorsManager::readSample(SensorSample &sample) {
     sample.timestamp_ms = millis();
 
-    // Read FSR ADC values with multi-sample smoothing
-    sample.p1 = readAveragedADC(PIN_FSR_S1_HEEL);
-    sample.p2 = readAveragedADC(PIN_FSR_S2_FOREFOOT);
-#if FSR_SENSOR_COUNT == 2
-    // 2-Square-FSR kit mode: Heel and Forefoot/Ball
+    // Read dual square FSR ADC values with multi-sample smoothing
+    sample.p1 = readAveragedADC(PIN_FSR_S1_HEEL);     // Calcaneus Heel
+    sample.p2 = readAveragedADC(PIN_FSR_S2_FOREFOOT); // Metatarsal Forefoot Ball
     sample.p3 = 0;
     sample.p4 = 0;
     sample.p5 = sample.p2; // Map forefoot reading to metatarsal zone for TinyML feature balance
     sample.p6 = 0;
-#else
-    sample.p3 = readAveragedADC(PIN_FSR_S3_MID_MED);
-    sample.p4 = readAveragedADC(PIN_FSR_S4_FORE_LAT);
-    sample.p5 = readAveragedADC(PIN_FSR_S5_FORE_MED);
-    sample.p6 = readAveragedADC(PIN_FSR_S6_TOE);
-#endif
 
     // Apply baseline subtraction (zero-tare)
     sample.p1 = (sample.p1 > fsr_baseline[0]) ? (sample.p1 - fsr_baseline[0]) : 0;
     sample.p2 = (sample.p2 > fsr_baseline[1]) ? (sample.p2 - fsr_baseline[1]) : 0;
-    sample.p3 = (sample.p3 > fsr_baseline[2]) ? (sample.p3 - fsr_baseline[2]) : 0;
-    sample.p4 = (sample.p4 > fsr_baseline[3]) ? (sample.p4 - fsr_baseline[3]) : 0;
-    sample.p5 = (sample.p5 > fsr_baseline[4]) ? (sample.p5 - fsr_baseline[4]) : 0;
-    sample.p6 = (sample.p6 > fsr_baseline[5]) ? (sample.p6 - fsr_baseline[5]) : 0;
+    sample.p5 = sample.p2;
 
     // Read MPU6050
     readMPU6050(sample.ax, sample.ay, sample.az, sample.gx, sample.gy, sample.gz);
@@ -150,20 +133,14 @@ bool SensorsManager::readSample(SensorSample &sample) {
 }
 
 void SensorsManager::calibrateZeroBaseline(int samples) {
-    Serial.println(F("[Sensors] Calibrating zero-force baseline and IMU bias..."));
-    long p_sums[6] = {0};
+    Serial.println(F("[Sensors] Calibrating zero-force baseline and IMU bias for 2-FSR kit..."));
+    long p_sums[2] = {0};
     float ax_sum = 0, ay_sum = 0, az_sum = 0;
     float gx_sum = 0, gy_sum = 0, gz_sum = 0;
 
     for (int i = 0; i < samples; i++) {
         p_sums[0] += analogRead(PIN_FSR_S1_HEEL);
         p_sums[1] += analogRead(PIN_FSR_S2_FOREFOOT);
-#if FSR_SENSOR_COUNT >= 6
-        p_sums[2] += analogRead(PIN_FSR_S3_MID_MED);
-        p_sums[3] += analogRead(PIN_FSR_S4_FORE_LAT);
-        p_sums[4] += analogRead(PIN_FSR_S5_FORE_MED);
-        p_sums[5] += analogRead(PIN_FSR_S6_TOE);
-#endif
 
         float a_x, a_y, a_z, g_x, g_y, g_z;
         readMPU6050(a_x, a_y, a_z, g_x, g_y, g_z);
@@ -176,7 +153,7 @@ void SensorsManager::calibrateZeroBaseline(int samples) {
         delay(15);
     }
 
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 2; i++) {
         fsr_baseline[i] = (uint16_t)(p_sums[i] / samples);
     }
 

@@ -347,14 +347,15 @@ export function extractFeatures(window) {
     sum_svm_gyro += svm_g;
     if (svm_g > max_svm_gyro) max_svm_gyro = svm_g;
 
-    const f_tot = (s.p1 + s.p2 + s.p3 + s.p4 + s.p5 + s.p6);
+    const forefoot = (s.p2 || s.p5 || 0);
+    const f_tot = s.p1 + forefoot;
     sum_force += f_tot;
     if (f_tot > max_force) max_force = f_tot;
 
     const h = s.p1;
-    const ff = (s.p4 + s.p5 + s.p6);
-    const med = (s.p3 + s.p5);
-    const lat = (s.p2 + s.p4);
+    const ff = forefoot;
+    const med = forefoot * 0.52;
+    const lat = forefoot * 0.48;
 
     sum_heel += h;
     sum_forefoot += ff;

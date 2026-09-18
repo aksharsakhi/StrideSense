@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Eye, RotateCcw, Compass, Sparkles, Layers } from 'lucide-react';
 
-export default function Viewport3D({ sample, showFootModel = true, hardwareMode = 2 }) {
+export default function Viewport3D({ sample, showFootModel = true }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
   const footGroupRef = useRef(null);
@@ -142,27 +142,18 @@ export default function Viewport3D({ sample, showFootModel = true, hardwareMode 
     const edgeLines = new THREE.LineSegments(edgeGeo, edgeMat);
     footGroup.add(edgeLines);
 
-    // Pressure Sensors (FSR Pads)
+    // Pressure Sensors (Dual Square FSR Pads - Matching Physical Kit)
     const fsrConfigs = [
-      { id: 'p1', name: 'Heel (P1)', x: 0.02, z: -0.65, r: 0.16, sq: false, primary: true },
-      { id: 'p2', name: 'Mid Lateral (P2)', x: 0.24, z: -0.05, r: 0.10, sq: false, primary: false },
-      { id: 'p3', name: 'Mid Medial (P3)', x: -0.16, z: -0.05, r: 0.10, sq: false, primary: false },
-      { id: 'p4', name: 'Forefoot Lat (P4)', x: 0.28, z: 0.72, r: 0.12, sq: true, primary: true },
-      { id: 'p5', name: 'Forefoot Med (P5)', x: -0.22, z: 0.75, r: 0.12, sq: true, primary: true },
-      { id: 'p6', name: 'Big Toe (P6)', x: -0.16, z: 1.15, r: 0.11, sq: false, primary: false },
+      { id: 'p1', name: 'Square Heel FSR (P1)', x: 0.02, z: -0.65, w: 0.36, h: 0.36 },
+      { id: 'p2', name: 'Square Forefoot FSR (P2)', x: 0.02, z: 0.72, w: 0.42, h: 0.42 },
     ];
 
     const pads = {};
     const lights = {};
 
     fsrConfigs.forEach(cfg => {
-      // Cylinder sensor pad on top of insole
-      let padGeo;
-      if (cfg.sq) {
-        padGeo = new THREE.BoxGeometry(cfg.r * 1.8, 0.015, cfg.r * 1.8);
-      } else {
-        padGeo = new THREE.CylinderGeometry(cfg.r, cfg.r, 0.015, 32);
-      }
+      // Square FSR sensor pad on top of insole
+      const padGeo = new THREE.BoxGeometry(cfg.w, 0.015, cfg.h);
 
       const padMat = new THREE.MeshStandardMaterial({
         color: 0x09101d,
@@ -179,23 +170,21 @@ export default function Viewport3D({ sample, showFootModel = true, hardwareMode 
       pads[cfg.id] = padMesh;
 
       // Contact Point Light
-      const pLight = new THREE.PointLight(0x06b6d4, 0.0, 1.2);
+      const pLight = new THREE.PointLight(0x06b6d4, 0.0, 1.4);
       pLight.position.set(cfg.x, 0.14, cfg.z);
       footGroup.add(pLight);
       lights[cfg.id] = pLight;
 
-      // Target border ring
-      const ringGeo = new THREE.RingGeometry(cfg.r * 0.9, cfg.r * 1.05, 32);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: cfg.primary ? 0x38bdf8 : 0x64748b,
-        side: THREE.DoubleSide,
+      // Target border wire outline
+      const wireGeo = new THREE.EdgesGeometry(padGeo);
+      const wireMat = new THREE.LineBasicMaterial({
+        color: 0x38bdf8,
         transparent: true,
-        opacity: 0.7
+        opacity: 0.8
       });
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.set(cfg.x, 0.065, cfg.z);
-      footGroup.add(ring);
+      const wire = new THREE.LineSegments(wireGeo, wireMat);
+      wire.position.set(cfg.x, 0.058, cfg.z);
+      footGroup.add(wire);
     });
 
     fsrPadsRef.current = pads;
@@ -293,11 +282,7 @@ export default function Viewport3D({ sample, showFootModel = true, hardwareMode 
 
     const sensorValues = {
       p1: sample.p1 || 0,
-      p2: hardwareMode === 2 ? 0 : (sample.p2 || 0),
-      p3: hardwareMode === 2 ? 0 : (sample.p3 || 0),
-      p4: sample.p4 || 0,
-      p5: sample.p5 || 0,
-      p6: hardwareMode === 2 ? 0 : (sample.p6 || 0),
+      p2: sample.p2 || sample.p5 || 0,
     };
 
     Object.entries(sensorValues).forEach(([id, val]) => {
@@ -331,7 +316,7 @@ export default function Viewport3D({ sample, showFootModel = true, hardwareMode 
         light.intensity = norm * 5.0;
       }
     });
-  }, [sample, showFootModel, hardwareMode]);
+  }, [sample, showFootModel]);
 
   // Camera presets
   const setCameraPreset = (preset) => {

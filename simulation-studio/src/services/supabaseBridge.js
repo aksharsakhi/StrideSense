@@ -9,11 +9,11 @@ const DEFAULT_ENDPOINT = "/rest/v1/telemetry";
 
 export class SupabaseBridge {
   constructor() {
-    this.enabled = false;
+    this.enabled = true;
     this.host = DEFAULT_SUPABASE_HOST;
     this.apiKey = DEFAULT_SUPABASE_KEY;
     this.endpoint = DEFAULT_ENDPOINT;
-    this.deviceId = "stridesense_sim_insole";
+    this.deviceId = "insole_left_01"; // Registered device in Supabase devices table
     this.lastBroadcast = 0;
     this.broadcastIntervalMs = 1000; // 1 Hz matching ESP32 firmware CLOUD_TELEMETRY_MS
     this.status = "idle"; // 'idle' | 'broadcasting' | 'success' | 'error'
@@ -34,6 +34,8 @@ export class SupabaseBridge {
     }
     this.lastBroadcast = now;
 
+    const forefootVal = Math.round(sample.p2 || sample.p5 || 0);
+
     const payload = {
       device_id: this.deviceId,
       activity: inference.activityName || "Walking",
@@ -42,12 +44,12 @@ export class SupabaseBridge {
       cadence: parseFloat((stats.cadence || 105.0).toFixed(1)),
       symmetry: parseFloat((stats.symmetry || 98.0).toFixed(1)),
       fall_alert: inference.activityName === "Fall" || stats.fallAlert === true,
-      p1: Math.round(sample.p1 || 0),
-      p2: Math.round(sample.p2 || 0),
-      p3: Math.round(sample.p3 || 0),
-      p4: Math.round(sample.p4 || 0),
-      p5: Math.round(sample.p5 || 0),
-      p6: Math.round(sample.p6 || 0),
+      p1: Math.round(sample.p1 || 0), // FSR 1: Heel
+      p2: forefootVal,                // FSR 2: Forefoot Ball
+      p3: 0,
+      p4: 0,
+      p5: forefootVal,                // Mapped forefoot for ML parity
+      p6: 0,
       pitch: parseFloat((sample.pitch || 0).toFixed(1)),
       roll: parseFloat((sample.roll || 0).toFixed(1)),
       svm_a: parseFloat((Math.sqrt(sample.ax*sample.ax + sample.ay*sample.ay + sample.az*sample.az) || 1.0).toFixed(2))

@@ -45,7 +45,7 @@ StrideSense is an end-to-end cyber-physical IoT healthcare system that captures 
 |         │                                                                         |
 |         ▼ (<50 ms Push Stream)                                                    |
 |  [Cross-Platform Mobile Application (Capacitor + React 19 + TailwindCSS)]          |
-|    - Plantar Foot Pressure Heatmap (2-FSR Mode & 6-FSR Expansion)                 |
+|    - Plantar Foot Pressure Heatmap (Dual Square FSR Kit: Heel + Forefoot)         |
 |    - Real-Time Fall Shield & Emergency Dispatch Banner                            |
 |    - Gait Biomechanics (Cadence SPM, 62%/38% Duty Cycle, Dynamic Symmetry Index)  |
 |    - Device Diagnostics & Native Haptic Feedback                                  |

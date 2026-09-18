@@ -5,7 +5,6 @@ import { ACTIVITY_COLORS } from '../services/tinyMLEval';
 export default function TelemetryGauges({
   sample,
   inference,
-  hardwareMode,
   supabaseBridge,
   supabaseEnabled,
   setSupabaseEnabled,
@@ -24,12 +23,8 @@ export default function TelemetryGauges({
   );
 
   const sensors = [
-    { id: 'p1', name: 'P1: Heel (Calcaneus)', val: sample?.p1 || 0, active: true },
-    { id: 'p2', name: 'P2: Mid Lateral Arch', val: sample?.p2 || 0, active: hardwareMode === 6 },
-    { id: 'p3', name: 'P3: Mid Medial Arch', val: sample?.p3 || 0, active: hardwareMode === 6 },
-    { id: 'p4', name: 'P4: Forefoot Lateral (MT5)', val: sample?.p4 || 0, active: true },
-    { id: 'p5', name: 'P5: Forefoot Medial (MT1)', val: sample?.p5 || 0, active: true },
-    { id: 'p6', name: 'P6: Big Toe (Hallux)', val: sample?.p6 || 0, active: hardwareMode === 6 },
+    { id: 'p1', name: 'FSR 1: Heel Calcaneus (GPIO 36)', val: sample?.p1 || 0, role: 'Heel Strike Shock' },
+    { id: 'p2', name: 'FSR 2: Forefoot Ball (GPIO 39)', val: sample?.p2 || sample?.p5 || 0, role: 'Propulsion & Metatarsal' },
   ];
 
   const activityColor = ACTIVITY_COLORS[inference?.activityName] || '#06b6d4';
@@ -131,30 +126,31 @@ export default function TelemetryGauges({
               FSR PRESSURE SENSORS (12-BIT ADC)
             </h3>
           </div>
-          <span className="text-[10px] font-mono text-slate-400">
-            {hardwareMode === 2 ? '2 Active (Kit)' : '6 Active (Array)'}
+          <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-800/40">
+            2x Square Kit (GPIO 36 & 39)
           </span>
         </div>
 
-        <div className="space-y-2 font-mono">
+        <div className="space-y-3 font-mono">
           {sensors.map((s) => {
             const percent = Math.min(100, Math.round((s.val / 4095) * 100));
             const newtons = Math.round((s.val / 4095) * 420); // ~0-420N calibration
             return (
-              <div
-                key={s.id}
-                className={`transition-opacity ${s.active ? 'opacity-100' : 'opacity-30'}`}
-              >
-                <div className="flex justify-between text-xs mb-0.5">
-                  <span className="text-slate-300 text-[11px]">{s.name}</span>
-                  <div className="space-x-2 text-[11px]">
-                    <span className="text-slate-400">{s.active ? `${newtons} N` : 'N/A'}</span>
-                    <span className={`font-semibold ${s.val > 3000 ? 'text-red-400' : 'text-cyan-400'}`}>
-                      {s.active ? s.val : 0}
+              <div key={s.id} className="bg-slate-900/50 p-2.5 rounded-xl border border-slate-800">
+                <div className="flex justify-between items-start text-xs mb-1">
+                  <div>
+                    <span className="text-slate-200 text-[11px] font-semibold block">{s.name}</span>
+                    <span className="text-[10px] text-slate-500">{s.role}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-400 text-[11px] mr-2">{newtons} N</span>
+                    <span className={`font-bold text-xs ${s.val > 3000 ? 'text-red-400' : 'text-cyan-400'}`}>
+                      {s.val}
                     </span>
+                    <span className="text-[10px] text-slate-500"> / 4095</span>
                   </div>
                 </div>
-                <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800">
+                <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800/80">
                   <div
                     className={`h-full transition-all duration-75 ${
                       s.val > 3000
@@ -163,7 +159,7 @@ export default function TelemetryGauges({
                         ? 'bg-gradient-to-r from-cyan-500 to-emerald-400'
                         : 'bg-cyan-500'
                     }`}
-                    style={{ width: `${s.active ? percent : 0}%` }}
+                    style={{ width: `${percent}%` }}
                   />
                 </div>
               </div>

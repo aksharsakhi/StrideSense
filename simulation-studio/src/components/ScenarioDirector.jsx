@@ -11,8 +11,6 @@ export default function ScenarioDirector({
   setManualMode,
   manualSensors,
   setManualSensors,
-  hardwareMode,
-  setHardwareMode,
   showFootModel,
   setShowFootModel
 }) {
@@ -66,30 +64,10 @@ export default function ScenarioDirector({
           <p className="text-xs text-slate-400 mt-0.5">Automated Biomechanical Gait Test Vectors</p>
         </div>
 
-        {/* 2-FSR vs 6-FSR Hardware Switch */}
-        <div className="flex items-center space-x-1 bg-slate-950/80 p-1 rounded-lg border border-slate-800 text-xs">
-          <button
-            onClick={() => setHardwareMode(2)}
-            className={`px-2.5 py-1 rounded font-mono font-medium transition-all ${
-              hardwareMode === 2
-                ? 'bg-cyan-500 text-black font-semibold shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-            title="Kit Mode: 2 Square FSRs (Heel + Forefoot)"
-          >
-            2-FSR Kit
-          </button>
-          <button
-            onClick={() => setHardwareMode(6)}
-            className={`px-2.5 py-1 rounded font-mono font-medium transition-all ${
-              hardwareMode === 6
-                ? 'bg-cyan-500 text-black font-semibold shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-            title="Lab Mode: 6 Anatomical Insole Zones"
-          >
-            6-FSR Array
-          </button>
+        {/* 2-FSR Hardware Badge */}
+        <div className="flex items-center space-x-1 bg-slate-950/90 px-2.5 py-1 rounded-lg border border-cyan-500/30 text-xs font-mono text-cyan-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse mr-1" />
+          <span>2x Square FSR Kit</span>
         </div>
       </div>
 

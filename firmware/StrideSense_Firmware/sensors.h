@@ -1,6 +1,6 @@
 /**
  * StrideSense - Sensor Driver Header
- * Handles MPU6050 (I2C) and 6x FSR (ADC) acquisition and scaling.
+ * Handles MPU6050 (I2C) and 2x Square FSR (ADC) acquisition and scaling.
  */
 
 #ifndef STRIDESENSE_SENSORS_H
@@ -11,12 +11,12 @@
 #include "config.h"
 
 struct SensorSample {
-    uint16_t p1; // Heel
-    uint16_t p2; // Midfoot Lateral
-    uint16_t p3; // Midfoot Medial
-    uint16_t p4; // Forefoot Lateral
-    uint16_t p5; // Forefoot Medial
-    uint16_t p6; // Big Toe
+    uint16_t p1; // Heel (FSR 1, GPIO 36)
+    uint16_t p2; // Forefoot Ball (FSR 2, GPIO 39)
+    uint16_t p3; // Reserved / 0
+    uint16_t p4; // Reserved / 0
+    uint16_t p5; // Forefoot Medial mapped
+    uint16_t p6; // Reserved / 0
 
     float ax;    // Accel X (g)
     float ay;    // Accel Y (g)
@@ -53,7 +53,7 @@ private:
     float gy_offset;
     float gz_offset;
 
-    uint16_t fsr_baseline[6];
+    uint16_t fsr_baseline[2];
 };
 
 extern SensorsManager Sensors;

@@ -17,7 +17,6 @@ export default function App() {
   const [scenario, setScenario] = useState('walking');
   const [fallState, setFallState] = useState('idle');
   const [alertCountdown, setAlertCountdown] = useState(15);
-  const [hardwareMode, setHardwareMode] = useState(2); // 2 = kit (heel + forefoot), 6 = array
   const [showFootModel, setShowFootModel] = useState(true);
 
   // Manual overrides
@@ -30,8 +29,8 @@ export default function App() {
     svmAcc: 1.0
   });
 
-  // Supabase cloud sync
-  const [supabaseEnabled, setSupabaseEnabled] = useState(false);
+  // Supabase cloud live sync (enabled by default)
+  const [supabaseEnabled, setSupabaseEnabled] = useState(true);
 
   // Accumulated metrics
   const [stats, setStats] = useState({
@@ -177,7 +176,6 @@ export default function App() {
             <Viewport3D
               sample={currentSample}
               showFootModel={showFootModel}
-              hardwareMode={hardwareMode}
             />
           </div>
 
@@ -192,8 +190,6 @@ export default function App() {
             setManualMode={setManualMode}
             manualSensors={manualSensors}
             setManualSensors={setManualSensors}
-            hardwareMode={hardwareMode}
-            setHardwareMode={setHardwareMode}
             showFootModel={showFootModel}
             setShowFootModel={setShowFootModel}
           />
@@ -204,7 +200,6 @@ export default function App() {
           <TelemetryGauges
             sample={currentSample}
             inference={currentInference}
-            hardwareMode={hardwareMode}
             supabaseBridge={bridgeRef.current}
             supabaseEnabled={supabaseEnabled}
             setSupabaseEnabled={setSupabaseEnabled}

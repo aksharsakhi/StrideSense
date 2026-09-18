@@ -12,18 +12,12 @@
 // 1. HARDWARE SELECTION & PIN CONFIGURATION
 // ==========================================
 
-// Hardware Mode:
-// Set to 2 for the Ordered Kit (2x Square FSRs: Heel + Forefoot)
-// Set to 6 for Full 6-Zone Anatomical Insole
-#define FSR_SENSOR_COUNT      2   // Default: 2 (Matches ordered 2x Square FSRs)
+// Hardware Mode: Standard 2x Square FSR Kit (Heel + Forefoot)
+#define FSR_SENSOR_COUNT      2
 
 // FSR Pressure Sensors (ESP32 ADC1 channels - safe with Wi-Fi active)
 #define PIN_FSR_S1_HEEL       36  // VP / SENSOR_VP (FSR 1: Calcaneus / Heel)
 #define PIN_FSR_S2_FOREFOOT   39  // VN / SENSOR_VN (FSR 2: Metatarsal / Forefoot Ball)
-#define PIN_FSR_S3_MID_MED    34  // GPIO 34 (Optional: Midfoot Medial for 6-FSR array)
-#define PIN_FSR_S4_FORE_LAT   35  // GPIO 35 (Optional: 4th-5th Metatarsal for 6-FSR array)
-#define PIN_FSR_S5_FORE_MED   32  // GPIO 32 (Optional: 1st Metatarsal for 6-FSR array)
-#define PIN_FSR_S6_TOE        33  // GPIO 33 (Optional: Hallux / Big Toe for 6-FSR array)
 
 // MPU-6050 IMU (I2C Bus)
 #define PIN_I2C_SDA           21  // ESP32 default SDA
