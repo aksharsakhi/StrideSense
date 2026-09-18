@@ -315,9 +315,9 @@ button {
   50% { transform: translateY(-4px); }
 }
 
-.animate-fade-in { animation: fadeIn 0.06s ease-out forwards; }
-.animate-fade-in-scale { animation: fadeInScale 0.07s ease-out forwards; }
-.animate-slide-up { animation: slideUp 0.10s ease-out forwards; }
+.animate-fade-in { animation: fadeIn 0.15s ease-out forwards; }
+.animate-fade-in-scale { animation: fadeInScale 0.2s ease-out forwards; }
+.animate-slide-up { animation: slideUp 0.2s ease-out forwards; }
 .animate-shimmer {
   background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.06) 50%, transparent 70%);
   background-size: 200% 100%;
@@ -326,8 +326,13 @@ button {
 .animate-breathe { animation: breathe 3s ease-in-out infinite; }
 .animate-float { animation: float 3s ease-in-out infinite; }
 
-/* Zero artificial stagger delay for instantaneous touch responsiveness */
-.stagger-children > * { animation-delay: 0ms !important; }
+/* Page entrance stagger — subtle cascading reveal */
+.stagger-children > *:nth-child(1) { animation-delay: 0ms !important; }
+.stagger-children > *:nth-child(2) { animation-delay: 30ms !important; }
+.stagger-children > *:nth-child(3) { animation-delay: 60ms !important; }
+.stagger-children > *:nth-child(4) { animation-delay: 90ms !important; }
+.stagger-children > *:nth-child(5) { animation-delay: 120ms !important; }
+.stagger-children > *:nth-child(6) { animation-delay: 150ms !important; }
 
 /* ─── GLOW EFFECTS ──────────────────────────────────── */
 .shadow-glow-cyan { box-shadow: var(--shadow-glow-cyan); }
@@ -443,6 +448,95 @@ button, a, input, select, [role="button"], .cursor-pointer, .active-press, .metr
   background: var(--accent-emerald);
   box-shadow: 0 0 8px var(--accent-emerald-glow);
   animation: breathe 2s ease-in-out infinite;
+  position: relative;
+}
+.live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent-emerald);
+  opacity: 0;
+  animation: dotRing 2s ease-out infinite;
+}
+@keyframes dotRing {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* ─── CONNECTION STATUS PULSE ───────────────────────── */
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.status-pulse {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+/* ─── ANIMATED GRADIENT BORDER ──────────────────────── */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.gradient-border {
+  position: relative;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-emerald), var(--accent-purple), var(--accent-cyan));
+  background-size: 300% 300%;
+  animation: gradientShift 4s ease infinite;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.gradient-border:hover::before {
+  opacity: 1;
+}
+
+/* ─── HERO MESH GRADIENT ────────────────────────────── */
+@keyframes meshGradient {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.hero-mesh {
+  background: linear-gradient(-45deg,
+    rgba(2, 132, 199, 0.06),
+    rgba(5, 150, 105, 0.05),
+    rgba(139, 92, 246, 0.04),
+    rgba(2, 132, 199, 0.06)
+  );
+  background-size: 400% 400%;
+  animation: meshGradient 8s ease infinite;
+}
+.dark .hero-mesh {
+  background: linear-gradient(-45deg,
+    rgba(0, 229, 255, 0.08),
+    rgba(16, 185, 129, 0.06),
+    rgba(139, 92, 246, 0.06),
+    rgba(0, 229, 255, 0.08)
+  );
+  background-size: 400% 400%;
+  animation: meshGradient 8s ease infinite;
+}
+
+/* ─── EMPTY STATE SHIMMER ───────────────────────────── */
+@keyframes emptyPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+.empty-pulse {
+  animation: emptyPulse 2s ease-in-out infinite;
+}
+
+/* ─── SMOOTH NUMBER TRANSITION ──────────────────────── */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ─── BOTTOM NAV ACTIVE INDICATOR ───────────────────── */

@@ -11,15 +11,23 @@ export default function App() {
   const engineRef = useRef(null);
   const bridgeRef = useRef(null);
 
-  // Core state
+  // Simulation play state
+  const [isRunning, setIsRunning] = useState(true);
+  const [simSpeed, setSimSpeed] = useState(1.0);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [frameCount, setFrameCount] = useState(0);
+
+  // Core kinematic state
   const [currentSample, setCurrentSample] = useState(null);
   const [currentInference, setCurrentInference] = useState(null);
   const [scenario, setScenario] = useState('walking');
   const [fallState, setFallState] = useState('idle');
   const [alertCountdown, setAlertCountdown] = useState(15);
+  const [stumbleState, setStumbleState] = useState('idle');
+  const [stumbleMessage, setStumbleMessage] = useState('');
   const [showFootModel, setShowFootModel] = useState(true);
 
-  // Manual overrides
+  // Manual hardware slider overrides
   const [manualMode, setManualMode] = useState(false);
   const [manualSensors, setManualSensors] = useState({
     heel: 1200,
@@ -32,7 +40,7 @@ export default function App() {
   // Supabase cloud live sync (enabled by default)
   const [supabaseEnabled, setSupabaseEnabled] = useState(true);
 
-  // Accumulated metrics
+  // Accumulated biometric metrics
   const [stats, setStats] = useState({
     steps: 1420,
     cadence: 108.0,
@@ -43,7 +51,23 @@ export default function App() {
   // Previous phase for step counting
   const prevPhaseRef = useRef('');
 
-  // Initialize engine and bridge
+  // Spacebar shortcut to pause/play
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+        e.preventDefault();
+        setIsRunning((prev) => {
+          const next = !prev;
+          if (engineRef.current) engineRef.current.setRunning(next);
+          return next;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Initialize engine and cloud bridge
   useEffect(() => {
     const engine = new PhysicsEngine();
     const bridge = new SupabaseBridge();
@@ -61,53 +85,117 @@ export default function App() {
       setCurrentSample(sample);
       setFallState(engine.fallState);
       setAlertCountdown(engine.alertCountdown);
+      setStumbleState(engine.stumbleState);
+      setStumbleMessage(engine.stumbleMessage);
+      setElapsedTime(Math.floor(engine.time));
+      setFrameCount(engine.frameCount);
 
-      // Feature extraction from sliding window buffer
+      // Feature extraction from sliding window buffer (strictly 2 FSRs)
       const features = extractFeatures(engine.windowBuffer);
-      const inference = runTinyMLInference(features);
+      const inference = runTinyMLInference(features, engine.fallState);
       setCurrentInference(inference);
 
       // Detect step count transitions (Heel Strike phase entry)
-      if (sample.phase === 'Heel Strike' && prevPhaseRef.current !== 'Heel Strike') {
-        setStats(prev => ({
+      if (
+        sample.phase &&
+        sample.phase.includes('Heel Strike') &&
+        !prevPhaseRef.current.includes('Heel Strike') &&
+        engine.isRunning
+      ) {
+        setStats((prev) => ({
           ...prev,
           steps: prev.steps + 1
         }));
       }
-      prevPhaseRef.current = sample.phase;
+      prevPhaseRef.current = sample.phase || '';
 
-      // Dynamic cadence & symmetry
+      // Dynamic cadence & symmetry based on active scenario
       let currentCadence = 0;
-      if (inference.activityName === 'Walking') currentCadence = 108;
-      else if (inference.activityName === 'Running') currentCadence = 166;
-
       let currentSymmetry = 98.2;
-      if (engine.scenario === 'pronation') currentSymmetry = 78.5; // Significant asymmetry
 
-      setStats(prev => ({
+      if (engine.scenario === 'walking') {
+        currentCadence = 108.0;
+        currentSymmetry = 98.2;
+      } else if (engine.scenario === 'running') {
+        currentCadence = 165.0;
+        currentSymmetry = 96.8;
+      } else if (engine.scenario === 'stumble') {
+        currentCadence = 92.0;
+        currentSymmetry = 84.5; // Stumble temporary asymmetry
+      } else if (engine.scenario === 'pronation') {
+        currentCadence = 104.0;
+        currentSymmetry = 78.5; // Significant asymmetry
+      } else {
+        // standing or sitting or fall
+        currentCadence = 0.0;
+        currentSymmetry = 100.0;
+      }
+
+      const isCatastrophicFallAlert = engine.fallState === 'alert_pending' || engine.fallState === 'dispatched';
+
+      setStats((prev) => ({
         ...prev,
         cadence: currentCadence,
         symmetry: currentSymmetry,
-        fallAlert: engine.fallState !== 'idle'
+        fallAlert: isCatastrophicFallAlert
       }));
 
-      // Broadcast to cloud if enabled
+      // Broadcast to Supabase cloud if enabled
       bridge.setEnabled(supabaseEnabled);
       bridge.sendTelemetry(sample, inference, {
         steps: stats.steps,
         cadence: currentCadence,
         symmetry: currentSymmetry,
-        fallAlert: engine.fallState !== 'idle'
+        fallAlert: isCatastrophicFallAlert
       });
     }, 20);
 
     return () => clearInterval(interval);
   }, [manualMode, manualSensors, supabaseEnabled]);
 
+  const handleToggleRunning = () => {
+    setIsRunning((prev) => {
+      const next = !prev;
+      if (engineRef.current) engineRef.current.setRunning(next);
+      return next;
+    });
+  };
+
+  const handleChangeSpeed = (speed) => {
+    setSimSpeed(speed);
+    if (engineRef.current) engineRef.current.setSpeed(speed);
+  };
+
+  const handleResetSimulation = () => {
+    if (engineRef.current) {
+      engineRef.current.reset();
+      engineRef.current.setRunning(true);
+    }
+    setIsRunning(true);
+    setScenario('walking');
+    setElapsedTime(0);
+    setFrameCount(0);
+    setFallState('idle');
+    setAlertCountdown(15);
+    setStumbleState('idle');
+    setStumbleMessage('');
+    setStats({
+      steps: 1420,
+      cadence: 108.0,
+      symmetry: 97.4,
+      fallAlert: false
+    });
+  };
+
   const handleSelectScenario = (scId) => {
     setScenario(scId);
     if (engineRef.current) {
       engineRef.current.setScenario(scId);
+      // Auto resume if paused when user triggers a scenario
+      if (!engineRef.current.isRunning) {
+        engineRef.current.setRunning(true);
+        setIsRunning(true);
+      }
     }
   };
 
@@ -148,12 +236,12 @@ export default function App() {
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span className="text-slate-300">Target: <strong className="text-emerald-400">ESP32 DevKit V1</strong></span>
               <span className="text-slate-500">•</span>
-              <span className="text-slate-400">Firmware Ready for Flash</span>
+              <span className="text-slate-400">2-FSR Array (GPIO 36 & 39)</span>
             </div>
 
             {/* Dashboard Separation Notice */}
             <div className="hidden lg:flex items-center gap-1 text-[11px] font-mono text-slate-400 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
-              <span>Production App:</span>
+              <span>Mobile Dashboard:</span>
               <a
                 href="http://localhost:5173"
                 target="_blank"
@@ -181,11 +269,20 @@ export default function App() {
 
           {/* Scenario Director */}
           <ScenarioDirector
+            isRunning={isRunning}
+            onToggleRunning={handleToggleRunning}
+            simSpeed={simSpeed}
+            onChangeSpeed={handleChangeSpeed}
+            onResetSimulation={handleResetSimulation}
+            elapsedTime={elapsedTime}
+            frameCount={frameCount}
             currentScenario={scenario}
             onSelectScenario={handleSelectScenario}
             fallState={fallState}
             alertCountdown={alertCountdown}
             onCancelFall={handleCancelFall}
+            stumbleState={stumbleState}
+            stumbleMessage={stumbleMessage}
             manualMode={manualMode}
             setManualMode={setManualMode}
             manualSensors={manualSensors}
@@ -211,12 +308,13 @@ export default function App() {
       {/* Footer Info */}
       <footer className="border-t border-slate-800/80 bg-slate-950/60 px-6 py-2.5 text-center text-xs font-mono text-slate-500 flex flex-wrap items-center justify-between max-w-[1600px] w-full mx-auto">
         <div>
-          StrideSense Biomechanical Digital Twin • Zero changes to production dashboard codebase
+          StrideSense Biomechanical Digital Twin • Zero changes to production dashboard codebase • Real IoT preserved
         </div>
         <div className="flex gap-4 text-[11px]">
           <span>Sampling: 50 Hz</span>
           <span>Window: 25 Samples (0.5s)</span>
-          <span>ML Accuracy: 100% Tree Match</span>
+          <span>2x FSR: GPIO 36 & 39</span>
+          <span>Spacebar: Play/Pause</span>
         </div>
       </footer>
     </div>

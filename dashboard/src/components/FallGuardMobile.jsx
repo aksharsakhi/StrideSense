@@ -3,7 +3,6 @@ import { PhoneCall, AlertTriangle, Bell, ChevronRight, Clock, Zap, CircleAlert }
 import { nativeBridge } from '../services/native.js';
 
 export default function FallGuardMobile({
-  onTriggerFall = () => {},
   isFallActive = false
 }) {
   const [guardActive, setGuardActive] = useState(true);
@@ -13,11 +12,6 @@ export default function FallGuardMobile({
     { name: 'Priya Sakhi', role: 'Emergency Contact', phone: '+91 98111 22334', initials: 'PS' },
     { name: 'Emergency Services', role: 'Ambulance 108', phone: '108', initials: '108' }
   ];
-
-  const handleTestFall = () => {
-    nativeBridge.impactHeavy();
-    onTriggerFall();
-  };
 
   const toggleGuard = () => {
     nativeBridge.impactLight();
@@ -95,24 +89,8 @@ export default function FallGuardMobile({
             </div>
           </div>
 
-          {/* Action Trigger Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <button
-              type="button"
-              onClick={handleTestFall}
-              className="glass-panel p-4 flex items-center justify-between border-rose-500/30 hover:border-rose-500/50 active-press touch-manipulation select-none transition-all bg-rose-500/[0.06] text-left animate-fade-in"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white">Simulate Fall Test</div>
-                  <div className="text-[11px] text-rose-600/80 dark:text-rose-300/80">15s siren & alert modal</div>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-rose-500" />
-            </button>
+          {/* Emergency Action */}
+          <div className="grid grid-cols-1 gap-3.5">
 
             <a
               href="tel:108"

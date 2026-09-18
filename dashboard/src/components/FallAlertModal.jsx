@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { AlertTriangle, BellRing, PhoneCall, CheckCircle, Volume2, VolumeX } from 'lucide-react';
+import { notificationService } from '../services/notifications.js';
 
 export default function FallAlertModal({
   isOpen = false,
@@ -57,6 +58,8 @@ export default function FallAlertModal({
       setSecondsLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
+          // Timer expired — dispatch emergency notification
+          notificationService.notifyEmergencyDispatched();
           return 0;
         }
         return prev - 1;

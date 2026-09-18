@@ -43,7 +43,7 @@ export class SupabaseBridge {
       steps: stats.steps || 0,
       cadence: parseFloat((stats.cadence || 105.0).toFixed(1)),
       symmetry: parseFloat((stats.symmetry || 98.0).toFixed(1)),
-      fall_alert: inference.activityName === "Fall" || stats.fallAlert === true,
+      fall_alert: Boolean(stats.fallAlert),
       p1: Math.round(sample.p1 || 0), // FSR 1: Heel
       p2: forefootVal,                // FSR 2: Forefoot Ball
       p3: 0,

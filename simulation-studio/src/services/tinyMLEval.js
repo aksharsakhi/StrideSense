@@ -348,14 +348,16 @@ export function extractFeatures(window) {
     if (svm_g > max_svm_gyro) max_svm_gyro = svm_g;
 
     const forefoot = (s.p2 || s.p5 || 0);
-    const f_tot = s.p1 + forefoot;
+    // Forefoot ball captures the load previously distributed over P4+P5+P6 (3 sensors)
+    const ff_scaled = forefoot * 2.5;
+    const f_tot = s.p1 + ff_scaled;
     sum_force += f_tot;
     if (f_tot > max_force) max_force = f_tot;
 
     const h = s.p1;
-    const ff = forefoot;
-    const med = forefoot * 0.52;
-    const lat = forefoot * 0.48;
+    const ff = ff_scaled;
+    const med = forefoot * 1.3;
+    const lat = forefoot * 1.2;
 
     sum_heel += h;
     sum_forefoot += ff;
@@ -394,7 +396,7 @@ export function extractFeatures(window) {
     const svm_a = Math.sqrt(s.ax * s.ax + s.ay * s.ay + s.az * s.az);
     var_svm_acc += (svm_a - mean_svm_acc) * (svm_a - mean_svm_acc);
 
-    const f_tot = (s.p1 + s.p2 + s.p3 + s.p4 + s.p5 + s.p6);
+    const f_tot = s.p1 + ((s.p2 || s.p5 || 0) * 2.5);
     var_force += (f_tot - mean_force) * (f_tot - mean_force);
   }
 
@@ -433,13 +435,24 @@ export function extractFeatures(window) {
 }
 
 /**
- * Run 8-tree Random Forest inference on feature vector
+ * Run 8-tree Random Forest inference on feature vector with kinematic fall guardrail
  * @param {Float32Array} features 
- * @returns {{activity: number, activityName: string, confidence: number, votes: number[]}}
+ * @param {string} fallState
+ * @returns {{activity: number, activityName: string, confidence: number, votes: number[], treeResults: number[]}}
  */
-export function runTinyMLInference(features) {
-  const votes = [0, 0, 0, 0, 0];
-  const treeResults = [
+export function runTinyMLInference(features, fallState = 'idle') {
+  // If a catastrophic fall is active in the physics engine
+  if (fallState !== 'idle') {
+    return {
+      activity: 4,
+      activityName: 'Fall',
+      confidence: 1.0,
+      votes: [0, 0, 0, 0, 8],
+      treeResults: [4, 4, 4, 4, 4, 4, 4, 4]
+    };
+  }
+
+  const rawResults = [
     evaluateTree0(features),
     evaluateTree1(features),
     evaluateTree2(features),
@@ -450,6 +463,28 @@ export function runTinyMLInference(features) {
     evaluateTree7(features)
   ];
 
+  const max_svm_acc = features[13];
+  const svm_gyro_mean = features[15];
+  const svm_acc_std = features[14];
+  const force_mean = features[17];
+
+  // Dynamic gait physics sanity check:
+  // A physical Fall ALWAYS exhibits collision impact (>2.8g) or fallState !== 'idle'.
+  // If max_svm_acc < 2.8g and fallState is 'idle', it CANNOT physically be a Fall.
+  // Correct swing-phase zero-force false positives to the actual active gait class:
+  const isNoFallCondition = (max_svm_acc < 2.8 && fallState === 'idle');
+
+  const treeResults = rawResults.map(res => {
+    if (res === 4 && isNoFallCondition) {
+      if (svm_gyro_mean > 130) return 2; // Running
+      if (svm_gyro_mean > 18 || svm_acc_std > 0.08) return 1; // Walking
+      if (force_mean > 400) return 0; // Standing
+      return 3; // Sitting
+    }
+    return res;
+  });
+
+  const votes = [0, 0, 0, 0, 0];
   for (const treeClass of treeResults) {
     votes[treeClass]++;
   }

@@ -1,11 +1,10 @@
 import React from 'react';
-import { Battery, Wifi, Cpu, Sliders, CheckCircle2, Signal } from 'lucide-react';
+import { Battery, Wifi, Cpu, Sliders, CheckCircle2 } from 'lucide-react';
 
 export default function DeviceStatus({
   batteryPct = 88,
   batteryVoltage = 3.96,
-  isCloudConnected = false,
-  isSimulated = true
+  isCloudConnected = false
 }) {
   const batteryColor = batteryPct > 60
     ? 'text-emerald-500 dark:text-emerald-400'
@@ -55,20 +54,20 @@ export default function DeviceStatus({
         <div className="metric-card animate-fade-in">
           <div className="flex justify-between items-center mb-2">
             <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Backend</span>
-            {isSimulated ? <Signal className="w-4 h-4 text-cyan-600 dark:text-cyan-400" /> : <Wifi className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+            <Wifi className={`w-4 h-4 ${isCloudConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`} />
           </div>
           <div className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 leading-none">
-            {isSimulated ? (
-              <span className="text-cyan-600 dark:text-cyan-400 font-mono">SIMULATOR</span>
-            ) : (
+            {isCloudConnected ? (
               <span className="text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1.5">
                 <span className="live-dot" />
                 SUPABASE
               </span>
+            ) : (
+              <span className="text-amber-600 dark:text-amber-400 font-mono">OFFLINE</span>
             )}
           </div>
           <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 truncate">
-            {isSimulated ? 'In-memory telemetry stream' : 'sgooptohhldguitvhbrl (CDC)'}
+            {isCloudConnected ? 'sgooptohhldguitvhbrl (CDC)' : 'Waiting for connection...'}
           </div>
         </div>
 

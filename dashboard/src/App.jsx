@@ -5,14 +5,8 @@ import {
   Activity,
   ShieldAlert,
   Settings,
-  AlertTriangle,
-  Radio,
-  Wifi,
   Battery,
-  CircleDot,
-  UserCheck,
-  Flame,
-  Armchair,
+  Wifi,
   Sun,
   Moon,
   Monitor,
@@ -29,9 +23,9 @@ import HistoricalTrends from './components/HistoricalTrends.jsx';
 import FallGuardMobile from './components/FallGuardMobile.jsx';
 import SettingsPage from './components/SettingsPage.jsx';
 
-import { simulator } from './services/simulator.js';
 import { supabaseService } from './services/supabase.js';
 import { nativeBridge } from './services/native.js';
+import { notificationService } from './services/notifications.js';
 
 /* ─── NAV TABS ───────────────────────────────────────── */
 const TABS = [
@@ -43,34 +37,15 @@ const TABS = [
   { id: 'settings', label: 'Settings', icon: Settings }
 ];
 
-/* ─── SIM MODES ──────────────────────────────────────── */
-const SIM_MODES = [
-  { mode: 'STANDING', icon: UserCheck, label: 'Stand',  color: 'emerald' },
-  { mode: 'WALKING',  icon: Footprints, label: 'Walk',  color: 'cyan' },
-  { mode: 'RUNNING',  icon: Flame,      label: 'Run',   color: 'amber' },
-  { mode: 'SITTING',  icon: Armchair,   label: 'Sit',   color: 'purple' },
-  { mode: 'FALL',     icon: AlertTriangle, label: 'Fall', color: 'rose' }
-];
-
-const COLOR_MAP = {
-  cyan:    { active: 'bg-cyan-500 text-white dark:text-black shadow-glow-cyan',  idle: 'bg-slate-200/80 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700/80' },
-  emerald: { active: 'bg-emerald-500 text-white dark:text-black shadow-glow-emerald', idle: 'bg-slate-200/80 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700/80' },
-  amber:   { active: 'bg-amber-500 text-white dark:text-black',                  idle: 'bg-slate-200/80 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700/80' },
-  purple:  { active: 'bg-violet-500 text-white',                                idle: 'bg-slate-200/80 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700/80' },
-  rose:    { active: 'bg-rose-500 text-white shadow-glow-rose',                 idle: 'bg-slate-200/80 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700/80' }
-};
-
 /* ─── MEMOIZED TOP HEADER ────────────────────────────── */
 const TopHeader = React.memo(function TopHeader({
   activeTab,
   pageTitle,
   theme,
   batteryPct,
-  useSimulator,
+  isConnected,
   onNavigate,
-  onCycleTheme,
-  onToggleSource,
-  onTriggerFall
+  onCycleTheme
 }) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
@@ -148,62 +123,23 @@ const TopHeader = React.memo(function TopHeader({
           <span className="text-[11px] font-mono font-bold text-slate-800 dark:text-white">{batteryPct}%</span>
         </div>
 
-        {/* Data Source Badge */}
-        <button
-          type="button"
-          onClick={onToggleSource}
-          className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border flex items-center gap-1 transition-all active-press touch-manipulation select-none ${
-            useSimulator
-              ? 'bg-cyan-500/10 border-cyan-500/25 text-cyan-600 dark:text-cyan-400'
-              : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400'
+        {/* Live Cloud Status Badge */}
+        <div
+          className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border flex items-center gap-1 ${
+            isConnected
+              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400'
+              : 'bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400'
           }`}
         >
-          {useSimulator ? <Radio className="w-3 h-3" /> : <Wifi className="w-3 h-3" />}
-          <span className="font-mono">{useSimulator ? 'SIM' : 'LIVE'}</span>
-        </button>
-
-        {/* SOS Trigger */}
-        <button
-          type="button"
-          onClick={onTriggerFall}
-          title="Simulate Fall Emergency"
-          className="p-2 rounded-xl bg-rose-500/12 hover:bg-rose-500/20 border border-rose-500/25 text-rose-600 dark:text-rose-400 active-press touch-manipulation select-none"
-        >
-          <AlertTriangle className="w-3.5 h-3.5" />
-        </button>
+          <Wifi className="w-3 h-3" />
+          <span className="font-mono">{isConnected ? 'LIVE' : 'OFFLINE'}</span>
+        </div>
       </div>
     </div>
   );
 });
 
-/* ─── MEMOIZED SIMULATOR CONTROLS BAR ────────────────── */
-const SimulatorBar = React.memo(function SimulatorBar({ simMode, onChangeSimMode }) {
-  return (
-    <div className="border-t border-slate-200/60 dark:border-white/[0.05] bg-slate-100/80 dark:bg-slate-900/70 px-4 sm:px-6 lg:px-8 py-2 transition-colors">
-      <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5 whitespace-nowrap mr-1">
-          <CircleDot className="w-3 h-3 text-cyan-500" />
-          Simulate:
-        </span>
-        {SIM_MODES.map(({ mode, icon: Icon, label, color }) => {
-          const isActive = simMode === mode;
-          const style = isActive ? COLOR_MAP[color].active : COLOR_MAP[color].idle;
-          return (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => onChangeSimMode(mode)}
-              className={`px-3 py-1 rounded-lg font-semibold text-[11px] flex items-center gap-1.5 active-press touch-manipulation select-none transition-all whitespace-nowrap ${style}`}
-            >
-              <Icon className="w-3 h-3" />
-              {label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-});
+
 
 /* ─── MEMOIZED MOBILE BOTTOM NAVIGATION BAR ─────────── */
 const MobileBottomNav = React.memo(function MobileBottomNav({ activeTab, onNavigate }) {
@@ -249,12 +185,27 @@ const MobileBottomNav = React.memo(function MobileBottomNav({ activeTab, onNavig
   );
 });
 
+/* ─── Default empty telemetry (before first Supabase row arrives) ─── */
+const EMPTY_TELEMETRY = {
+  timestamp: Date.now(),
+  activity: '—',
+  confidence: 0,
+  steps: 0,
+  cadence: 0,
+  symmetry: 0,
+  fallAlert: false,
+  fallEmergency: false,
+  batteryPct: 0,
+  batteryVoltage: 0,
+  sensors: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0 },
+  imu: { ax: 0, ay: 0, az: 0, gx: 0, gy: 0, gz: 0, pitch: 0, roll: 0, svmA: 0 }
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
-  const [useSimulator, setUseSimulator] = useState(true);
-  const [simMode, setSimMode] = useState('WALKING');
-  const [telemetry, setTelemetry] = useState(() => simulator.generateSample());
+  const [telemetry, setTelemetry] = useState(EMPTY_TELEMETRY);
   const [fallModalOpen, setFallModalOpen] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('stridesense_theme') || 'system');
 
   /* ─── Theme Sync Effect ───────────────── */
@@ -286,62 +237,48 @@ export default function App() {
     return () => mql.removeEventListener('change', mqlListener);
   }, [theme]);
 
-  /* ─── Init Native Bridge ──────────────── */
+  /* ─── Init Native Bridge & Notifications ─── */
   useEffect(() => {
     nativeBridge.init();
+    notificationService.init();
   }, []);
 
-  /* ─── Telemetry stream ────────────────── */
+  /* ─── Supabase Real-Time Telemetry Stream ────────── */
   useEffect(() => {
-    let unsub;
-    if (useSimulator) {
-      // 125ms = 8 Hz update rate: silky-smooth UI telemetry with zero main-thread blockage
-      simulator.start(125);
-      unsub = simulator.subscribe((data) => {
-        setTelemetry(data);
-        if (data.fallAlert && !fallModalOpen) {
-          nativeBridge.triggerEmergencyVibration();
-          setFallModalOpen(true);
-        }
-      });
-    } else {
-      if (supabaseService.isConfigured()) {
-        supabaseService.connectRealtime();
-        unsub = supabaseService.subscribeTelemetry((data) => {
-          setTelemetry(data);
-          if (data.fallAlert && !fallModalOpen) {
-            nativeBridge.triggerEmergencyVibration();
-            setFallModalOpen(true);
-          }
-        });
-        supabaseService.fetchLatestTelemetry().then((l) => { if (l) setTelemetry(l); });
-      } else {
-        setUseSimulator(true);
-      }
+    if (!supabaseService.isConfigured()) {
+      console.warn('[StrideSense] Supabase not configured — check .env');
+      return;
     }
+
+    supabaseService.connectRealtime();
+    setIsConnected(true);
+
+    const unsub = supabaseService.subscribeTelemetry((data) => {
+      setTelemetry(data);
+      setIsConnected(true);
+      if (data.fallAlert && !fallModalOpen) {
+        nativeBridge.triggerEmergencyVibration();
+        notificationService.notifyFallDetected(data);
+        setFallModalOpen(true);
+      }
+    });
+
+    // Load the latest row to populate UI immediately
+    supabaseService.fetchLatestTelemetry().then((latest) => {
+      if (latest) setTelemetry(latest);
+    });
+
     return () => {
-      if (unsub) unsub();
-      if (useSimulator) simulator.stop(); else supabaseService.disconnectRealtime();
+      unsub();
+      supabaseService.disconnectRealtime();
+      setIsConnected(false);
     };
-  }, [useSimulator]);
+  }, []);
 
   /* ─── Handlers ────────────────────────── */
   const navigate = useCallback((tab) => {
     nativeBridge.impactLight();
     setActiveTab(tab);
-  }, []);
-
-  const toggleSource = useCallback(() => {
-    nativeBridge.impactLight();
-    setUseSimulator((prev) => !prev);
-  }, []);
-
-  const triggerFallTest = useCallback(() => {
-    nativeBridge.impactHeavy();
-    setSimMode('FALL');
-    simulator.setMode('FALL');
-    nativeBridge.triggerEmergencyVibration();
-    setFallModalOpen(true);
   }, []);
 
   const cycleTheme = useCallback(() => {
@@ -353,21 +290,9 @@ export default function App() {
     });
   }, []);
 
-  const changeSimMode = useCallback((mode) => {
-    nativeBridge.impactMedium();
-    setSimMode(mode);
-    simulator.setMode(mode);
-    if (mode === 'FALL') {
-      nativeBridge.triggerEmergencyVibration();
-      setFallModalOpen(true);
-    }
-  }, []);
-
   const cancelFall = useCallback(() => {
     nativeBridge.impactMedium();
     setFallModalOpen(false);
-    simulator.cancelFall();
-    setSimMode('STANDING');
   }, []);
 
   /* ─── Page title ──────────────────────── */
@@ -380,7 +305,6 @@ export default function App() {
     settings: null
   };
   const pageTitle = PAGE_TITLES[activeTab];
-  const hasSimBar = useSimulator && activeTab !== 'home' && activeTab !== 'settings';
 
   return (
     <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-100 selection:bg-cyan-500/30 selection:text-white transition-colors duration-200">
@@ -388,35 +312,21 @@ export default function App() {
       {/* ═══ FALL EMERGENCY MODAL ═══ */}
       <FallAlertModal isOpen={fallModalOpen} onCancel={cancelFall} initialSeconds={15} />
 
-      {/* ═══ TOP FIXED APP CHROME (Header + Simulator Bar) ═══ */}
+      {/* ═══ TOP FIXED APP CHROME (Header) ═══ */}
       <header className="mobile-top-header mobile-header-safe">
         <TopHeader
           activeTab={activeTab}
           pageTitle={pageTitle}
           theme={theme}
           batteryPct={telemetry.batteryPct}
-          useSimulator={useSimulator}
+          isConnected={isConnected}
           onNavigate={navigate}
           onCycleTheme={cycleTheme}
-          onToggleSource={toggleSource}
-          onTriggerFall={triggerFallTest}
         />
-
-        {/* ═══ SIMULATOR CONTROLS BAR (Inside fixed chrome) ═══ */}
-        {hasSimBar && (
-          <SimulatorBar
-            simMode={simMode}
-            onChangeSimMode={changeSimMode}
-          />
-        )}
       </header>
 
       {/* ═══ MAIN CONTENT (Adaptive Grid Container) ═══ */}
-      <main className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 ${
-        hasSimBar
-          ? 'pt-[calc(env(safe-area-inset-top,12px)+112px)] md:pt-32'
-          : 'pt-[calc(env(safe-area-inset-top,12px)+68px)] md:pt-20'
-      } pb-[calc(env(safe-area-inset-bottom,16px)+88px)] md:pb-8`}>
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-[calc(env(safe-area-inset-top,12px)+68px)] md:pt-20 pb-[calc(env(safe-area-inset-bottom,16px)+88px)] md:pb-8">
 
         {activeTab === 'home' && (
           <HomePage
@@ -473,7 +383,6 @@ export default function App() {
         {activeTab === 'safety' && (
           <div className="animate-fade-in">
             <FallGuardMobile
-              onTriggerFall={() => changeSimMode('FALL')}
               isFallActive={telemetry.fallAlert}
             />
           </div>
@@ -483,10 +392,7 @@ export default function App() {
           <SettingsPage
             batteryPct={telemetry.batteryPct}
             batteryVoltage={telemetry.batteryVoltage}
-            isCloudConnected={!useSimulator}
-            isSimulated={useSimulator}
-            useSimulator={useSimulator}
-            onToggleSource={toggleSource}
+            isCloudConnected={isConnected}
             theme={theme}
             onThemeChange={setTheme}
           />

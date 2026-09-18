@@ -76,6 +76,14 @@ export default function TelemetryGauges({
           </div>
         </div>
 
+        {/* Real-Time Biomechanical Gait Phase */}
+        <div className="mb-3 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between font-mono text-xs">
+          <span className="text-[10px] text-slate-400 uppercase font-semibold">Kinematic Phase:</span>
+          <span className="text-xs font-bold text-cyan-300 truncate max-w-[280px]">
+            {sample?.phase || 'Analyzing...'}
+          </span>
+        </div>
+
         {/* 8-Tree Voting Breakdown */}
         <div className="space-y-1 font-mono text-[10px]">
           <div className="text-slate-400 flex justify-between">

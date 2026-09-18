@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Battery, Wifi, Cpu, Sliders, CheckCircle2, Signal,
+  Battery, Wifi, Cpu, Sliders, CheckCircle2,
   Bell, HardDrive, Zap, Heart, FileText, Info,
   Sun, Moon, Monitor, Palette, Sparkles, Shield
 } from 'lucide-react';
@@ -10,9 +10,6 @@ function SettingsPageComponent({
   batteryPct = 88,
   batteryVoltage = 3.96,
   isCloudConnected = false,
-  isSimulated = true,
-  onToggleSource = () => {},
-  useSimulator = true,
   theme = 'system',
   onThemeChange = () => {}
 }) {
@@ -172,25 +169,23 @@ function SettingsPageComponent({
             </p>
           </div>
 
-          {/* Data Source */}
+          {/* Cloud Connection Status */}
           <div className="glass-panel px-4 animate-fade-in-scale">
             <SettingRow
-              icon={useSimulator ? Signal : Wifi}
-              iconColor={useSimulator ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'}
+              icon={Wifi}
+              iconColor={isCloudConnected ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}
               label="Data Source"
-              subtitle={useSimulator ? 'In-app biomechanics simulator active' : 'Supabase Realtime CDC telemetry stream'}
+              subtitle="Supabase Realtime CDC telemetry stream"
               right={
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); nativeBridge.impactMedium(); onToggleSource(); }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all active-press touch-manipulation select-none ${
-                    useSimulator
-                      ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-600 dark:text-cyan-400'
-                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                <span
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${
+                    isCloudConnected
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
                   }`}
                 >
-                  {useSimulator ? 'SIMULATOR' : 'LIVE CLOUD'}
-                </button>
+                  {isCloudConnected ? 'LIVE CLOUD' : 'OFFLINE'}
+                </span>
               }
               last
             />
