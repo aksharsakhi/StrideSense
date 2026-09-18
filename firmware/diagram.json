@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "author": "StrideSense Team",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-mpu6050", "id": "imu", "top": -120, "left": -10, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "fsr_heel", "top": 180, "left": -140, "attrs": { "label": "FSR 1: Heel (Calcaneus)" } },
+    { "type": "wokwi-potentiometer", "id": "fsr_forefoot", "top": 180, "left": 140, "attrs": { "label": "FSR 2: Forefoot (Ball)" } },
+    { "type": "wokwi-pushbutton", "id": "btn_sos", "top": 80, "left": -180, "attrs": { "color": "red", "label": "SOS / Cancel" } },
+    { "type": "wokwi-led", "id": "led_red", "top": -90, "left": 120, "attrs": { "color": "red", "label": "Fall Alert" } },
+    { "type": "wokwi-led", "id": "led_green", "top": -90, "left": 160, "attrs": { "color": "green", "label": "Wi-Fi Active" } },
+    { "type": "wokwi-led", "id": "led_blue", "top": -90, "left": 200, "attrs": { "color": "blue", "label": "Cloud Sync" } }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+
+    [ "esp:3V3", "imu:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.1", "imu:GND", "black", [ "v0" ] ],
+    [ "esp:21", "imu:SDA", "cyan", [ "v0" ] ],
+    [ "esp:22", "imu:SCL", "yellow", [ "v0" ] ],
+
+    [ "esp:3V3", "fsr_heel:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.1", "fsr_heel:GND", "black", [ "v0" ] ],
+    [ "esp:36", "fsr_heel:SIG", "orange", [ "v0" ] ],
+
+    [ "esp:3V3", "fsr_forefoot:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.1", "fsr_forefoot:GND", "black", [ "v0" ] ],
+    [ "esp:39", "fsr_forefoot:SIG", "purple", [ "v0" ] ],
+
+    [ "esp:GND.1", "btn_sos:1.l", "black", [ "v0" ] ],
+    [ "esp:14", "btn_sos:2.l", "blue", [ "v0" ] ],
+
+    [ "esp:25", "led_red:A", "red", [ "v0" ] ],
+    [ "esp:GND.1", "led_red:C", "black", [ "v0" ] ],
+
+    [ "esp:26", "led_green:A", "green", [ "v0" ] ],
+    [ "esp:GND.1", "led_green:C", "black", [ "v0" ] ],
+
+    [ "esp:27", "led_blue:A", "blue", [ "v0" ] ],
+    [ "esp:GND.1", "led_blue:C", "black", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}

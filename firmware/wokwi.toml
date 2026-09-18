@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = "StrideSense_Firmware/build/esp32.esp32.esp32/StrideSense_Firmware.ino.bin"
+elf = "StrideSense_Firmware/build/esp32.esp32.esp32/StrideSense_Firmware.ino.elf"
