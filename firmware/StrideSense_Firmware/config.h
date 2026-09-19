@@ -16,8 +16,8 @@
 #define FSR_SENSOR_COUNT      2
 
 // FSR Pressure Sensors (ESP32 ADC1 channels - safe with Wi-Fi active)
-#define PIN_FSR_S1_HEEL       36  // VP / SENSOR_VP (FSR 1: Calcaneus / Heel)
-#define PIN_FSR_S2_FOREFOOT   39  // VN / SENSOR_VN (FSR 2: Metatarsal / Forefoot Ball)
+#define PIN_FSR_S1_HEEL       34  // GPIO 34 (ADC1_CH6: Calcaneus / Heel)
+#define PIN_FSR_S2_FOREFOOT   35  // GPIO 35 (ADC1_CH7: Metatarsal / Forefoot Ball)
 
 // MPU-6050 IMU (I2C Bus)
 #define PIN_I2C_SDA           21  // ESP32 default SDA
