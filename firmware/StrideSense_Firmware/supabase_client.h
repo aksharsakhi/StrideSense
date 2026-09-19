@@ -35,6 +35,7 @@ public:
 
 private:
     unsigned long last_wifi_check;
+    bool was_connected;
     WiFiClientSecure secureClient;
 };
 

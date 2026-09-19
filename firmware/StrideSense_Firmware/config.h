@@ -55,8 +55,8 @@
 // ==========================================
 // 4. WI-FI & CLOUD BACKEND CONFIGURATION
 // ==========================================
-#define WIFI_SSID             "YOUR_WIFI_SSID"
-#define WIFI_PASSWORD         "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID             "LADDA"
+#define WIFI_PASSWORD         "ladda5555"
 #define DEVICE_ID             "insole_left_01"
 
 // Active Cloud Backend: 1 = Supabase (Recommended), 0 = Firebase

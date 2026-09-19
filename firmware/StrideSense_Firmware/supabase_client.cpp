@@ -6,28 +6,38 @@
 
 SupabaseClient Supabase;
 
-SupabaseClient::SupabaseClient() : last_wifi_check(0) {}
+SupabaseClient::SupabaseClient() : last_wifi_check(0), was_connected(false) {}
 
 void SupabaseClient::begin() {
     pinMode(PIN_LED_GREEN, OUTPUT);
     pinMode(PIN_LED_BLUE, OUTPUT);
 
     WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
+    WiFi.persistent(true);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    Serial.printf("[Supabase] Connecting to Wi-Fi SSID: %s\n", WIFI_SSID);
+    Serial.printf("[Supabase] Connecting to Wi-Fi SSID: '%s' ...\n", WIFI_SSID);
 
     secureClient.setInsecure(); // Non-blocking TLS for IoT without bundling certificates
 }
 
 void SupabaseClient::updateNetwork() {
     unsigned long now = millis();
-    if (now - last_wifi_check >= 5000) {
+    if (now - last_wifi_check >= 10000) {
         last_wifi_check = now;
         if (WiFi.status() == WL_CONNECTED) {
+            if (!was_connected) {
+                was_connected = true;
+                Serial.printf("\n[Supabase] *** Wi-Fi CONNECTED! IP: %s ***\n\n", WiFi.localIP().toString().c_str());
+            }
             digitalWrite(PIN_LED_GREEN, HIGH);
         } else {
             digitalWrite(PIN_LED_GREEN, LOW);
-            WiFi.reconnect();
+            if (was_connected) {
+                was_connected = false;
+                Serial.println(F("[Supabase] Wi-Fi connection dropped. Reconnecting..."));
+                WiFi.reconnect();
+            }
         }
     }
 }
