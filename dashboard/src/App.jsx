@@ -27,6 +27,7 @@ import HistoricalTrends from './components/HistoricalTrends.jsx';
 import FallGuardMobile from './components/FallGuardMobile.jsx';
 import SettingsPage from './components/SettingsPage.jsx';
 import DeviceSelectorModal from './components/DeviceSelectorModal.jsx';
+import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 
 import { supabaseService } from './services/supabase.js';
 import { healthService } from './services/healthService.js';
@@ -293,7 +294,7 @@ export default function App() {
 
     const unsub = supabaseService.subscribeTelemetry((data) => {
       setTelemetry(data);
-      healthService.updateLiveTelemetry(data);
+      healthService.updateLiveTelemetry(data, selectedDeviceId);
       setIsConnected(true);
       if (data.fallAlert && !fallModalOpen) {
         nativeBridge.triggerEmergencyVibration();
@@ -306,7 +307,7 @@ export default function App() {
     supabaseService.fetchLatestTelemetry().then((latest) => {
       if (latest) {
         setTelemetry(latest);
-        healthService.updateLiveTelemetry(latest);
+        healthService.updateLiveTelemetry(latest, selectedDeviceId);
       }
     });
 
@@ -389,72 +390,73 @@ export default function App() {
 
       {/* ═══ MAIN CONTENT (Adaptive Grid Container) ═══ */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-[calc(env(safe-area-inset-top,12px)+68px)] md:pt-20 pb-[calc(env(safe-area-inset-bottom,16px)+88px)] md:pb-8">
+        <ErrorBoundary key={activeTab} onGoHome={() => navigate('home')}>
+          {activeTab === 'home' && (
+            <HomePage
+              telemetry={telemetry}
+              deviceId={selectedDeviceId}
+              onSwitchDevice={() => setIsDeviceModalOpen(true)}
+              onNavigate={navigate}
+            />
+          )}
 
-        {activeTab === 'home' && (
-          <HomePage
-            telemetry={telemetry}
-            deviceId={selectedDeviceId}
-            onSwitchDevice={() => setIsDeviceModalOpen(true)}
-            onNavigate={navigate}
-          />
-        )}
-
-        {activeTab === 'pressure' && (
-          <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 animate-fade-in stagger-children">
-            <div className="lg:col-span-4 flex flex-col gap-4">
-              <ActivityCard activity={telemetry.activity} confidence={telemetry.confidence} />
-              <MotionVisualizer imu={telemetry.imu} />
+          {activeTab === 'pressure' && (
+            <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 animate-fade-in stagger-children">
+              <div className="lg:col-span-4 flex flex-col gap-4">
+                <ActivityCard activity={telemetry.activity} confidence={telemetry.confidence} />
+                <MotionVisualizer imu={telemetry.imu} />
+              </div>
+              <div className="lg:col-span-8">
+                <FootHeatmap sensors={telemetry.sensors} />
+              </div>
             </div>
-            <div className="lg:col-span-8">
-              <FootHeatmap sensors={telemetry.sensors} />
-            </div>
-          </div>
-        )}
+          )}
 
-        {(activeTab === 'health' || activeTab === 'gait') && (
-          <HealthPage
-            telemetry={telemetry}
-            deviceId={selectedDeviceId}
-            onNavigate={navigate}
-          />
-        )}
+          {(activeTab === 'health' || activeTab === 'gait') && (
+            <HealthPage
+              telemetry={telemetry}
+              deviceId={selectedDeviceId}
+              onNavigate={navigate}
+            />
+          )}
 
-        {activeTab === 'motion' && (
-          <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 animate-fade-in stagger-children">
-            <div className="lg:col-span-7">
-              <MotionVisualizer imu={telemetry.imu} />
+          {activeTab === 'motion' && (
+            <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 animate-fade-in stagger-children">
+              <div className="lg:col-span-7">
+                <MotionVisualizer imu={telemetry.imu} />
+              </div>
+              <div className="lg:col-span-5 flex flex-col gap-4">
+                <ActivityCard activity={telemetry.activity} confidence={telemetry.confidence} />
+                <GaitMetrics
+                  steps={telemetry.steps}
+                  cadence={telemetry.cadence}
+                  symmetry={telemetry.symmetry}
+                  activity={telemetry.activity}
+                />
+              </div>
             </div>
-            <div className="lg:col-span-5 flex flex-col gap-4">
-              <ActivityCard activity={telemetry.activity} confidence={telemetry.confidence} />
-              <GaitMetrics
-                steps={telemetry.steps}
-                cadence={telemetry.cadence}
-                symmetry={telemetry.symmetry}
-                activity={telemetry.activity}
+          )}
+
+          {activeTab === 'safety' && (
+            <div className="animate-fade-in">
+              <FallGuardMobile
+                isFallActive={telemetry.fallAlert}
               />
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'safety' && (
-          <div className="animate-fade-in">
-            <FallGuardMobile
-              isFallActive={telemetry.fallAlert}
+          {activeTab === 'settings' && (
+            <SettingsPage
+              batteryPct={telemetry.batteryPct}
+              batteryVoltage={telemetry.batteryVoltage}
+              isCloudConnected={isConnected}
+              selectedDeviceId={selectedDeviceId}
+              onOpenDeviceSelector={() => setIsDeviceModalOpen(true)}
+              theme={theme}
+              onThemeChange={setTheme}
             />
-          </div>
-        )}
-
-        {activeTab === 'settings' && (
-          <SettingsPage
-            batteryPct={telemetry.batteryPct}
-            batteryVoltage={telemetry.batteryVoltage}
-            isCloudConnected={isConnected}
-            selectedDeviceId={selectedDeviceId}
-            onOpenDeviceSelector={() => setIsDeviceModalOpen(true)}
-            theme={theme}
-            onThemeChange={setTheme}
-          />
-        )}
+          )}
+        </ErrorBoundary>
       </main>
 
       {/* ═══ MOBILE FLOATING FROSTED BOTTOM NAVIGATION BAR (< md) ═══ */}

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --port 5174 --host",
     "build": "vite build",
-    "preview": "vite preview --port 5174"
+    "preview": "vite preview --port 5174",
+    "sim": "node simulate_cloud.js"
   },
   "dependencies": {
     "lucide-react": "^1.46.0",

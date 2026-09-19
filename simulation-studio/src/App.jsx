@@ -48,8 +48,24 @@ export default function App() {
     fallAlert: false
   });
 
-  // Previous phase for step counting
+  // Accurate refs to prevent stale closure inside 50 Hz interval
+  const stepsRef = useRef(0);
   const prevPhaseRef = useRef('');
+  const manualModeRef = useRef(manualMode);
+  const manualSensorsRef = useRef(manualSensors);
+  const supabaseEnabledRef = useRef(supabaseEnabled);
+
+  useEffect(() => {
+    manualModeRef.current = manualMode;
+  }, [manualMode]);
+
+  useEffect(() => {
+    manualSensorsRef.current = manualSensors;
+  }, [manualSensors]);
+
+  useEffect(() => {
+    supabaseEnabledRef.current = supabaseEnabled;
+  }, [supabaseEnabled]);
 
   // Spacebar shortcut to pause/play
   useEffect(() => {
@@ -67,7 +83,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Initialize engine and cloud bridge
+  // Initialize engine and cloud bridge (runs once on mount)
   useEffect(() => {
     const engine = new PhysicsEngine();
     const bridge = new SupabaseBridge();
@@ -76,9 +92,9 @@ export default function App() {
 
     // 50 Hz Kinematic Loop (20 ms interval)
     const interval = setInterval(() => {
-      // Sync manual settings
-      engine.manualOverride = manualMode;
-      engine.manualSensors = manualSensors;
+      // Sync manual settings from refs
+      engine.manualOverride = manualModeRef.current;
+      engine.manualSensors = manualSensorsRef.current;
 
       // Advance physics step
       const sample = engine.step();
@@ -95,16 +111,14 @@ export default function App() {
       const inference = runTinyMLInference(features, engine.fallState);
       setCurrentInference(inference);
 
-      // Detect step count transitions (Heel Strike phase entry)
-      if (
-        sample.phase &&
-        sample.phase.includes('Heel Strike') &&
-        !prevPhaseRef.current.includes('Heel Strike') &&
-        engine.isRunning
-      ) {
+      // Detect step count transitions (Strike phase entry)
+      const isStrike = sample.phase && sample.phase.includes('Strike');
+      const wasStrike = prevPhaseRef.current && prevPhaseRef.current.includes('Strike');
+      if (isStrike && !wasStrike && engine.isRunning) {
+        stepsRef.current += 1;
         setStats((prev) => ({
           ...prev,
-          steps: prev.steps + 1
+          steps: stepsRef.current
         }));
       }
       prevPhaseRef.current = sample.phase || '';
@@ -141,9 +155,9 @@ export default function App() {
       }));
 
       // Broadcast to Supabase cloud if enabled
-      bridge.setEnabled(supabaseEnabled);
+      bridge.setEnabled(supabaseEnabledRef.current);
       bridge.sendTelemetry(sample, inference, {
-        steps: stats.steps,
+        steps: stepsRef.current,
         cadence: currentCadence,
         symmetry: currentSymmetry,
         fallAlert: isCatastrophicFallAlert
@@ -151,7 +165,7 @@ export default function App() {
     }, 20);
 
     return () => clearInterval(interval);
-  }, [manualMode, manualSensors, supabaseEnabled]);
+  }, []);
 
   const handleToggleRunning = () => {
     setIsRunning((prev) => {
@@ -171,6 +185,7 @@ export default function App() {
       engineRef.current.reset();
       engineRef.current.setRunning(true);
     }
+    stepsRef.current = 0;
     setIsRunning(true);
     setScenario('walking');
     setElapsedTime(0);

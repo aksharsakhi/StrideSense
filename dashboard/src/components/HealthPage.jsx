@@ -64,6 +64,28 @@ export default function HealthPage({ telemetry, deviceId = 'insole_left_01', onN
 
   const isToday = selectedDateKey === toDateKey(new Date());
 
+  // Safe daily record with defaults
+  const rec = {
+    date: selectedDateKey,
+    steps: 0,
+    goal: 10000,
+    distanceKm: 0,
+    activeMinutes: 0,
+    activeMinutesGoal: 45,
+    calories: 0,
+    caloriesGoal: 400,
+    cadence: 0,
+    speedKmh: 0,
+    symmetry: 100,
+    asymmetry: 0,
+    groundContactMs: 610,
+    doubleSupportPct: 28,
+    steadiness: 'Very Good',
+    hourlySteps: new Array(24).fill(0),
+    completedGoal: false,
+    ...dailyRecord
+  };
+
   // Quick 7-Day Strip window (centered or ending near selected date)
   const quickStripDays = useMemo(() => {
     const ref = parseDateKey(selectedDateKey);
@@ -75,7 +97,10 @@ export default function HealthPage({ telemetry, deviceId = 'insole_left_01', onN
       const d = new Date(ref);
       d.setDate(d.getDate() + i);
       if (d > today) continue; // don't show future days in strip
-      const rec = healthService.getDailyRecord(key, deviceId);
+      const key = toDateKey(d);
+      const dayRec = healthService.getDailyRecord(key, deviceId) || {};
+      const daySteps = dayRec.steps || 0;
+      const dayGoal = dayRec.goal || 10000;
       list.push({
         key,
         date: d,
@@ -83,13 +108,13 @@ export default function HealthPage({ telemetry, deviceId = 'insole_left_01', onN
         dayNum: d.getDate(),
         isToday: key === toDateKey(today),
         isSelected: key === selectedDateKey,
-        steps: rec.steps,
-        pct: Math.min(100, Math.round((rec.steps / rec.goal) * 100)),
-        completed: rec.steps >= rec.goal
+        steps: daySteps,
+        pct: Math.min(100, Math.round((daySteps / dayGoal) * 100)),
+        completed: daySteps >= dayGoal
       });
     }
     return list;
-  }, [selectedDateKey]);
+  }, [selectedDateKey, deviceId]);
 
   // Handle day selection
   const handleSelectDay = useCallback((key) => {
@@ -123,9 +148,9 @@ export default function HealthPage({ telemetry, deviceId = 'insole_left_01', onN
   // Outer: Steps (r=56, stroke=9)
   // Middle: Active Walk Time (r=42, stroke=9)
   // Inner: Active Calories (r=28, stroke=9)
-  const stepsPct = Math.min(100, Math.round((dailyRecord.steps / dailyRecord.goal) * 100));
-  const timePct = Math.min(100, Math.round((dailyRecord.activeMinutes / dailyRecord.activeMinutesGoal) * 100));
-  const calPct = Math.min(100, Math.round((dailyRecord.calories / dailyRecord.caloriesGoal) * 100));
+  const stepsPct = Math.min(100, Math.round((rec.steps / rec.goal) * 100));
+  const timePct = Math.min(100, Math.round((rec.activeMinutes / rec.activeMinutesGoal) * 100));
+  const calPct = Math.min(100, Math.round((rec.calories / rec.caloriesGoal) * 100));
 
   const ring1R = 56;
   const ring1C = 2 * Math.PI * ring1R;
@@ -145,7 +170,7 @@ export default function HealthPage({ telemetry, deviceId = 'insole_left_01', onN
   }, [calendarMonth, deviceId]);
 
   // Hourly Activity Peak for Selected Day
-  const hourlyData = dailyRecord.hourlySteps || new Array(24).fill(0);
+  const hourlyData = rec.hourlySteps || new Array(24).fill(0);
   const maxHourlySteps = Math.max(100, ...hourlyData);
   const peakHourIndex = hourlyData.reduce((bestIdx, steps, idx, arr) => steps > arr[bestIdx] ? idx : bestIdx, 0);
   const peakHourStr = `${peakHourIndex % 12 || 12}:00 ${peakHourIndex < 12 ? 'AM' : 'PM'}`;
@@ -414,7 +439,7 @@ BIOMECHANICAL INTEGRITY:
               <div>
                 <h2 className="text-lg sm:text-xl font-bold font-display text-slate-900 dark:text-white flex items-center gap-2">
                   <span>Daily Mobility Targets</span>
-                  {dailyRecord.completedGoal && (
+                  {rec.completedGoal && (
                     <span className="badge badge-emerald text-[10px]">
                       <Award className="w-3 h-3" />
                       Goal Met
@@ -431,14 +456,14 @@ BIOMECHANICAL INTEGRITY:
                 type="button"
                 onClick={() => {
                   nativeBridge.impactLight();
-                  setCustomGoalInput(dailyRecord.goal);
+                  setCustomGoalInput(rec.goal);
                   setIsGoalModalOpen(true);
                 }}
                 className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1 active-press transition-colors"
                 title="Change Daily Step Goal"
               >
                 <SlidersHorizontal className="w-3 h-3 text-cyan-500" />
-                <span>Goal: {(dailyRecord.goal / 1000).toFixed(0)}k</span>
+                <span>Goal: {(rec.goal / 1000).toFixed(0)}k</span>
               </button>
             </div>
 
@@ -452,8 +477,8 @@ BIOMECHANICAL INTEGRITY:
                     <span className="font-semibold text-slate-900 dark:text-white">Steps</span>
                   </div>
                   <div className="font-mono text-[11px] text-slate-600 dark:text-slate-300">
-                    <span className="font-bold text-cyan-600 dark:text-cyan-400">{dailyRecord.steps.toLocaleString()}</span>
-                    <span className="text-slate-400"> / {dailyRecord.goal.toLocaleString()}</span>
+                    <span className="font-bold text-cyan-600 dark:text-cyan-400">{rec.steps.toLocaleString()}</span>
+                    <span className="text-slate-400"> / {rec.goal.toLocaleString()}</span>
                   </div>
                 </div>
                 <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
@@ -469,8 +494,8 @@ BIOMECHANICAL INTEGRITY:
                     <span className="font-semibold text-slate-900 dark:text-white">Active Walk Time</span>
                   </div>
                   <div className="font-mono text-[11px] text-slate-600 dark:text-slate-300">
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400">{dailyRecord.activeMinutes}</span>
-                    <span className="text-slate-400"> / {dailyRecord.activeMinutesGoal} mins</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">{rec.activeMinutes}</span>
+                    <span className="text-slate-400"> / {rec.activeMinutesGoal} mins</span>
                   </div>
                 </div>
                 <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
@@ -486,8 +511,8 @@ BIOMECHANICAL INTEGRITY:
                     <span className="font-semibold text-slate-900 dark:text-white">Active Energy</span>
                   </div>
                   <div className="font-mono text-[11px] text-slate-600 dark:text-slate-300">
-                    <span className="font-bold text-rose-600 dark:text-rose-400">{dailyRecord.calories}</span>
-                    <span className="text-slate-400"> / {dailyRecord.caloriesGoal} kcal</span>
+                    <span className="font-bold text-rose-600 dark:text-rose-400">{rec.calories}</span>
+                    <span className="text-slate-400"> / {rec.caloriesGoal} kcal</span>
                   </div>
                 </div>
                 <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
@@ -511,12 +536,12 @@ BIOMECHANICAL INTEGRITY:
           </div>
           <div>
             <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white tabular-nums">
-              {dailyRecord.distanceKm}
+              {rec.distanceKm}
             </span>
             <span className="text-xs text-slate-400 ml-1">km</span>
           </div>
           <span className="text-[11px] text-slate-500 mt-1 font-medium">
-            ~{(dailyRecord.distanceKm * 0.621371).toFixed(2)} miles walked
+            ~{(rec.distanceKm * 0.621371).toFixed(2)} miles walked
           </span>
         </div>
 
@@ -530,12 +555,12 @@ BIOMECHANICAL INTEGRITY:
           </div>
           <div>
             <span className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 tabular-nums">
-              {dailyRecord.speedKmh}
+              {rec.speedKmh}
             </span>
             <span className="text-xs text-slate-400 ml-1">km/h</span>
           </div>
           <span className="text-[11px] text-slate-500 mt-1 font-medium">
-            Cadence: {dailyRecord.cadence} SPM
+            Cadence: {rec.cadence} SPM
           </span>
         </div>
 
@@ -544,24 +569,24 @@ BIOMECHANICAL INTEGRITY:
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold text-slate-500 uppercase">Steadiness</span>
             <div className={`p-1.5 rounded-xl ${
-              dailyRecord.steadiness === 'Very Good'
+              rec.steadiness === 'Very Good'
                 ? 'bg-emerald-500/10 text-emerald-500'
-                : (dailyRecord.steadiness === 'OK' ? 'bg-amber-500/10 text-amber-500' : 'bg-rose-500/10 text-rose-500')
+                : (rec.steadiness === 'OK' ? 'bg-amber-500/10 text-amber-500' : 'bg-rose-500/10 text-rose-500')
             }`}>
               <ShieldCheck className="w-3.5 h-3.5" />
             </div>
           </div>
           <div>
             <span className={`text-xl font-bold ${
-              dailyRecord.steadiness === 'Very Good'
+              rec.steadiness === 'Very Good'
                 ? 'text-emerald-600 dark:text-emerald-400'
-                : (dailyRecord.steadiness === 'OK' ? 'text-amber-500' : 'text-rose-500')
+                : (rec.steadiness === 'OK' ? 'text-amber-500' : 'text-rose-500')
             }`}>
-              {dailyRecord.steadiness}
+              {rec.steadiness}
             </span>
           </div>
           <span className="text-[11px] text-slate-500 mt-1 font-medium">
-            Asymmetry: {dailyRecord.asymmetry}% (Normal &lt; 4%)
+            Asymmetry: {rec.asymmetry}% (Normal &lt; 4%)
           </span>
         </div>
 
@@ -805,19 +830,19 @@ BIOMECHANICAL INTEGRITY:
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Walking Steadiness</span>
               <span className={`badge text-[10px] ${
-                dailyRecord.steadiness === 'Very Good' ? 'badge-emerald' : 'badge-amber'
+                rec.steadiness === 'Very Good' ? 'badge-emerald' : 'badge-amber'
               }`}>
-                {dailyRecord.steadiness}
+                {rec.steadiness}
               </span>
             </div>
             {/* 3-segment steadiness bar */}
             <div className="grid grid-cols-3 gap-1 my-2">
-              <div className={`h-2 rounded-full ${dailyRecord.steadiness === 'Low' ? 'bg-rose-500' : 'bg-rose-500/30'}`} />
-              <div className={`h-2 rounded-full ${dailyRecord.steadiness === 'OK' ? 'bg-amber-500' : 'bg-amber-500/30'}`} />
-              <div className={`h-2 rounded-full ${dailyRecord.steadiness === 'Very Good' ? 'bg-emerald-500' : 'bg-emerald-500/30'}`} />
+              <div className={`h-2 rounded-full ${rec.steadiness === 'Low' ? 'bg-rose-500' : 'bg-rose-500/30'}`} />
+              <div className={`h-2 rounded-full ${rec.steadiness === 'OK' ? 'bg-amber-500' : 'bg-amber-500/30'}`} />
+              <div className={`h-2 rounded-full ${rec.steadiness === 'Very Good' ? 'bg-emerald-500' : 'bg-emerald-500/30'}`} />
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-              Your walking steadiness is rated <strong>{dailyRecord.steadiness}</strong> based on speed variance and step timing.
+              Your walking steadiness is rated <strong>{rec.steadiness}</strong> based on speed variance and step timing.
             </p>
           </div>
 
@@ -826,13 +851,13 @@ BIOMECHANICAL INTEGRITY:
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Walking Asymmetry</span>
               <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
-                {dailyRecord.asymmetry}%
+                {rec.asymmetry}%
               </span>
             </div>
             <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 my-2 overflow-hidden">
               <div
-                className={`h-full rounded-full ${dailyRecord.asymmetry < 4 ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                style={{ width: `${Math.min(100, (dailyRecord.asymmetry / 10) * 100)}%` }}
+                className={`h-full rounded-full ${rec.asymmetry < 4 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                style={{ width: `${Math.min(100, (rec.asymmetry / 10) * 100)}%` }}
               />
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
@@ -845,13 +870,13 @@ BIOMECHANICAL INTEGRITY:
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Ground Contact Time</span>
               <span className="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400">
-                {dailyRecord.groundContactMs} ms
+                {rec.groundContactMs} ms
               </span>
             </div>
             <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 my-2 overflow-hidden">
               <div
                 className="bg-cyan-500 h-full rounded-full"
-                style={{ width: `${Math.min(100, ((dailyRecord.groundContactMs - 500) / 300) * 100)}%` }}
+                style={{ width: `${Math.min(100, ((rec.groundContactMs - 500) / 300) * 100)}%` }}
               />
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
@@ -1000,37 +1025,37 @@ BIOMECHANICAL INTEGRITY:
               <div className="border-b border-slate-200 dark:border-slate-800 pb-2">
                 <div className="flex justify-between text-slate-400">
                   <span>STRIDESENSE HEALTH RECORD</span>
-                  <span>{dailyRecord.date}</span>
+                  <span>{rec.date}</span>
                 </div>
                 <div className="text-slate-900 dark:text-white font-bold text-sm mt-0.5">
-                  Device: ESP32 TinyML Plantar Sensor (Left)
+                  Device: {deviceId === 'insole_left_02' ? '3D Virtual Simulation Insole' : 'ESP32 Hardware Plantar Sensor (Left)'}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <div>
                   <span className="text-slate-400 block">Total Steps:</span>
-                  <strong className="text-cyan-500">{dailyRecord.steps.toLocaleString()}</strong>
+                  <strong className="text-cyan-500">{rec.steps.toLocaleString()}</strong>
                 </div>
                 <div>
                   <span className="text-slate-400 block">Total Distance:</span>
-                  <strong className="text-slate-900 dark:text-white">{dailyRecord.distanceKm} km</strong>
+                  <strong className="text-slate-900 dark:text-white">{rec.distanceKm} km</strong>
                 </div>
                 <div>
                   <span className="text-slate-400 block">Active Time:</span>
-                  <strong className="text-slate-900 dark:text-white">{dailyRecord.activeMinutes} mins</strong>
+                  <strong className="text-slate-900 dark:text-white">{rec.activeMinutes} mins</strong>
                 </div>
                 <div>
                   <span className="text-slate-400 block">Walking Steadiness:</span>
-                  <strong className="text-emerald-500">{dailyRecord.steadiness}</strong>
+                  <strong className="text-emerald-500">{rec.steadiness}</strong>
                 </div>
                 <div>
                   <span className="text-slate-400 block">Gait Symmetry:</span>
-                  <strong className="text-slate-900 dark:text-white">{dailyRecord.symmetry}%</strong>
+                  <strong className="text-slate-900 dark:text-white">{rec.symmetry}%</strong>
                 </div>
                 <div>
                   <span className="text-slate-400 block">Ground Contact:</span>
-                  <strong className="text-slate-900 dark:text-white">{dailyRecord.groundContactMs} ms</strong>
+                  <strong className="text-slate-900 dark:text-white">{rec.groundContactMs} ms</strong>
                 </div>
               </div>
 

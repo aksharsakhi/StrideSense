@@ -19,6 +19,20 @@ export class SupabaseBridge {
     this.status = "idle"; // 'idle' | 'broadcasting' | 'success' | 'error'
     this.lastError = null;
     this.packetsSent = 0;
+    this.isLeader = true;
+    this.initLeaderElection();
+  }
+
+  initLeaderElection() {
+    if (typeof navigator !== 'undefined' && navigator.locks) {
+      this.isLeader = false;
+      navigator.locks.request('stridesense_sim_leader', () => {
+        this.isLeader = true;
+        return new Promise(() => {}); // Keep holding lock as long as this tab is open
+      }).catch(() => {
+        this.isLeader = true;
+      });
+    }
   }
 
   setEnabled(val) {
@@ -26,7 +40,7 @@ export class SupabaseBridge {
   }
 
   async sendTelemetry(sample, inference, stats = {}) {
-    if (!this.enabled) return;
+    if (!this.enabled || !this.isLeader) return;
 
     const now = Date.now();
     if (now - this.lastBroadcast < this.broadcastIntervalMs) {
