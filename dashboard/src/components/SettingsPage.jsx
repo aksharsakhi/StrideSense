@@ -13,6 +13,8 @@ function SettingsPageComponent({
   batteryPct = 88,
   batteryVoltage = 3.96,
   isCloudConnected = false,
+  selectedDeviceId = 'insole_left_01',
+  onOpenDeviceSelector = () => {},
   theme = 'system',
   onThemeChange = () => {}
 }) {
@@ -488,21 +490,50 @@ function SettingsPageComponent({
 
           {/* Device Status Card */}
           <div className="glass-panel p-5 animate-fade-in-scale">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 border border-cyan-500/30 flex items-center justify-center flex-shrink-0">
-                <Cpu className="w-7 h-7 text-cyan-600 dark:text-cyan-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">StrideSense Smart Insole</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">ESP32 DevKit V1 • insole_left_01</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="badge badge-emerald text-[9px]">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Connected
-                  </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">FW v1.4.2</span>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                  selectedDeviceId === 'insole_left_02'
+                    ? 'bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-purple-500/30'
+                    : 'bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 border border-cyan-500/30'
+                }`}>
+                  <Cpu className={`w-6 h-6 ${
+                    selectedDeviceId === 'insole_left_02'
+                      ? 'text-purple-600 dark:text-purple-400'
+                      : 'text-cyan-600 dark:text-cyan-400'
+                  }`} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                    {selectedDeviceId === 'insole_left_02' ? '3D Virtual Simulation' : 'ESP32 Physical Insole'}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                    {selectedDeviceId === 'insole_left_02' ? 'Laptop Studio • insole_left_02' : 'ESP32 DevKit • insole_left_01'}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className={`badge text-[9px] ${
+                      isCloudConnected ? 'badge-emerald' : 'badge-amber'
+                    }`}>
+                      <CheckCircle2 className="w-3 h-3" />
+                      {isCloudConnected ? (selectedDeviceId === 'insole_left_02' ? 'Sim Streaming' : 'Live Sync') : 'Connecting'}
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      {selectedDeviceId === 'insole_left_02' ? 'FW v1.4.2-Sim' : 'FW v1.4.2-TinyML'}
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  nativeBridge.impactLight();
+                  onOpenDeviceSelector();
+                }}
+                className="px-3 py-1.5 rounded-xl bg-slate-200/80 dark:bg-white/10 hover:bg-slate-300/80 dark:hover:bg-white/15 active-press transition-colors text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 flex-shrink-0"
+              >
+                <span>Switch</span>
+              </button>
             </div>
 
             {/* Battery bar */}

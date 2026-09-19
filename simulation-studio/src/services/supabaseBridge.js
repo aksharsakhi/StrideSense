@@ -13,7 +13,7 @@ export class SupabaseBridge {
     this.host = DEFAULT_SUPABASE_HOST;
     this.apiKey = DEFAULT_SUPABASE_KEY;
     this.endpoint = DEFAULT_ENDPOINT;
-    this.deviceId = "insole_left_01"; // Registered device in Supabase devices table
+    this.deviceId = "insole_left_02"; // Registered device in Supabase devices table (Simulation Studio)
     this.lastBroadcast = 0;
     this.broadcastIntervalMs = 1000; // 1 Hz matching ESP32 firmware CLOUD_TELEMETRY_MS
     this.status = "idle"; // 'idle' | 'broadcasting' | 'success' | 'error'

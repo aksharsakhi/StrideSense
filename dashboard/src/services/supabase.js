@@ -1,21 +1,47 @@
 /**
  * StrideSense - Supabase Real-Time & Analytics Service
  * Connects to Supabase PostgreSQL via WebSockets Realtime CDC and PostgREST.
+ * Supports multi-device switching (Hardware ESP32 vs Virtual Simulation Studio).
  */
 
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://sgooptohhldguitvhbrl.supabase.co';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const DEFAULT_DEVICE_ID = import.meta.env.VITE_DEVICE_ID || 'insole_left_01';
+
+const STORAGE_KEY_DEVICE = 'stridesense_selected_device';
+const INITIAL_DEVICE_ID =
+  (typeof localStorage !== 'undefined' && localStorage.getItem(STORAGE_KEY_DEVICE)) ||
+  import.meta.env.VITE_DEVICE_ID ||
+  'insole_left_01';
+
+const FALLBACK_DEVICES = [
+  {
+    id: 'insole_left_01',
+    name: 'Real ESP32 Smart Insole (Hardware)',
+    battery_pct: 90,
+    battery_voltage: 4.02,
+    firmware_version: 'v1.4.2-TinyML',
+    badge: 'HARDWARE'
+  },
+  {
+    id: 'insole_left_02',
+    name: '3D Simulation Insole (Studio)',
+    battery_pct: 100,
+    battery_voltage: 4.20,
+    firmware_version: 'v1.4.2-VirtualSim',
+    badge: 'SIMULATION'
+  }
+];
 
 class SupabaseService {
   constructor() {
     this.client = null;
     this.channel = null;
     this.listeners = new Set();
+    this.deviceListeners = new Set();
     this.isConnected = false;
-    this.deviceId = DEFAULT_DEVICE_ID;
+    this.deviceId = INITIAL_DEVICE_ID;
 
     this.init();
   }
@@ -34,6 +60,35 @@ class SupabaseService {
     return Boolean(this.client);
   }
 
+  getDeviceId() {
+    return this.deviceId;
+  }
+
+  /**
+   * Switches the active device (e.g. insole_left_01 <-> insole_left_02)
+   */
+  async setDeviceId(id) {
+    if (!id || this.deviceId === id) return;
+    this.deviceId = id;
+    try {
+      localStorage.setItem(STORAGE_KEY_DEVICE, id);
+    } catch (e) {}
+
+    // Notify device listeners
+    this.deviceListeners.forEach((fn) => fn(id));
+
+    // Immediately fetch latest telemetry for the newly selected device
+    const latest = await this.fetchLatestTelemetry();
+    if (latest) {
+      this.notify(latest);
+    }
+  }
+
+  onDeviceChange(fn) {
+    this.deviceListeners.add(fn);
+    return () => this.deviceListeners.delete(fn);
+  }
+
   subscribeTelemetry(fn) {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
@@ -41,6 +96,31 @@ class SupabaseService {
 
   notify(data) {
     this.listeners.forEach((fn) => fn(data));
+  }
+
+  /**
+   * Fetches available devices from Supabase public.devices
+   */
+  async fetchAvailableDevices() {
+    if (!this.client) return FALLBACK_DEVICES;
+
+    try {
+      const { data, error } = await this.client
+        .from('devices')
+        .select('*')
+        .order('id', { ascending: true });
+
+      if (error || !data || data.length === 0) {
+        return FALLBACK_DEVICES;
+      }
+
+      return data.map((d) => ({
+        ...d,
+        badge: d.id === 'insole_left_01' ? 'HARDWARE' : 'SIMULATION'
+      }));
+    } catch (e) {
+      return FALLBACK_DEVICES;
+    }
   }
 
   /**
@@ -68,6 +148,7 @@ class SupabaseService {
         (payload) => {
           this.isConnected = true;
           const row = payload.new;
+          // Filter to strictly receive data for the currently selected device
           if (!this.deviceId || row.device_id === this.deviceId) {
             this.notify(this.normalizeRow(row));
           }
@@ -91,7 +172,7 @@ class SupabaseService {
   }
 
   /**
-   * Fetches latest telemetry row to populate initial state
+   * Fetches latest telemetry row for the active device
    */
   async fetchLatestTelemetry() {
     if (!this.client) return null;
@@ -112,7 +193,7 @@ class SupabaseService {
   }
 
   /**
-   * Fetches historical gait records for analytics
+   * Fetches historical gait records for analytics for the active device
    */
   async fetchGaitHistory(limit = 100) {
     if (!this.client) return [];
@@ -132,7 +213,7 @@ class SupabaseService {
   }
 
   /**
-   * Inserts a telemetry record (e.g. from simulator or test script)
+   * Inserts a telemetry record
    */
   async insertTelemetry(sample) {
     if (!this.client) return false;
@@ -171,8 +252,8 @@ class SupabaseService {
       symmetry: Number(row.symmetry) || 100,
       fallAlert: Boolean(row.fall_alert),
       fallEmergency: false,
-      batteryPct: 88,
-      batteryVoltage: 3.96,
+      batteryPct: row.device_id === 'insole_left_02' ? 100 : 88,
+      batteryVoltage: row.device_id === 'insole_left_02' ? 4.20 : 3.96,
       sensors: {
         p1: row.p1 || 0,
         p2: row.p2 || 0,

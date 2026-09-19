@@ -4,7 +4,7 @@ import {
   ShieldCheck, Cpu, Battery, Brain, Wifi, WifiOff, Clock
 } from 'lucide-react';
 
-function HomePageComponent({ telemetry, onNavigate }) {
+function HomePageComponent({ telemetry, deviceId = 'insole_left_01', onSwitchDevice, onNavigate }) {
   const { activity, confidence, steps, cadence, symmetry, batteryPct, sensors, imu } = telemetry;
   const confPct = Math.round(confidence * 100);
   const stepGoal = 10000;
@@ -247,15 +247,22 @@ function HomePageComponent({ telemetry, onNavigate }) {
         role="button"
         tabIndex={0}
         className="glass-panel p-4 flex items-center justify-between animate-fade-in-scale cursor-pointer active-press touch-manipulation select-none"
-        onClick={() => onNavigate('settings')}
+        onClick={onSwitchDevice || (() => onNavigate('settings'))}
       >
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/10 to-emerald-500/10 border border-cyan-500/20">
             <Cpu className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white">ESP32 Smart Insole Active</h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">v1.4.2-TinyML • insole_left_01</p>
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                {deviceId === 'insole_left_01' ? 'ESP32 Hardware Insole' : '3D Simulation Studio'}
+              </h4>
+              <span className="badge badge-cyan text-[8px] px-1.5 py-0.5">Switch</span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              {deviceId === 'insole_left_01' ? 'v1.4.2-TinyML • insole_left_01' : 'v1.4.2-VirtualSim • insole_left_02'}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">

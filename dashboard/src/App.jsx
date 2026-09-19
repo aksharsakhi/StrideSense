@@ -10,7 +10,9 @@ import {
   Sun,
   Moon,
   Monitor,
-  Brain
+  Brain,
+  Cpu,
+  ChevronDown
 } from 'lucide-react';
 
 import HomePage from './components/HomePage.jsx';
@@ -22,6 +24,7 @@ import FallAlertModal from './components/FallAlertModal.jsx';
 import HistoricalTrends from './components/HistoricalTrends.jsx';
 import FallGuardMobile from './components/FallGuardMobile.jsx';
 import SettingsPage from './components/SettingsPage.jsx';
+import DeviceSelectorModal from './components/DeviceSelectorModal.jsx';
 
 import { supabaseService } from './services/supabase.js';
 import { nativeBridge } from './services/native.js';
@@ -44,9 +47,13 @@ const TopHeader = React.memo(function TopHeader({
   theme,
   batteryPct,
   isConnected,
+  selectedDeviceId,
+  onOpenDeviceSelector,
   onNavigate,
   onCycleTheme
 }) {
+  const isHardware = selectedDeviceId === 'insole_left_01';
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
       {/* Brand or Page Title */}
@@ -98,6 +105,24 @@ const TopHeader = React.memo(function TopHeader({
 
       {/* Right Controls */}
       <div className="flex items-center gap-2">
+        {/* Device Switcher Button */}
+        <button
+          type="button"
+          onClick={onOpenDeviceSelector}
+          title="Switch Active Insole Device"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] hover:border-cyan-500/40 text-xs font-semibold text-slate-800 dark:text-white active-press touch-manipulation select-none transition-all"
+        >
+          {isHardware ? (
+            <Cpu className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          ) : (
+            <Monitor className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
+          )}
+          <span className="font-mono text-[11px] font-bold">
+            {isHardware ? 'ESP32 HW' : '3D SIM'}
+          </span>
+          <ChevronDown className="w-3 h-3 text-slate-400" />
+        </button>
+
         {/* Quick Theme Toggle */}
         <button
           type="button"
@@ -138,8 +163,6 @@ const TopHeader = React.memo(function TopHeader({
     </div>
   );
 });
-
-
 
 /* ─── MEMOIZED MOBILE BOTTOM NAVIGATION BAR ─────────── */
 const MobileBottomNav = React.memo(function MobileBottomNav({ activeTab, onNavigate }) {
@@ -185,7 +208,7 @@ const MobileBottomNav = React.memo(function MobileBottomNav({ activeTab, onNavig
   );
 });
 
-/* ─── Default empty telemetry (before first Supabase row arrives) ─── */
+/* ─── Default empty telemetry ─── */
 const EMPTY_TELEMETRY = {
   timestamp: Date.now(),
   activity: '—',
@@ -207,6 +230,18 @@ export default function App() {
   const [fallModalOpen, setFallModalOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('stridesense_theme') || 'system');
+
+  // Device Selection State
+  const [selectedDeviceId, setSelectedDeviceId] = useState(() => supabaseService.getDeviceId());
+  const [availableDevices, setAvailableDevices] = useState([]);
+  const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
+
+  /* ─── Fetch Available Devices ─────────── */
+  useEffect(() => {
+    supabaseService.fetchAvailableDevices().then((devs) => {
+      setAvailableDevices(devs);
+    });
+  }, []);
 
   /* ─── Theme Sync Effect ───────────────── */
   useEffect(() => {
@@ -263,7 +298,7 @@ export default function App() {
       }
     });
 
-    // Load the latest row to populate UI immediately
+    // Load latest telemetry for active device
     supabaseService.fetchLatestTelemetry().then((latest) => {
       if (latest) setTelemetry(latest);
     });
@@ -273,7 +308,7 @@ export default function App() {
       supabaseService.disconnectRealtime();
       setIsConnected(false);
     };
-  }, []);
+  }, [selectedDeviceId]);
 
   /* ─── Handlers ────────────────────────── */
   const navigate = useCallback((tab) => {
@@ -295,6 +330,11 @@ export default function App() {
     setFallModalOpen(false);
   }, []);
 
+  const handleSelectDevice = useCallback((newId) => {
+    setSelectedDeviceId(newId);
+    supabaseService.setDeviceId(newId);
+  }, []);
+
   /* ─── Page title ──────────────────────── */
   const PAGE_TITLES = {
     home: null,
@@ -309,6 +349,15 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-100 selection:bg-cyan-500/30 selection:text-white transition-colors duration-200">
 
+      {/* ═══ DEVICE SELECTION MODAL ═══ */}
+      <DeviceSelectorModal
+        isOpen={isDeviceModalOpen}
+        onClose={() => setIsDeviceModalOpen(false)}
+        availableDevices={availableDevices}
+        selectedDeviceId={selectedDeviceId}
+        onSelectDevice={handleSelectDevice}
+      />
+
       {/* ═══ FALL EMERGENCY MODAL ═══ */}
       <FallAlertModal isOpen={fallModalOpen} onCancel={cancelFall} initialSeconds={15} />
 
@@ -320,6 +369,8 @@ export default function App() {
           theme={theme}
           batteryPct={telemetry.batteryPct}
           isConnected={isConnected}
+          selectedDeviceId={selectedDeviceId}
+          onOpenDeviceSelector={() => setIsDeviceModalOpen(true)}
           onNavigate={navigate}
           onCycleTheme={cycleTheme}
         />
@@ -331,6 +382,8 @@ export default function App() {
         {activeTab === 'home' && (
           <HomePage
             telemetry={telemetry}
+            deviceId={selectedDeviceId}
+            onSwitchDevice={() => setIsDeviceModalOpen(true)}
             onNavigate={navigate}
           />
         )}
@@ -393,6 +446,8 @@ export default function App() {
             batteryPct={telemetry.batteryPct}
             batteryVoltage={telemetry.batteryVoltage}
             isCloudConnected={isConnected}
+            selectedDeviceId={selectedDeviceId}
+            onOpenDeviceSelector={() => setIsDeviceModalOpen(true)}
             theme={theme}
             onThemeChange={setTheme}
           />

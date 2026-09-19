@@ -4,7 +4,9 @@ import { Battery, Wifi, Cpu, Sliders, CheckCircle2 } from 'lucide-react';
 export default function DeviceStatus({
   batteryPct = 88,
   batteryVoltage = 3.96,
-  isCloudConnected = false
+  isCloudConnected = false,
+  deviceId = 'insole_left_01',
+  onSwitchDevice
 }) {
   const batteryColor = batteryPct > 60
     ? 'text-emerald-500 dark:text-emerald-400'
@@ -99,8 +101,21 @@ export default function DeviceStatus({
 
       {/* Footer */}
       <div className="mt-4 pt-3 border-t border-slate-200/70 dark:border-white/[0.05] flex flex-wrap justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
-        <div>Device: <span className="font-mono text-slate-700 dark:text-slate-300">insole_left_01</span></div>
-        <div>FW: <span className="font-mono text-cyan-600 dark:text-cyan-400 font-bold">v1.4.2-TinyML</span></div>
+        <div className="flex items-center gap-1.5">
+          <span>Device:</span>
+          <button
+            type="button"
+            onClick={onSwitchDevice}
+            className="font-mono text-cyan-600 dark:text-cyan-400 font-bold hover:underline"
+          >
+            {deviceId}
+          </button>
+        </div>
+        <div>
+          FW: <span className="font-mono text-cyan-600 dark:text-cyan-400 font-bold">
+            {deviceId === 'insole_left_01' ? 'v1.4.2-TinyML' : 'v1.4.2-VirtualSim'}
+          </span>
+        </div>
       </div>
     </div>
   );
