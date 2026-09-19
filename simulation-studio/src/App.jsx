@@ -42,9 +42,9 @@ export default function App() {
 
   // Accumulated biometric metrics
   const [stats, setStats] = useState({
-    steps: 1420,
-    cadence: 108.0,
-    symmetry: 97.4,
+    steps: 0,
+    cadence: 0.0,
+    symmetry: 100.0,
     fallAlert: false
   });
 
@@ -180,9 +180,9 @@ export default function App() {
     setStumbleState('idle');
     setStumbleMessage('');
     setStats({
-      steps: 1420,
-      cadence: 108.0,
-      symmetry: 97.4,
+      steps: 0,
+      cadence: 0.0,
+      symmetry: 100.0,
       fallAlert: false
     });
   };

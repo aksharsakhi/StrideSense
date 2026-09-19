@@ -1,15 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Footprints, Zap, Activity, TrendingUp, ChevronRight,
   ShieldCheck, Cpu, Battery, Brain, Wifi, WifiOff, Clock,
   HeartPulse
 } from 'lucide-react';
+import { healthService } from '../services/healthService.js';
 
 function HomePageComponent({ telemetry, deviceId = 'insole_left_01', onSwitchDevice, onNavigate }) {
-  const { activity, confidence, steps, cadence, symmetry, batteryPct, sensors, imu } = telemetry;
+  const { activity, confidence, cadence, symmetry, batteryPct, sensors, imu } = telemetry;
+  const [todayRecord, setTodayRecord] = useState(() => healthService.getTodayRecord(deviceId));
+
+  useEffect(() => {
+    setTodayRecord(healthService.getTodayRecord(deviceId));
+    const unsub = healthService.subscribe(() => {
+      setTodayRecord(healthService.getTodayRecord(deviceId));
+    });
+    return unsub;
+  }, [deviceId]);
+
+  // Today's steps for active device
+  const todaySteps = Math.max(todayRecord.steps || 0, telemetry.steps || 0);
   const confPct = Math.round(confidence * 100);
-  const stepGoal = 10000;
-  const stepPct = Math.min(100, Math.round((steps / stepGoal) * 100));
+  const stepGoal = todayRecord.goal || 10000;
+  const stepPct = Math.min(100, Math.round((todaySteps / stepGoal) * 100));
 
   // Step ring geometry
   const ringR = 44;
@@ -102,9 +115,9 @@ function HomePageComponent({ telemetry, deviceId = 'insole_left_01', onSwitchDev
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-xl font-mono font-bold text-slate-900 dark:text-white leading-none tabular-nums">
-                {steps.toLocaleString()}
+                {todaySteps.toLocaleString()}
               </span>
-              <span className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase mt-1">Steps</span>
+              <span className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase mt-1">Today's Steps</span>
             </div>
           </div>
 
@@ -180,7 +193,7 @@ function HomePageComponent({ telemetry, deviceId = 'insole_left_01', onSwitchDev
               footer: (
                 <>
                   <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{steps.toLocaleString()} steps today</span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{todaySteps.toLocaleString()} steps today</span>
                 </>
               )
             },

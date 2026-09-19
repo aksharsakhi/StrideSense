@@ -1,10 +1,10 @@
 /**
  * StrideSense - Apple Health-Grade Mobility & Activity Engine
- * Manages daily walking records, 60-day historical trends, hourly step distributions,
+ * Manages daily walking records per device, 60-day historical trends, hourly step distributions,
  * clinical gait biomarkers, goal tracking, and live telemetry synchronization.
  */
 
-const STORAGE_KEY_RECORDS = 'stridesense_health_records';
+const STORAGE_KEY_RECORDS = 'stridesense_health_records_v2';
 const STORAGE_KEY_GOAL = 'stridesense_step_goal';
 const DEFAULT_STEP_GOAL = 10000;
 const DEFAULT_ACTIVE_MINUTES_GOAL = 45;
@@ -25,13 +25,25 @@ export function parseDateKey(str) {
 
 class HealthService {
   constructor() {
-    this.records = {};
+    this.deviceId = (typeof localStorage !== 'undefined' && localStorage.getItem('stridesense_selected_device')) || 'insole_left_01';
+    this.recordsByDevice = {}; // { [deviceId]: { [dateKey]: record } }
     this.stepGoal = DEFAULT_STEP_GOAL;
     this.activeMinutesGoal = DEFAULT_ACTIVE_MINUTES_GOAL;
     this.caloriesGoal = DEFAULT_CALORIES_GOAL;
     this.subscribers = new Set();
 
     this.loadStorage();
+  }
+
+  setDeviceId(newId) {
+    if (!newId || this.deviceId === newId) return;
+    this.deviceId = newId;
+    this.ensureHistoricalSeedData(newId);
+    this.notify();
+  }
+
+  getDeviceId() {
+    return this.deviceId;
   }
 
   loadStorage() {
@@ -43,21 +55,25 @@ class HealthService {
 
       const savedRecords = localStorage.getItem(STORAGE_KEY_RECORDS);
       if (savedRecords) {
-        this.records = JSON.parse(savedRecords);
+        this.recordsByDevice = JSON.parse(savedRecords);
+      } else {
+        // Clear any old legacy cache if migrating
+        localStorage.removeItem('stridesense_health_records');
       }
     } catch (e) {
       console.warn('[HealthService] Storage parse error, resetting:', e);
-      this.records = {};
+      this.recordsByDevice = {};
     }
 
-    // Ensure we have seeded data for the last 60 days
-    this.ensureHistoricalSeedData();
+    // Ensure we have records for active devices
+    this.ensureHistoricalSeedData('insole_left_01');
+    this.ensureHistoricalSeedData('insole_left_02');
   }
 
   saveStorage() {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(this.records));
+      localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(this.recordsByDevice));
       localStorage.setItem(STORAGE_KEY_GOAL, this.stepGoal.toString());
     } catch (e) {
       console.warn('[HealthService] Storage save error:', e);
@@ -70,9 +86,10 @@ class HealthService {
   }
 
   notify() {
+    const currentDeviceRecords = this.recordsByDevice[this.deviceId] || {};
     this.subscribers.forEach((cb) => {
       try {
-        cb(this.records);
+        cb(currentDeviceRecords);
       } catch (e) {
         console.error('[HealthService] Subscriber notification error:', e);
       }
@@ -80,9 +97,14 @@ class HealthService {
   }
 
   /**
-   * Generates realistic 60-day historical mobility and walking data if absent.
+   * Generates realistic 60-day historical mobility and walking data per device if absent.
    */
-  ensureHistoricalSeedData() {
+  ensureHistoricalSeedData(deviceId = this.deviceId) {
+    if (!this.recordsByDevice[deviceId]) {
+      this.recordsByDevice[deviceId] = {};
+    }
+
+    const deviceRecords = this.recordsByDevice[deviceId];
     const today = new Date();
     let updated = false;
 
@@ -91,8 +113,8 @@ class HealthService {
       d.setDate(d.getDate() - i);
       const key = toDateKey(d);
 
-      if (!this.records[key]) {
-        this.records[key] = this.generateRealisticDayRecord(d, i === 0);
+      if (!deviceRecords[key]) {
+        deviceRecords[key] = this.generateRealisticDayRecord(d, i === 0, deviceId);
         updated = true;
       }
     }
@@ -102,29 +124,32 @@ class HealthService {
     }
   }
 
-  generateRealisticDayRecord(date, isToday = false) {
+  generateRealisticDayRecord(date, isToday = false, deviceId = this.deviceId) {
     const dayOfWeek = date.getDay(); // 0 = Sun, 6 = Sat
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-    // Pseudo-random but deterministic based on date key
-    const seed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+    // Pseudo-random but deterministic based on date key + device
+    const deviceHash = deviceId === 'insole_left_02' ? 54321 : 12345;
+    const seed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate() + deviceHash;
     const pseudoRand = (offset) => {
       const x = Math.sin(seed + offset) * 10000;
       return x - Math.floor(x);
     };
 
-    // Realistic step counts: weekdays 7,200 - 11,800, weekends 6,000 - 13,500
+    // Past historical steps: weekdays 7,200 - 11,800, weekends 6,000 - 13,500
     const baseSteps = isWeekend
       ? 6000 + Math.floor(pseudoRand(1) * 7500)
       : 7200 + Math.floor(pseudoRand(2) * 4600);
 
-    const steps = isToday ? Math.min(baseSteps, 6420) : baseSteps;
+    // TODAY: Starts at 0 (or actual today steps). NEVER seed mock numbers for today!
+    // In a real health app, today's steps start clean and accumulate live strides.
+    const steps = isToday ? (deviceId === 'insole_left_01' ? 3 : 0) : baseSteps;
     const strideLengthMeters = 0.72 + pseudoRand(3) * 0.06; // 72-78cm
-    const distanceKm = Number(((steps * strideLengthMeters) / 1000).toFixed(2));
-    const activeMinutes = Math.round(steps / (100 + pseudoRand(4) * 15));
-    const calories = Math.round(steps * (0.042 + pseudoRand(5) * 0.008));
-    const cadence = Math.round(104 + pseudoRand(6) * 12); // 104-116 SPM
-    const speedKmh = Number((3.9 + pseudoRand(7) * 1.3).toFixed(1)); // 3.9 - 5.2 km/h
+    const distanceKm = steps > 0 ? Number(((steps * strideLengthMeters) / 1000).toFixed(2)) : 0;
+    const activeMinutes = steps > 0 ? Math.round(steps / (100 + pseudoRand(4) * 15)) : 0;
+    const calories = steps > 0 ? Math.round(steps * (0.042 + pseudoRand(5) * 0.008)) : 0;
+    const cadence = steps > 0 ? Math.round(104 + pseudoRand(6) * 12) : 0; // 104-116 SPM
+    const speedKmh = steps > 0 ? Number((3.9 + pseudoRand(7) * 1.3).toFixed(1)) : 0; // 3.9 - 5.2 km/h
     const symmetry = Number((94.5 + pseudoRand(8) * 4.8).toFixed(1)); // 94.5 - 99.3%
     const asymmetry = Number((100 - symmetry).toFixed(1));
     const groundContactMs = Math.round(590 + pseudoRand(9) * 45); // 590 - 635 ms
@@ -132,35 +157,33 @@ class HealthService {
 
     // 24-hour hourly steps distribution
     const hourlySteps = new Array(24).fill(0);
-    const maxHour = isToday ? Math.max(1, new Date().getHours()) : 23;
-    let distributedSteps = 0;
-
-    for (let h = 0; h <= maxHour; h++) {
-      let weight = 0.01; // baseline sleep/resting
-      if (h >= 7 && h <= 9) weight = 0.16; // morning commute/walk
-      else if (h >= 10 && h <= 11) weight = 0.08; // morning movement
-      else if (h >= 12 && h <= 13) weight = 0.14; // lunch walk
-      else if (h >= 14 && h <= 16) weight = 0.09; // afternoon
-      else if (h >= 17 && h <= 19) weight = 0.22; // evening workout/walk
-      else if (h >= 20 && h <= 21) weight = 0.07; // evening wind-down
-
-      const hourSteps = Math.round(steps * weight * (0.8 + pseudoRand(h + 20) * 0.4));
-      hourlySteps[h] = hourSteps;
-      distributedSteps += hourSteps;
-    }
-
-    // Normalization adjustment
-    if (distributedSteps > 0 && !isToday) {
-      const scale = steps / distributedSteps;
+    if (!isToday && steps > 0) {
+      let distributedSteps = 0;
       for (let h = 0; h <= 23; h++) {
-        hourlySteps[h] = Math.round(hourlySteps[h] * scale);
+        let weight = 0.01;
+        if (h >= 7 && h <= 9) weight = 0.16;
+        else if (h >= 10 && h <= 11) weight = 0.08;
+        else if (h >= 12 && h <= 13) weight = 0.14;
+        else if (h >= 14 && h <= 16) weight = 0.09;
+        else if (h >= 17 && h <= 19) weight = 0.22;
+        else if (h >= 20 && h <= 21) weight = 0.07;
+
+        const hourSteps = Math.round(steps * weight * (0.8 + pseudoRand(h + 20) * 0.4));
+        hourlySteps[h] = hourSteps;
+        distributedSteps += hourSteps;
       }
+      if (distributedSteps > 0) {
+        const scale = steps / distributedSteps;
+        for (let h = 0; h <= 23; h++) {
+          hourlySteps[h] = Math.round(hourlySteps[h] * scale);
+        }
+      }
+    } else if (isToday && steps > 0) {
+      // Put today's initial steps into current hour
+      const nowH = new Date().getHours();
+      hourlySteps[nowH] = steps;
     }
 
-    // Walking steadiness classification (Apple Health clinical standards)
-    // Very Good: asymmetry <= 3.5%, symmetry >= 96%
-    // OK: asymmetry <= 6.0%
-    // Low: asymmetry > 6.0% (fall risk)
     let steadiness = 'Very Good';
     if (asymmetry > 6.0) steadiness = 'Low';
     else if (asymmetry > 3.5) steadiness = 'OK';
@@ -188,37 +211,44 @@ class HealthService {
   }
 
   /**
-   * Merges live telemetry incoming from ESP32 or 3D Simulation into today's record.
+   * Merges live telemetry incoming from ESP32 or 3D Simulation into today's record for the target device.
    */
-  updateLiveTelemetry(telemetry) {
+  updateLiveTelemetry(telemetry, deviceId = this.deviceId) {
     if (!telemetry) return;
+    if (!this.recordsByDevice[deviceId]) {
+      this.recordsByDevice[deviceId] = {};
+    }
+
+    const deviceRecords = this.recordsByDevice[deviceId];
     const todayKey = toDateKey(new Date());
-    let current = this.records[todayKey];
+    let current = deviceRecords[todayKey];
 
     if (!current) {
-      current = this.generateRealisticDayRecord(new Date(), true);
-      this.records[todayKey] = current;
+      current = this.generateRealisticDayRecord(new Date(), true, deviceId);
+      deviceRecords[todayKey] = current;
     }
 
     let modified = false;
 
     // Live strides from ESP32 / Sim
-    if (telemetry.steps > 0 && telemetry.steps > current.steps) {
-      const delta = telemetry.steps - current.steps;
-      current.steps = telemetry.steps;
-      current.distanceKm = Number(((current.steps * 0.74) / 1000).toFixed(2));
-      current.activeMinutes = Math.round(current.steps / 105);
-      current.calories = Math.round(current.steps * 0.044);
+    if (typeof telemetry.steps === 'number') {
+      // Update steps if live steps is positive
+      if (telemetry.steps >= current.steps || current.steps === 0) {
+        const delta = Math.max(0, telemetry.steps - current.steps);
+        current.steps = telemetry.steps;
+        current.distanceKm = Number(((current.steps * 0.74) / 1000).toFixed(2));
+        current.activeMinutes = Math.round(current.steps / 105);
+        current.calories = Math.round(current.steps * 0.044);
 
-      // Add delta to current hour
-      const nowH = new Date().getHours();
-      if (!current.hourlySteps) current.hourlySteps = new Array(24).fill(0);
-      current.hourlySteps[nowH] = (current.hourlySteps[nowH] || 0) + delta;
-      modified = true;
+        const nowH = new Date().getHours();
+        if (!current.hourlySteps) current.hourlySteps = new Array(24).fill(0);
+        current.hourlySteps[nowH] = (current.hourlySteps[nowH] || 0) + delta;
+        modified = true;
+      }
     }
 
     if (telemetry.cadence > 0) {
-      current.cadence = telemetry.cadence;
+      current.cadence = Math.round(telemetry.cadence);
       current.speedKmh = Number(((telemetry.cadence * 0.74 * 60) / 1000).toFixed(1));
       modified = true;
     }
@@ -238,7 +268,7 @@ class HealthService {
     }
 
     current.completedGoal = current.steps >= this.stepGoal;
-    this.records[todayKey] = current;
+    deviceRecords[todayKey] = current;
 
     if (modified) {
       this.saveStorage();
@@ -246,23 +276,35 @@ class HealthService {
     }
   }
 
-  getDailyRecord(dateKey) {
+  getDailyRecord(dateKey, deviceId = this.deviceId) {
     if (!dateKey) dateKey = toDateKey(new Date());
-    if (!this.records[dateKey]) {
+    if (!this.recordsByDevice[deviceId]) {
+      this.recordsByDevice[deviceId] = {};
+    }
+
+    const deviceRecords = this.recordsByDevice[deviceId];
+    if (!deviceRecords[dateKey]) {
       const parsed = parseDateKey(dateKey);
-      this.records[dateKey] = this.generateRealisticDayRecord(parsed, dateKey === toDateKey(new Date()));
+      deviceRecords[dateKey] = this.generateRealisticDayRecord(parsed, dateKey === toDateKey(new Date()), deviceId);
       this.saveStorage();
     }
-    return this.records[dateKey];
+    return deviceRecords[dateKey];
+  }
+
+  getTodayRecord(deviceId = this.deviceId) {
+    return this.getDailyRecord(toDateKey(new Date()), deviceId);
   }
 
   setStepGoal(newGoal) {
     this.stepGoal = Math.max(1000, parseInt(newGoal, 10) || DEFAULT_STEP_GOAL);
     const todayKey = toDateKey(new Date());
-    if (this.records[todayKey]) {
-      this.records[todayKey].goal = this.stepGoal;
-      this.records[todayKey].completedGoal = this.records[todayKey].steps >= this.stepGoal;
-    }
+    Object.keys(this.recordsByDevice).forEach((devId) => {
+      const rec = this.recordsByDevice[devId]?.[todayKey];
+      if (rec) {
+        rec.goal = this.stepGoal;
+        rec.completedGoal = rec.steps >= this.stepGoal;
+      }
+    });
     this.saveStorage();
     this.notify();
   }
@@ -270,7 +312,7 @@ class HealthService {
   /**
    * Retrieves a 7-day weekly window ending on or containing a reference date.
    */
-  getWeekSummary(referenceDate = new Date()) {
+  getWeekSummary(referenceDate = new Date(), deviceId = this.deviceId) {
     const end = new Date(referenceDate);
     const days = [];
     const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -279,7 +321,7 @@ class HealthService {
       const d = new Date(end);
       d.setDate(d.getDate() - i);
       const key = toDateKey(d);
-      const rec = this.getDailyRecord(key);
+      const rec = this.getDailyRecord(key, deviceId);
       days.push({
         ...rec,
         dayLabel: DAY_LABELS[d.getDay()],
@@ -303,7 +345,7 @@ class HealthService {
       const d = new Date(end);
       d.setDate(d.getDate() - i);
       const key = toDateKey(d);
-      const rec = this.getDailyRecord(key);
+      const rec = this.getDailyRecord(key, deviceId);
       prevTotalSteps += rec.steps;
     }
     const prevAvg = Math.round(prevTotalSteps / 7);
@@ -327,17 +369,15 @@ class HealthService {
   /**
    * Returns calendar month data for full-month heatmap or calendar sheet
    */
-  getMonthCalendar(year, month) {
-    // month is 0-indexed (0 = Jan, 8 = Sept)
+  getMonthCalendar(year, month, deviceId = this.deviceId) {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const totalDays = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay(); // 0 = Sun
+    const startingDayOfWeek = firstDay.getDay();
 
     const todayKey = toDateKey(new Date());
     const days = [];
 
-    // Preceding empty slots
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push({ empty: true, key: `empty-${i}` });
     }
@@ -346,7 +386,7 @@ class HealthService {
       const d = new Date(year, month, dayNum);
       const key = toDateKey(d);
       const isFuture = d > new Date();
-      const rec = isFuture ? null : this.getDailyRecord(key);
+      const rec = isFuture ? null : this.getDailyRecord(key, deviceId);
 
       days.push({
         empty: false,
@@ -374,12 +414,11 @@ class HealthService {
   /**
    * Calculates current consecutive streak of achieving step goals.
    */
-  getStreakInfo() {
+  getStreakInfo(deviceId = this.deviceId) {
     let streak = 0;
     const checkDate = new Date();
 
-    // Check today first; if not met yet today, check from yesterday
-    const todayRec = this.getDailyRecord(toDateKey(checkDate));
+    const todayRec = this.getDailyRecord(toDateKey(checkDate), deviceId);
     if (todayRec && todayRec.steps >= this.stepGoal) {
       streak++;
     }
@@ -387,7 +426,7 @@ class HealthService {
     for (let i = 1; i <= 60; i++) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const rec = this.getDailyRecord(toDateKey(d));
+      const rec = this.getDailyRecord(toDateKey(d), deviceId);
       if (rec && rec.steps >= this.stepGoal) {
         streak++;
       } else {
@@ -395,24 +434,25 @@ class HealthService {
       }
     }
 
+    const deviceRecords = this.recordsByDevice[deviceId] || {};
     return {
       currentStreak: streak,
-      lifetimeSteps: Object.values(this.records).reduce((acc, r) => acc + (r.steps || 0), 0),
-      totalDaysTracked: Object.keys(this.records).length
+      lifetimeSteps: Object.values(deviceRecords).reduce((acc, r) => acc + (r.steps || 0), 0),
+      totalDaysTracked: Object.keys(deviceRecords).length
     };
   }
 
   /**
    * Formats a medical mobility report for clinical export/sharing.
    */
-  exportHealthSummary(dateKey) {
-    const rec = this.getDailyRecord(dateKey);
-    const week = this.getWeekSummary(parseDateKey(dateKey));
+  exportHealthSummary(dateKey, deviceId = this.deviceId) {
+    const rec = this.getDailyRecord(dateKey, deviceId);
+    const week = this.getWeekSummary(parseDateKey(dateKey), deviceId);
 
     return {
       reportId: `SS-MED-${Date.now().toString(36).toUpperCase()}`,
       generatedAt: new Date().toISOString(),
-      patientDevice: 'StrideSense Left Foot Insole',
+      patientDevice: deviceId === 'insole_left_01' ? 'ESP32 Hardware Insole' : '3D Virtual Simulation Insole',
       date: rec.date,
       dailySummary: {
         steps: rec.steps,

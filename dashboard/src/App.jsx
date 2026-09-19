@@ -341,6 +341,8 @@ export default function App() {
   const handleSelectDevice = useCallback((newId) => {
     setSelectedDeviceId(newId);
     supabaseService.setDeviceId(newId);
+    healthService.setDeviceId(newId);
+    setTelemetry(supabaseService.getEmptyTelemetryForDevice(newId));
   }, []);
 
   /* ─── Page title ──────────────────────── */
@@ -412,6 +414,7 @@ export default function App() {
         {(activeTab === 'health' || activeTab === 'gait') && (
           <HealthPage
             telemetry={telemetry}
+            deviceId={selectedDeviceId}
             onNavigate={navigate}
           />
         )}

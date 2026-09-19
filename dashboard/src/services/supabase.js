@@ -64,6 +64,23 @@ class SupabaseService {
     return this.deviceId;
   }
 
+  getEmptyTelemetryForDevice(id = this.deviceId) {
+    return {
+      timestamp: Date.now(),
+      activity: 'Standing',
+      confidence: 1.0,
+      steps: id === 'insole_left_01' ? 3 : 0,
+      cadence: 0,
+      symmetry: 100,
+      fallAlert: false,
+      fallEmergency: false,
+      batteryPct: id === 'insole_left_02' ? 100 : 88,
+      batteryVoltage: id === 'insole_left_02' ? 4.20 : 3.96,
+      sensors: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0 },
+      imu: { ax: 0, ay: 0, az: 1.0, gx: 0, gy: 0, gz: 0, pitch: 0, roll: 0, svmA: 1.0 }
+    };
+  }
+
   /**
    * Switches the active device (e.g. insole_left_01 <-> insole_left_02)
    */
@@ -74,6 +91,9 @@ class SupabaseService {
       localStorage.setItem(STORAGE_KEY_DEVICE, id);
     } catch (e) {}
 
+    // Immediately emit default telemetry for new device to prevent state bleeding
+    this.notify(this.getEmptyTelemetryForDevice(id));
+
     // Notify device listeners
     this.deviceListeners.forEach((fn) => fn(id));
 
@@ -81,6 +101,30 @@ class SupabaseService {
     const latest = await this.fetchLatestTelemetry();
     if (latest) {
       this.notify(latest);
+    }
+  }
+
+  /**
+   * Fetches latest step count recorded today for the active device
+   */
+  async fetchTodaySteps(deviceId = this.deviceId) {
+    if (!this.client) return 0;
+    try {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const { data, error } = await this.client
+        .from('telemetry')
+        .select('steps')
+        .eq('device_id', deviceId)
+        .gte('created_at', todayStart.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error || !data || data.length === 0) return 0;
+      return data[0].steps || 0;
+    } catch (e) {
+      return 0;
     }
   }
 

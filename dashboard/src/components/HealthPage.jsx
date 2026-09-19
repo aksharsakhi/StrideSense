@@ -26,7 +26,7 @@ import {
 import { healthService, toDateKey, parseDateKey } from '../services/healthService.js';
 import { nativeBridge } from '../services/native.js';
 
-export default function HealthPage({ telemetry, onNavigate = () => {} }) {
+export default function HealthPage({ telemetry, deviceId = 'insole_left_01', onNavigate = () => {} }) {
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()));
   const [activeMetricView, setActiveMetricView] = useState('steps'); // 'steps' | 'distance' | 'minutes'
   const [ringFocus, setRingFocus] = useState('steps'); // 'steps' | 'minutes' | 'calories'
@@ -40,26 +40,27 @@ export default function HealthPage({ telemetry, onNavigate = () => {} }) {
     return { year: now.getFullYear(), month: now.getMonth() };
   });
 
-  // Health data states
-  const [dailyRecord, setDailyRecord] = useState(() => healthService.getDailyRecord(selectedDateKey));
-  const [weekSummary, setWeekSummary] = useState(() => healthService.getWeekSummary(parseDateKey(selectedDateKey)));
-  const [streakInfo, setStreakInfo] = useState(() => healthService.getStreakInfo());
+  // Health data states per device
+  const [dailyRecord, setDailyRecord] = useState(() => healthService.getDailyRecord(selectedDateKey, deviceId));
+  const [weekSummary, setWeekSummary] = useState(() => healthService.getWeekSummary(parseDateKey(selectedDateKey), deviceId));
+  const [streakInfo, setStreakInfo] = useState(() => healthService.getStreakInfo(deviceId));
 
   // Listen for health data changes (including live telemetry updates)
   useEffect(() => {
     const unsub = healthService.subscribe(() => {
-      setDailyRecord(healthService.getDailyRecord(selectedDateKey));
-      setWeekSummary(healthService.getWeekSummary(parseDateKey(selectedDateKey)));
-      setStreakInfo(healthService.getStreakInfo());
+      setDailyRecord(healthService.getDailyRecord(selectedDateKey, deviceId));
+      setWeekSummary(healthService.getWeekSummary(parseDateKey(selectedDateKey), deviceId));
+      setStreakInfo(healthService.getStreakInfo(deviceId));
     });
     return unsub;
-  }, [selectedDateKey]);
+  }, [selectedDateKey, deviceId]);
 
-  // Update on date key change
+  // Update on date key or deviceId change
   useEffect(() => {
-    setDailyRecord(healthService.getDailyRecord(selectedDateKey));
-    setWeekSummary(healthService.getWeekSummary(parseDateKey(selectedDateKey)));
-  }, [selectedDateKey]);
+    setDailyRecord(healthService.getDailyRecord(selectedDateKey, deviceId));
+    setWeekSummary(healthService.getWeekSummary(parseDateKey(selectedDateKey), deviceId));
+    setStreakInfo(healthService.getStreakInfo(deviceId));
+  }, [selectedDateKey, deviceId]);
 
   const isToday = selectedDateKey === toDateKey(new Date());
 
@@ -74,8 +75,7 @@ export default function HealthPage({ telemetry, onNavigate = () => {} }) {
       const d = new Date(ref);
       d.setDate(d.getDate() + i);
       if (d > today) continue; // don't show future days in strip
-      const key = toDateKey(d);
-      const rec = healthService.getDailyRecord(key);
+      const rec = healthService.getDailyRecord(key, deviceId);
       list.push({
         key,
         date: d,
@@ -141,8 +141,8 @@ export default function HealthPage({ telemetry, onNavigate = () => {} }) {
 
   // Month Calendar data
   const monthData = useMemo(() => {
-    return healthService.getMonthCalendar(calendarMonth.year, calendarMonth.month);
-  }, [calendarMonth]);
+    return healthService.getMonthCalendar(calendarMonth.year, calendarMonth.month, deviceId);
+  }, [calendarMonth, deviceId]);
 
   // Hourly Activity Peak for Selected Day
   const hourlyData = dailyRecord.hourlySteps || new Array(24).fill(0);
@@ -152,7 +152,7 @@ export default function HealthPage({ telemetry, onNavigate = () => {} }) {
 
   // Copy clinical health summary
   const handleCopyReport = () => {
-    const report = healthService.exportHealthSummary(selectedDateKey);
+    const report = healthService.exportHealthSummary(selectedDateKey, deviceId);
     const text = `
 STRIDESENSE CLINICAL MOBILITY AUDIT
 Report ID: ${report.reportId}
