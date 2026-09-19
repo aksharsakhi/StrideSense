@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Home,
+  HeartPulse,
   Footprints,
   Activity,
   ShieldAlert,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import HomePage from './components/HomePage.jsx';
+import HealthPage from './components/HealthPage.jsx';
 import FootHeatmap from './components/FootHeatmap.jsx';
 import ActivityCard from './components/ActivityCard.jsx';
 import GaitMetrics from './components/GaitMetrics.jsx';
@@ -27,14 +29,15 @@ import SettingsPage from './components/SettingsPage.jsx';
 import DeviceSelectorModal from './components/DeviceSelectorModal.jsx';
 
 import { supabaseService } from './services/supabase.js';
+import { healthService } from './services/healthService.js';
 import { nativeBridge } from './services/native.js';
 import { notificationService } from './services/notifications.js';
 
 /* ─── NAV TABS ───────────────────────────────────────── */
 const TABS = [
   { id: 'home',     label: 'Home',     icon: Home },
+  { id: 'health',   label: 'Health',   icon: HeartPulse },
   { id: 'pressure', label: 'Pressure', icon: Footprints },
-  { id: 'gait',     label: 'Gait',     icon: Activity },
   { id: 'motion',   label: 'Motion',   icon: Brain },
   { id: 'safety',   label: 'Guard',    icon: ShieldAlert },
   { id: 'settings', label: 'Settings', icon: Settings }
@@ -290,6 +293,7 @@ export default function App() {
 
     const unsub = supabaseService.subscribeTelemetry((data) => {
       setTelemetry(data);
+      healthService.updateLiveTelemetry(data);
       setIsConnected(true);
       if (data.fallAlert && !fallModalOpen) {
         nativeBridge.triggerEmergencyVibration();
@@ -300,7 +304,10 @@ export default function App() {
 
     // Load latest telemetry for active device
     supabaseService.fetchLatestTelemetry().then((latest) => {
-      if (latest) setTelemetry(latest);
+      if (latest) {
+        setTelemetry(latest);
+        healthService.updateLiveTelemetry(latest);
+      }
     });
 
     return () => {
@@ -313,7 +320,8 @@ export default function App() {
   /* ─── Handlers ────────────────────────── */
   const navigate = useCallback((tab) => {
     nativeBridge.impactLight();
-    setActiveTab(tab);
+    const target = tab === 'gait' ? 'health' : tab;
+    setActiveTab(target);
   }, []);
 
   const cycleTheme = useCallback(() => {
@@ -338,8 +346,9 @@ export default function App() {
   /* ─── Page title ──────────────────────── */
   const PAGE_TITLES = {
     home: null,
+    health: 'Mobility & Health',
     pressure: 'Pressure Map',
-    gait: 'Gait Analytics',
+    gait: 'Mobility & Health',
     motion: 'IMU Kinematics',
     safety: 'Fall Guard',
     settings: null
@@ -400,20 +409,11 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'gait' && (
-          <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 animate-fade-in stagger-children">
-            <div className="lg:col-span-5">
-              <GaitMetrics
-                steps={telemetry.steps}
-                cadence={telemetry.cadence}
-                symmetry={telemetry.symmetry}
-                activity={telemetry.activity}
-              />
-            </div>
-            <div className="lg:col-span-7">
-              <HistoricalTrends />
-            </div>
-          </div>
+        {(activeTab === 'health' || activeTab === 'gait') && (
+          <HealthPage
+            telemetry={telemetry}
+            onNavigate={navigate}
+          />
         )}
 
         {activeTab === 'motion' && (

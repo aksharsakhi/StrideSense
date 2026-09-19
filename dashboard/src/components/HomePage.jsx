@@ -1,7 +1,8 @@
 import React from 'react';
 import {
   Footprints, Zap, Activity, TrendingUp, ChevronRight,
-  ShieldCheck, Cpu, Battery, Brain, Wifi, WifiOff, Clock
+  ShieldCheck, Cpu, Battery, Brain, Wifi, WifiOff, Clock,
+  HeartPulse
 } from 'lucide-react';
 
 function HomePageComponent({ telemetry, deviceId = 'insole_left_01', onSwitchDevice, onNavigate }) {
@@ -169,17 +170,17 @@ function HomePageComponent({ telemetry, deviceId = 'insole_left_01', onSwitchDev
               )
             },
             {
-              id: 'gait',
-              title: 'Gait Analytics',
-              subtitle: 'Stride telemetry & trends',
-              icon: Activity,
+              id: 'health',
+              title: 'Health & Mobility',
+              subtitle: 'Calendar, history & rings',
+              icon: HeartPulse,
               color: 'emerald',
               iconStyle: 'bg-emerald-500/10 border-emerald-500/20',
               hoverGlow: 'group-hover:shadow-glow-emerald',
               footer: (
                 <>
                   <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{cadence > 90 ? 'Active' : 'Resting'}</span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{steps.toLocaleString()} steps today</span>
                 </>
               )
             },
