@@ -605,7 +605,7 @@ BIOMECHANICAL INTEGRITY:
             <span className="text-xs text-slate-400 ml-1">days in a row</span>
           </div>
           <span className="text-[11px] text-slate-500 mt-1 font-medium">
-            Lifetime: {(streakInfo.lifetimeSteps / 1000).toFixed(0)}k steps
+            Lifetime: {streakInfo.lifetimeSteps >= 1000 ? `${(streakInfo.lifetimeSteps / 1000).toFixed(1)}k` : streakInfo.lifetimeSteps} steps
           </span>
         </div>
       </div>
@@ -618,16 +618,22 @@ BIOMECHANICAL INTEGRITY:
               <h2 className="text-base sm:text-lg font-bold font-display text-slate-900 dark:text-white">
                 Weekly Mobility Trend
               </h2>
-              <span className={`badge text-[10px] flex items-center gap-1 ${
-                weekSummary.percentChange >= 0 ? 'badge-emerald' : 'badge-amber'
-              }`}>
-                {weekSummary.percentChange >= 0 ? (
-                  <TrendingUp className="w-3 h-3" />
-                ) : (
-                  <TrendingDown className="w-3 h-3" />
-                )}
-                <span>{weekSummary.percentChange >= 0 ? '+' : ''}{weekSummary.percentChange}% vs last week</span>
-              </span>
+              {weekSummary.totalSteps > 0 ? (
+                <span className={`badge text-[10px] flex items-center gap-1 ${
+                  weekSummary.percentChange >= 0 ? 'badge-emerald' : 'badge-amber'
+                }`}>
+                  {weekSummary.percentChange >= 0 ? (
+                    <TrendingUp className="w-3 h-3" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3" />
+                  )}
+                  <span>{weekSummary.percentChange >= 0 ? '+' : ''}{weekSummary.percentChange}% vs last week</span>
+                </span>
+              ) : (
+                <span className="badge badge-cyan text-[10px]">
+                  Real-time Tracking
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               7-Day ambulatory volume and consistency comparison
@@ -765,7 +771,9 @@ BIOMECHANICAL INTEGRITY:
             </p>
           </div>
           <span className="badge badge-cyan text-xs font-mono">
-            Peak: {peakHourStr} ({hourlyData[peakHourIndex]?.toLocaleString()} steps)
+            {maxHourlySteps > 100 || (hourlyData[peakHourIndex] > 0)
+              ? `Peak: ${peakHourStr} (${hourlyData[peakHourIndex]?.toLocaleString()} steps)`
+              : 'Standby: No steps logged today'}
           </span>
         </div>
 
@@ -830,19 +838,23 @@ BIOMECHANICAL INTEGRITY:
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Walking Steadiness</span>
               <span className={`badge text-[10px] ${
-                rec.steadiness === 'Very Good' ? 'badge-emerald' : 'badge-amber'
+                rec.steps > 0
+                  ? (rec.steadiness === 'Very Good' || rec.steadiness === 'Optimal' ? 'badge-emerald' : 'badge-amber')
+                  : 'badge-cyan'
               }`}>
-                {rec.steadiness}
+                {rec.steps > 0 ? rec.steadiness : 'Standby'}
               </span>
             </div>
             {/* 3-segment steadiness bar */}
             <div className="grid grid-cols-3 gap-1 my-2">
-              <div className={`h-2 rounded-full ${rec.steadiness === 'Low' ? 'bg-rose-500' : 'bg-rose-500/30'}`} />
-              <div className={`h-2 rounded-full ${rec.steadiness === 'OK' ? 'bg-amber-500' : 'bg-amber-500/30'}`} />
-              <div className={`h-2 rounded-full ${rec.steadiness === 'Very Good' ? 'bg-emerald-500' : 'bg-emerald-500/30'}`} />
+              <div className={`h-2 rounded-full ${rec.steps > 0 && rec.steadiness === 'Low' ? 'bg-rose-500' : 'bg-rose-500/20'}`} />
+              <div className={`h-2 rounded-full ${rec.steps > 0 && rec.steadiness === 'OK' ? 'bg-amber-500' : 'bg-amber-500/20'}`} />
+              <div className={`h-2 rounded-full ${rec.steps > 0 && (rec.steadiness === 'Very Good' || rec.steadiness === 'Optimal') ? 'bg-emerald-500' : 'bg-emerald-500/20'}`} />
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-              Your walking steadiness is rated <strong>{rec.steadiness}</strong> based on speed variance and step timing.
+              {rec.steps > 0
+                ? `Your walking steadiness is rated ${rec.steadiness} based on speed variance and step timing.`
+                : 'Standby: Gait steadiness will compute during active walking.'}
             </p>
           </div>
 
@@ -851,17 +863,19 @@ BIOMECHANICAL INTEGRITY:
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Walking Asymmetry</span>
               <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
-                {rec.asymmetry}%
+                {rec.steps > 0 ? `${rec.asymmetry}%` : '--'}
               </span>
             </div>
             <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 my-2 overflow-hidden">
               <div
-                className={`h-full rounded-full ${rec.asymmetry < 4 ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                style={{ width: `${Math.min(100, (rec.asymmetry / 10) * 100)}%` }}
+                className={`h-full rounded-full ${rec.steps > 0 ? (rec.asymmetry < 4 ? 'bg-emerald-500' : 'bg-amber-500') : 'bg-slate-400/20'}`}
+                style={{ width: `${rec.steps > 0 ? Math.min(100, (rec.asymmetry / 10) * 100) : 0}%` }}
               />
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-              Percentage of steps where one foot is faster or slower than the other. Below 4% is optimal.
+              {rec.steps > 0
+                ? 'Percentage of steps where one foot is faster or slower than the other. Below 4% is optimal.'
+                : 'Limb timing comparison will measure variance during continuous strides.'}
             </p>
           </div>
 
@@ -870,17 +884,19 @@ BIOMECHANICAL INTEGRITY:
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Ground Contact Time</span>
               <span className="font-mono text-xs font-bold text-cyan-600 dark:text-cyan-400">
-                {rec.groundContactMs} ms
+                {rec.steps > 0 && rec.groundContactMs > 0 ? `${rec.groundContactMs} ms` : '--'}
               </span>
             </div>
             <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 my-2 overflow-hidden">
               <div
                 className="bg-cyan-500 h-full rounded-full"
-                style={{ width: `${Math.min(100, ((rec.groundContactMs - 500) / 300) * 100)}%` }}
+                style={{ width: `${rec.steps > 0 && rec.groundContactMs > 0 ? Math.min(100, ((rec.groundContactMs - 500) / 300) * 100) : 0}%` }}
               />
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-              Duration of plantar weight-bearing stance per stride. Normal ambulatory range is 580–650 ms.
+              {rec.steps > 0 && rec.groundContactMs > 0
+                ? 'Duration of plantar weight-bearing stance per stride. Normal ambulatory range is 580–650 ms.'
+                : 'Plantar weight-bearing duration will be measured during stance phase.'}
             </p>
           </div>
         </div>

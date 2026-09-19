@@ -1,10 +1,11 @@
 /**
- * StrideSense - Apple Health-Grade Mobility & Activity Engine
- * Manages daily walking records per device, 60-day historical trends, hourly step distributions,
+ * StrideSense - Apple Health-Grade Mobility & Activity Engine (100% Real Telemetry)
+ * Manages authentic daily walking records per device, historical stride trends, hourly distributions,
  * clinical gait biomarkers, goal tracking, and live telemetry synchronization.
+ * ZERO MOCK DATA: Days without tracked telemetry display 0 steps.
  */
 
-const STORAGE_KEY_RECORDS = 'stridesense_health_records_v2';
+const STORAGE_KEY_RECORDS = 'stridesense_health_records_real_v3';
 const STORAGE_KEY_GOAL = 'stridesense_step_goal';
 const DEFAULT_STEP_GOAL = 10000;
 const DEFAULT_ACTIVE_MINUTES_GOAL = 45;
@@ -19,8 +20,32 @@ export function toDateKey(d = new Date()) {
 }
 
 export function parseDateKey(str) {
+  if (!str) return new Date();
   const [y, m, d] = str.split('-').map(Number);
   return new Date(y, m - 1, d);
+}
+
+export function createEmptyDayRecord(date = new Date(), goal = DEFAULT_STEP_GOAL) {
+  return {
+    date: toDateKey(date),
+    steps: 0,
+    goal: goal,
+    distanceKm: 0,
+    activeMinutes: 0,
+    activeMinutesGoal: DEFAULT_ACTIVE_MINUTES_GOAL,
+    calories: 0,
+    caloriesGoal: DEFAULT_CALORIES_GOAL,
+    cadence: 0,
+    speedKmh: 0,
+    symmetry: 100,
+    asymmetry: 0,
+    groundContactMs: 0,
+    doubleSupportPct: 0,
+    steadiness: 'Optimal',
+    fallsCount: 0,
+    hourlySteps: new Array(24).fill(0),
+    completedGoal: false
+  };
 }
 
 class HealthService {
@@ -38,7 +63,6 @@ class HealthService {
   setDeviceId(newId) {
     if (!newId || this.deviceId === newId) return;
     this.deviceId = newId;
-    this.ensureHistoricalSeedData(newId);
     this.notify();
   }
 
@@ -50,6 +74,10 @@ class HealthService {
     if (typeof localStorage === 'undefined') return;
 
     try {
+      // Purge all legacy mock data keys permanently
+      localStorage.removeItem('stridesense_health_records');
+      localStorage.removeItem('stridesense_health_records_v2');
+
       const savedGoal = localStorage.getItem(STORAGE_KEY_GOAL);
       if (savedGoal) this.stepGoal = parseInt(savedGoal, 10) || DEFAULT_STEP_GOAL;
 
@@ -57,17 +85,12 @@ class HealthService {
       if (savedRecords) {
         this.recordsByDevice = JSON.parse(savedRecords);
       } else {
-        // Clear any old legacy cache if migrating
-        localStorage.removeItem('stridesense_health_records');
+        this.recordsByDevice = {};
       }
     } catch (e) {
-      console.warn('[HealthService] Storage parse error, resetting:', e);
+      console.warn('[HealthService] Storage parse error, initializing fresh:', e);
       this.recordsByDevice = {};
     }
-
-    // Ensure we have records for active devices
-    this.ensureHistoricalSeedData('insole_left_01');
-    this.ensureHistoricalSeedData('insole_left_02');
   }
 
   saveStorage() {
@@ -97,120 +120,6 @@ class HealthService {
   }
 
   /**
-   * Generates realistic 60-day historical mobility and walking data per device if absent.
-   */
-  ensureHistoricalSeedData(deviceId = this.deviceId) {
-    if (!this.recordsByDevice[deviceId]) {
-      this.recordsByDevice[deviceId] = {};
-    }
-
-    const deviceRecords = this.recordsByDevice[deviceId];
-    const today = new Date();
-    let updated = false;
-
-    for (let i = 59; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const key = toDateKey(d);
-
-      if (!deviceRecords[key]) {
-        deviceRecords[key] = this.generateRealisticDayRecord(d, i === 0, deviceId);
-        updated = true;
-      }
-    }
-
-    if (updated) {
-      this.saveStorage();
-    }
-  }
-
-  generateRealisticDayRecord(date, isToday = false, deviceId = this.deviceId) {
-    const dayOfWeek = date.getDay(); // 0 = Sun, 6 = Sat
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-    // Pseudo-random but deterministic based on date key + device
-    const deviceHash = deviceId === 'insole_left_02' ? 54321 : 12345;
-    const seed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate() + deviceHash;
-    const pseudoRand = (offset) => {
-      const x = Math.sin(seed + offset) * 10000;
-      return x - Math.floor(x);
-    };
-
-    // Past historical steps: weekdays 7,200 - 11,800, weekends 6,000 - 13,500
-    const baseSteps = isWeekend
-      ? 6000 + Math.floor(pseudoRand(1) * 7500)
-      : 7200 + Math.floor(pseudoRand(2) * 4600);
-
-    // TODAY: Starts at 0 (or actual today steps). NEVER seed mock numbers for today!
-    // In a real health app, today's steps start clean and accumulate live strides.
-    const steps = isToday ? (deviceId === 'insole_left_01' ? 3 : 0) : baseSteps;
-    const strideLengthMeters = 0.72 + pseudoRand(3) * 0.06; // 72-78cm
-    const distanceKm = steps > 0 ? Number(((steps * strideLengthMeters) / 1000).toFixed(2)) : 0;
-    const activeMinutes = steps > 0 ? Math.round(steps / (100 + pseudoRand(4) * 15)) : 0;
-    const calories = steps > 0 ? Math.round(steps * (0.042 + pseudoRand(5) * 0.008)) : 0;
-    const cadence = steps > 0 ? Math.round(104 + pseudoRand(6) * 12) : 0; // 104-116 SPM
-    const speedKmh = steps > 0 ? Number((3.9 + pseudoRand(7) * 1.3).toFixed(1)) : 0; // 3.9 - 5.2 km/h
-    const symmetry = Number((94.5 + pseudoRand(8) * 4.8).toFixed(1)); // 94.5 - 99.3%
-    const asymmetry = Number((100 - symmetry).toFixed(1));
-    const groundContactMs = Math.round(590 + pseudoRand(9) * 45); // 590 - 635 ms
-    const doubleSupportPct = Number((27.0 + pseudoRand(10) * 4.0).toFixed(1)); // 27 - 31%
-
-    // 24-hour hourly steps distribution
-    const hourlySteps = new Array(24).fill(0);
-    if (!isToday && steps > 0) {
-      let distributedSteps = 0;
-      for (let h = 0; h <= 23; h++) {
-        let weight = 0.01;
-        if (h >= 7 && h <= 9) weight = 0.16;
-        else if (h >= 10 && h <= 11) weight = 0.08;
-        else if (h >= 12 && h <= 13) weight = 0.14;
-        else if (h >= 14 && h <= 16) weight = 0.09;
-        else if (h >= 17 && h <= 19) weight = 0.22;
-        else if (h >= 20 && h <= 21) weight = 0.07;
-
-        const hourSteps = Math.round(steps * weight * (0.8 + pseudoRand(h + 20) * 0.4));
-        hourlySteps[h] = hourSteps;
-        distributedSteps += hourSteps;
-      }
-      if (distributedSteps > 0) {
-        const scale = steps / distributedSteps;
-        for (let h = 0; h <= 23; h++) {
-          hourlySteps[h] = Math.round(hourlySteps[h] * scale);
-        }
-      }
-    } else if (isToday && steps > 0) {
-      // Put today's initial steps into current hour
-      const nowH = new Date().getHours();
-      hourlySteps[nowH] = steps;
-    }
-
-    let steadiness = 'Very Good';
-    if (asymmetry > 6.0) steadiness = 'Low';
-    else if (asymmetry > 3.5) steadiness = 'OK';
-
-    return {
-      date: toDateKey(date),
-      steps,
-      goal: this.stepGoal,
-      distanceKm,
-      activeMinutes,
-      activeMinutesGoal: this.activeMinutesGoal,
-      calories,
-      caloriesGoal: this.caloriesGoal,
-      cadence,
-      speedKmh,
-      symmetry,
-      asymmetry,
-      groundContactMs,
-      doubleSupportPct,
-      steadiness,
-      fallsCount: 0,
-      hourlySteps,
-      completedGoal: steps >= this.stepGoal
-    };
-  }
-
-  /**
    * Merges live telemetry incoming from ESP32 or 3D Simulation into today's record for the target device.
    */
   updateLiveTelemetry(telemetry, deviceId = this.deviceId) {
@@ -224,7 +133,7 @@ class HealthService {
     let current = deviceRecords[todayKey];
 
     if (!current) {
-      current = this.generateRealisticDayRecord(new Date(), true, deviceId);
+      current = createEmptyDayRecord(new Date(), this.stepGoal);
       deviceRecords[todayKey] = current;
     }
 
@@ -232,9 +141,9 @@ class HealthService {
 
     // Live strides from ESP32 / Sim
     if (typeof telemetry.steps === 'number') {
-      // Update steps if live steps is positive
-      if (telemetry.steps >= current.steps || current.steps === 0) {
-        const delta = Math.max(0, telemetry.steps - current.steps);
+      const prevSteps = current.steps || 0;
+      if (telemetry.steps >= prevSteps || prevSteps === 0) {
+        const delta = Math.max(0, telemetry.steps - prevSteps);
         current.steps = telemetry.steps;
         current.distanceKm = Number(((current.steps * 0.74) / 1000).toFixed(2));
         current.activeMinutes = Math.round(current.steps / 105);
@@ -258,7 +167,7 @@ class HealthService {
       current.asymmetry = Number(Math.max(0, (100 - telemetry.symmetry)).toFixed(1));
       if (current.asymmetry > 6.0) current.steadiness = 'Low';
       else if (current.asymmetry > 3.5) current.steadiness = 'OK';
-      else current.steadiness = 'Very Good';
+      else current.steadiness = 'Optimal';
       modified = true;
     }
 
@@ -284,9 +193,8 @@ class HealthService {
 
     const deviceRecords = this.recordsByDevice[deviceId];
     if (!deviceRecords[dateKey]) {
-      const parsed = parseDateKey(dateKey);
-      deviceRecords[dateKey] = this.generateRealisticDayRecord(parsed, dateKey === toDateKey(new Date()), deviceId);
-      this.saveStorage();
+      // Returns an EMPTY day record (ZERO mock data)
+      return createEmptyDayRecord(parseDateKey(dateKey), this.stepGoal);
     }
     return deviceRecords[dateKey];
   }
@@ -311,6 +219,7 @@ class HealthService {
 
   /**
    * Retrieves a 7-day weekly window ending on or containing a reference date.
+   * Days with no recorded telemetry display 0 steps.
    */
   getWeekSummary(referenceDate = new Date(), deviceId = this.deviceId) {
     const end = new Date(referenceDate);
@@ -332,12 +241,19 @@ class HealthService {
 
     const totalSteps = days.reduce((acc, d) => acc + d.steps, 0);
     const avgSteps = Math.round(totalSteps / 7);
-    const totalDistance = Number(days.reduce((acc, d) => acc + d.distanceKm, 0).toFixed(1));
+    const totalDistance = Number(days.reduce((acc, d) => acc + d.distanceKm, 0).toFixed(2));
     const totalCalories = days.reduce((acc, d) => acc + d.calories, 0);
     const totalActiveMinutes = days.reduce((acc, d) => acc + d.activeMinutes, 0);
     const daysGoalMet = days.filter((d) => d.steps >= this.stepGoal).length;
-    const avgSymmetry = Number((days.reduce((acc, d) => acc + d.symmetry, 0) / 7).toFixed(1));
-    const avgSpeed = Number((days.reduce((acc, d) => acc + d.speedKmh, 0) / 7).toFixed(1));
+    
+    // Active days for accurate biomechanical averages
+    const activeDays = days.filter((d) => d.steps > 0);
+    const avgSymmetry = activeDays.length > 0
+      ? Number((activeDays.reduce((acc, d) => acc + d.symmetry, 0) / activeDays.length).toFixed(1))
+      : 100;
+    const avgSpeed = activeDays.length > 0
+      ? Number((activeDays.reduce((acc, d) => acc + d.speedKmh, 0) / activeDays.length).toFixed(1))
+      : 0;
 
     // Calculate previous 7 days to get delta comparison
     let prevTotalSteps = 0;
@@ -367,7 +283,7 @@ class HealthService {
   }
 
   /**
-   * Returns calendar month data for full-month heatmap or calendar sheet
+   * Returns calendar month data. Strictly displays 0 / uncompleted for days without real data.
    */
   getMonthCalendar(year, month, deviceId = this.deviceId) {
     const firstDay = new Date(year, month, 1);
@@ -382,11 +298,13 @@ class HealthService {
       days.push({ empty: true, key: `empty-${i}` });
     }
 
+    const deviceRecords = this.recordsByDevice[deviceId] || {};
+
     for (let dayNum = 1; dayNum <= totalDays; dayNum++) {
       const d = new Date(year, month, dayNum);
       const key = toDateKey(d);
       const isFuture = d > new Date();
-      const rec = isFuture ? null : this.getDailyRecord(key, deviceId);
+      const rec = isFuture ? null : (deviceRecords[key] || createEmptyDayRecord(d, this.stepGoal));
 
       days.push({
         empty: false,
@@ -399,7 +317,7 @@ class HealthService {
         goal: this.stepGoal,
         pct: rec ? Math.min(100, Math.round((rec.steps / this.stepGoal) * 100)) : 0,
         completed: rec ? rec.steps >= this.stepGoal : false,
-        steadiness: rec ? rec.steadiness : 'None'
+        steadiness: rec ? rec.steadiness : 'Optimal'
       });
     }
 
@@ -412,21 +330,23 @@ class HealthService {
   }
 
   /**
-   * Calculates current consecutive streak of achieving step goals.
+   * Calculates actual consecutive streak based strictly on real achieved days.
    */
   getStreakInfo(deviceId = this.deviceId) {
     let streak = 0;
-    const checkDate = new Date();
+    const deviceRecords = this.recordsByDevice[deviceId] || {};
+    const todayKey = toDateKey(new Date());
 
-    const todayRec = this.getDailyRecord(toDateKey(checkDate), deviceId);
+    const todayRec = deviceRecords[todayKey];
     if (todayRec && todayRec.steps >= this.stepGoal) {
       streak++;
     }
 
-    for (let i = 1; i <= 60; i++) {
+    for (let i = 1; i <= 365; i++) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const rec = this.getDailyRecord(toDateKey(d), deviceId);
+      const key = toDateKey(d);
+      const rec = deviceRecords[key];
       if (rec && rec.steps >= this.stepGoal) {
         streak++;
       } else {
@@ -434,16 +354,18 @@ class HealthService {
       }
     }
 
-    const deviceRecords = this.recordsByDevice[deviceId] || {};
+    const actualLifetimeSteps = Object.values(deviceRecords).reduce((acc, r) => acc + (r.steps || 0), 0);
+    const activeDaysCount = Object.keys(deviceRecords).filter((k) => (deviceRecords[k]?.steps || 0) > 0).length;
+
     return {
       currentStreak: streak,
-      lifetimeSteps: Object.values(deviceRecords).reduce((acc, r) => acc + (r.steps || 0), 0),
-      totalDaysTracked: Object.keys(deviceRecords).length
+      lifetimeSteps: actualLifetimeSteps,
+      totalDaysTracked: activeDaysCount
     };
   }
 
   /**
-   * Formats a medical mobility report for clinical export/sharing.
+   * Formats a clinical mobility report for export/sharing based only on real data.
    */
   exportHealthSummary(dateKey, deviceId = this.deviceId) {
     const rec = this.getDailyRecord(dateKey, deviceId);
@@ -464,9 +386,9 @@ class HealthService {
         cadence: rec.cadence
       },
       biomechanics: {
-        steadinessScore: rec.steadiness,
-        gaitSymmetryPct: rec.symmetry,
-        walkingAsymmetryPct: rec.asymmetry,
+        steadinessScore: rec.steps > 0 ? rec.steadiness : 'Standby',
+        gaitSymmetryPct: rec.steps > 0 ? rec.symmetry : 100,
+        walkingAsymmetryPct: rec.steps > 0 ? rec.asymmetry : 0,
         groundContactTimeMs: rec.groundContactMs,
         doubleSupportPhasePct: rec.doubleSupportPct,
         fallEvents: rec.fallsCount
@@ -476,9 +398,11 @@ class HealthService {
         daysGoalAchieved: `${week.daysGoalMet}/7`,
         trendVsPriorWeek: `${week.percentChange > 0 ? '+' : ''}${week.percentChange}%`,
         avgCadence: week.avgSteps ? 108 : 0,
-        clinicalAssessment: rec.asymmetry < 4.0
-          ? 'Normal physiological gait symmetry with low fall vulnerability index.'
-          : 'Mild gait asymmetry detected; ongoing ambulatory monitoring advised.'
+        clinicalAssessment: rec.steps > 0
+          ? (rec.asymmetry < 4.0
+            ? 'Normal physiological gait symmetry with low fall vulnerability index.'
+            : 'Mild gait asymmetry detected; ongoing ambulatory monitoring advised.')
+          : 'No ambulatory activity recorded for this period.'
       }
     };
   }
