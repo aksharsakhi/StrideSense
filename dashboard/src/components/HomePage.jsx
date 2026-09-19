@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 import { healthService } from '../services/healthService.js';
 
-function HomePageComponent({ telemetry, deviceId = 'insole_left_01', onSwitchDevice, onNavigate }) {
-  const { activity, confidence, cadence, symmetry, batteryPct, sensors, imu } = telemetry;
+function HomePageComponent({ telemetry = {}, deviceId = 'insole_left_01', onSwitchDevice, onNavigate }) {
+  const { activity = 'Standing', confidence = 0, steps = 0, cadence = 0, symmetry = 100, batteryPct = 88, sensors = {}, imu = {} } = telemetry;
   const [todayRecord, setTodayRecord] = useState(() => healthService.getTodayRecord(deviceId));
 
   useEffect(() => {
@@ -19,9 +19,9 @@ function HomePageComponent({ telemetry, deviceId = 'insole_left_01', onSwitchDev
   }, [deviceId]);
 
   // Today's steps for active device
-  const todaySteps = Math.max(todayRecord.steps || 0, telemetry.steps || 0);
+  const todaySteps = Math.max(todayRecord?.steps || 0, steps || 0);
   const confPct = Math.round(confidence * 100);
-  const stepGoal = todayRecord.goal || 10000;
+  const stepGoal = todayRecord?.goal || 10000;
   const stepPct = Math.min(100, Math.round((todaySteps / stepGoal) * 100));
 
   // Step ring geometry
@@ -30,7 +30,7 @@ function HomePageComponent({ telemetry, deviceId = 'insole_left_01', onSwitchDev
   const ringOff = ringC * (1 - stepPct / 100);
 
   // Total pressure
-  const totalForce = sensors.p1 + sensors.p2 + (sensors.p3 || 0) + (sensors.p4 || 0) + (sensors.p5 || 0) + (sensors.p6 || 0);
+  const totalForce = (sensors.p1 || 0) + (sensors.p2 || 0) + (sensors.p3 || 0) + (sensors.p4 || 0) + (sensors.p5 || 0) + (sensors.p6 || 0);
   const forceLevel = totalForce > 6000 ? 'High' : (totalForce > 2000 ? 'Normal' : 'Low');
 
   // Time-of-day greeting
@@ -39,7 +39,7 @@ function HomePageComponent({ telemetry, deviceId = 'insole_left_01', onSwitchDev
   const greetEmoji = hour < 12 ? '☀️' : (hour < 17 ? '🌤️' : '🌙');
 
   // Has real data?
-  const hasData = steps > 0 || confidence > 0;
+  const hasData = todaySteps > 0 || confidence > 0;
 
   const ACTIVITY_COLORS = {
     Walking:  { bg: 'bg-cyan-500/15', border: 'border-cyan-500/30', text: 'text-cyan-600 dark:text-cyan-400', dot: 'bg-cyan-500' },
