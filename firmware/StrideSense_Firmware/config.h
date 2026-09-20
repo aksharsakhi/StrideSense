@@ -19,16 +19,16 @@
 #define PIN_FSR_S1_HEEL       34  // GPIO 34 (ADC1_CH6: Calcaneus / Heel)
 #define PIN_FSR_S2_FOREFOOT   35  // GPIO 35 (ADC1_CH7: Metatarsal / Forefoot Ball)
 
-// MPU-6050 IMU (I2C Bus)
-#define PIN_I2C_SDA           21  // ESP32 default SDA
-#define PIN_I2C_SCL           22  // ESP32 default SCL
+// MPU-6050 IMU (I2C Bus - Configured to GPIO 26 & 27)
+#define PIN_I2C_SDA           26  // ESP32 SDA -> GPIO 26
+#define PIN_I2C_SCL           27  // ESP32 SCL -> GPIO 27
 #define MPU6050_I2C_ADDR      0x68
 
 // Indicators & Actuators
 #define PIN_STATUS_LED        2   // Onboard Blue LED
 #define PIN_LED_RED           25  // Fall / Alert Indicator LED
-#define PIN_LED_GREEN         26  // Wi-Fi / Active Status Indicator LED
-#define PIN_LED_BLUE          27  // Cloud Sync Indicator LED
+#define PIN_LED_GREEN         18  // Wi-Fi / Active Status Indicator LED (moved to GPIO 18)
+#define PIN_LED_BLUE          19  // Cloud Sync Indicator LED (moved to GPIO 19)
 #define PIN_HAPTIC_MOTOR      12  // Coin Vibration Motor driver (via NPN Transistor)
 #define PIN_SOS_BUTTON        14  // Emergency / Fall Cancel Button (Active LOW)
 
