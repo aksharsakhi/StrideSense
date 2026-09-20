@@ -14,7 +14,7 @@
 | :--- | :---: | :--- | :--- | :--- |
 | **Custom Library Implementation** *(Sensor driver via I2C/ADC without external libraries)* | **5** | **Nishanth** | Bare-metal MPU-6050 I2C register driver (`0x6B`, `0x1C`, `0x1B`, `0x3B` burst read); 12-bit ADC1 FSR driver with voltage divider math; zero-tare calibration algorithm. | [sensors.cpp](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/sensors.cpp)<br>[sensors.h](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/sensors.h)<br>[config.h](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/config.h) |
 | **Local Database Working** *(Data logging in Flash/NVS, persistence demo)* | **5** | **Diya** | ESP32 Non-Volatile Storage (NVS Flash via `Preferences.h`); power-loss resistant step count persistence; local flash incident logging for falls; live reboot restoration demo. | [storage.cpp](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/storage.cpp)<br>[storage.h](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/storage.h)<br>[StrideSense_Firmware.ino](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/StrideSense_Firmware.ino) |
-| **Edge Analytics / TinyML Pre-processing** *(Feature extraction, filtering, inference)* | **5** | **Akshar (Lead)** | Circular sliding window (50 samples / 1.0s, 50% overlap); Signal Vector Magnitude (SVM); on-chip 3-layer Quantized Neural Network (<400µs); 3-stage temporal fall detection engine. | [tinyml_infer.cpp](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/tinyml_infer.cpp)<br>[fall_detector.cpp](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/fall_detector.cpp)<br>[model_neural_tinyml.h](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/model_neural_tinyml.h) |
+| **Edge Analytics / TinyML Pre-processing** *(Feature extraction, filtering, inference)* | **5** | **Akshar** | Circular sliding window (50 samples / 1.0s, 50% overlap); Signal Vector Magnitude (SVM); on-chip 3-layer Quantized Neural Network (<400µs); 3-stage temporal fall detection engine. | [tinyml_infer.cpp](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/tinyml_infer.cpp)<br>[fall_detector.cpp](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/fall_detector.cpp)<br>[model_neural_tinyml.h](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/model_neural_tinyml.h) |
 | **Communication Pipeline Functional** *(Reliable cloud telemetry, JSON, TLS)* | **5** | **Ladda** | Non-blocking Wi-Fi auto-reconnection; TLS/HTTPS REST & WebSocket telemetry pipeline to Supabase; structured JSON serialization; 1 Hz cloud rate limiting vs 50 Hz edge loop; HTTP 201 verification. | [supabase_client.cpp](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/supabase_client.cpp)<br>[supabase_client.h](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/supabase_client.h)<br>[config.h](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/config.h) |
 | **GUI / Dashboard Prototype** *(Status view, telemetry visualization, health)* | **5** | **Diya & Team** | React + Vite responsive mobile dashboard; live 3D insole pressure heatmap; 3D motion tracking; dual-device routing (`insole_left_01` vs `insole_left_02`); authentic zero-mock Health calendar. | [App.jsx](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/dashboard/src/App.jsx)<br>[HealthPage.jsx](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/dashboard/src/components/HealthPage.jsx)<br>[InsolePressureMap.jsx](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/dashboard/src/components/InsolePressureMap.jsx) |
 | **Individual Contribution, Presentation & Q&A** | **25** | **ALL 4 MEMBERS**<br>*(6.25 marks each)* | Individual technical clarity, confidence, ability to explain implementation details, answer probing theoretical questions, and execute their designated live demo action. | *Entire Repository* |
@@ -100,12 +100,12 @@
 
 ---
 
-### ★ AKSHAR (Team Lead)
+### ★ AKSHAR
 **Assigned Pillar:** Rubric 3 — Edge Analytics, Feature Extraction & TinyML Inference (5 Marks)  
-**Role Summary:** Leading overall system introduction, signal processing, feature extraction, embedded TinyML neural network inference, and dual-trigger fall detection.
+**Role Summary:** Signal processing, feature extraction, embedded TinyML neural network inference, and dual-trigger fall detection.
 
 #### 🎙️ 90-Second Speaking Script:
-> "Good morning evaluators. I am Akshar, team lead for Team 4. I will present our Edge Analytics & Machine Learning Pipeline (Rubric 3) and oversee our system demonstration.
+> "Good morning evaluators. I am Akshar. I will present our Edge Analytics & Machine Learning Pipeline (Rubric 3) and oversee our system demonstration.
 >
 > StrideSense executes real-time Artificial Intelligence directly on the ESP32 microcontroller at the edge. Our pipeline operates in three stages: signal pre-processing, feature extraction, and quantized neural network inference.
 >
@@ -179,7 +179,7 @@
 
 | Timeline | Speaker | On-Screen Demonstration Action | Key Rubric Covered |
 | :---: | :--- | :--- | :--- |
-| **0:00 - 0:45** | **Akshar (Lead)** | Introduce Team 4; display assembled insole hardware; explain the 50 Hz real-time edge architecture. | Project Overview |
+| **0:00 - 0:45** | **Akshar** | Introduce Team 4; display assembled insole hardware; explain the 50 Hz real-time edge architecture. | Project Overview |
 | **0:45 - 1:45** | **Nishanth** | Open `sensors.cpp`; show Serial Monitor 14-byte I2C burst read; press Heel FSR to show ADC1 values jumping live. | **Rubric 1: Custom Drivers [5M]** |
 | **1:45 - 2:45** | **Diya** | Show `storage.cpp`; show current step count; **press ESP32 reset button**; show Serial Monitor restoring step count from Flash NVS! | **Rubric 2: Local Database [5M]** |
 | **2:45 - 3:45** | **Akshar** | Show `tinyml_infer.cpp`; show 365µs inference time; simulate fall tilt; demonstrate 15s countdown and SOS cancel. | **Rubric 3: Edge Analytics [5M]** |
