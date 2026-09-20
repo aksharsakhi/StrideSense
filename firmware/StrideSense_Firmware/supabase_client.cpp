@@ -55,24 +55,22 @@ void SupabaseClient::updateNetwork() {
             digitalWrite(PIN_LED_GREEN, HIGH);
         } else {
             digitalWrite(PIN_LED_GREEN, LOW);
+            was_connected = false;
+
             const char* statusStr = "UNKNOWN";
             switch (status) {
                 case WL_NO_SHIELD: statusStr = "WL_NO_SHIELD"; break;
                 case WL_IDLE_STATUS: statusStr = "WL_IDLE_STATUS (Connecting...)"; break;
-                case WL_NO_SSID_AVAIL: statusStr = "WL_NO_SSID_AVAIL (SSID 'LADDA' Not Found - Check 2.4GHz band!)"; break;
+                case WL_NO_SSID_AVAIL: statusStr = "WL_NO_SSID_AVAIL (SSID 'LADDA' Not Found - Ensure 2.4GHz hotspot is on!)"; break;
                 case WL_SCAN_COMPLETED: statusStr = "WL_SCAN_COMPLETED"; break;
-                case WL_CONNECT_FAILED: statusStr = "WL_CONNECT_FAILED (Wrong Password?)"; break;
+                case WL_CONNECT_FAILED: statusStr = "WL_CONNECT_FAILED"; break;
                 case WL_CONNECTION_LOST: statusStr = "WL_CONNECTION_LOST"; break;
-                case WL_DISCONNECTED: statusStr = "WL_DISCONNECTED (In progress...)"; break;
+                case WL_DISCONNECTED: statusStr = "WL_DISCONNECTED"; break;
                 default: break;
             }
-            if (!was_connected) {
-                Serial.printf("[Wi-Fi Status] %s\n", statusStr);
-            } else {
-                was_connected = false;
-                Serial.println(F("[Supabase] Wi-Fi connection lost. Reconnecting..."));
-                WiFi.reconnect();
-            }
+            Serial.printf("[Wi-Fi Status] %s - Retrying '%s'...\n", statusStr, WIFI_SSID);
+            WiFi.disconnect();
+            WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
         }
     }
 }
