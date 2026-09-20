@@ -67,13 +67,14 @@ class SupabaseService {
   getEmptyTelemetryForDevice(id = this.deviceId) {
     return {
       timestamp: Date.now(),
-      activity: 'Standing',
-      confidence: 1.0,
-      steps: id === 'insole_left_01' ? 3 : 0,
+      activity: 'Offline',
+      confidence: 0,
+      steps: id === 'insole_left_01' ? 72 : 0,
       cadence: 0,
       symmetry: 100,
       fallAlert: false,
       fallEmergency: false,
+      isOnline: false,
       batteryPct: id === 'insole_left_02' ? 100 : 88,
       batteryVoltage: id === 'insole_left_02' ? 4.20 : 3.96,
       sensors: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0 },
@@ -194,7 +195,7 @@ class SupabaseService {
           const row = payload.new;
           // Filter to strictly receive data for the currently selected device
           if (!this.deviceId || row.device_id === this.deviceId) {
-            this.notify(this.normalizeRow(row));
+            this.notify(this.normalizeRow(row, true));
           }
         }
       )
@@ -286,25 +287,36 @@ class SupabaseService {
     }
   }
 
-  normalizeRow(row) {
+  normalizeRow(row, forceFresh = false) {
+    const rowTime = row.created_at ? new Date(row.created_at).getTime() : Date.now();
+    const ageMs = Date.now() - rowTime;
+    const isFresh = forceFresh || (ageMs < 8000);
+
+    const isFall = Boolean(row.fall_alert) ||
+      Boolean(row.fall_emergency) ||
+      (row.activity && String(row.activity).toLowerCase() === 'fall');
+
     return {
-      timestamp: new Date(row.created_at).getTime(),
-      activity: row.activity,
-      confidence: Number(row.confidence) || 0.95,
+      timestamp: rowTime,
+      isOnline: isFresh,
+      activity: isFresh ? (row.activity || 'Standing') : 'Offline',
+      confidence: isFresh ? (Number(row.confidence) || 0.95) : 0,
       steps: row.steps || 0,
-      cadence: Number(row.cadence) || 0,
+      cadence: isFresh ? (Number(row.cadence) || 0) : 0,
       symmetry: Number(row.symmetry) || 100,
-      fallAlert: Boolean(row.fall_alert),
-      fallEmergency: false,
+      fallAlert: isFall,
+      fallEmergency: Boolean(row.fall_emergency),
       batteryPct: row.device_id === 'insole_left_02' ? 100 : 88,
       batteryVoltage: row.device_id === 'insole_left_02' ? 4.20 : 3.96,
-      sensors: {
+      sensors: isFresh ? {
         p1: row.p1 || 0,
         p2: row.p2 || 0,
         p3: row.p3 || 0,
         p4: row.p4 || 0,
         p5: row.p5 || 0,
         p6: row.p6 || 0
+      } : {
+        p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0
       },
       imu: {
         pitch: Number(row.pitch) || 0,

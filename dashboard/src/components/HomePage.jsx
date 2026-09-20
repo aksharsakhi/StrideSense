@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { healthService } from '../services/healthService.js';
 
-function HomePageComponent({ telemetry = {}, deviceId = 'insole_left_01', onSwitchDevice, onNavigate }) {
+function HomePageComponent({ telemetry = {}, deviceId = 'insole_left_01', isOnline = false, onSwitchDevice, onNavigate }) {
   const { activity = 'Standing', confidence = 0, steps = 0, cadence = 0, symmetry = 100, batteryPct = 88, sensors = {}, imu = {} } = telemetry;
   const [todayRecord, setTodayRecord] = useState(() => healthService.getTodayRecord(deviceId));
 
@@ -38,18 +38,20 @@ function HomePageComponent({ telemetry = {}, deviceId = 'insole_left_01', onSwit
   const greeting = hour < 12 ? 'Good Morning' : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
   const greetEmoji = hour < 12 ? '☀️' : (hour < 17 ? '🌤️' : '🌙');
 
-  // Has real data?
-  const hasData = todaySteps > 0 || confidence > 0;
+  const normAct = activity ? (activity.charAt(0).toUpperCase() + activity.slice(1).toLowerCase()) : '—';
+  // A device is live ONLY if isOnline is true AND activity is not Offline
+  const isDeviceLive = isOnline && normAct !== 'Offline' && normAct !== '—';
 
   const ACTIVITY_COLORS = {
     Walking:  { bg: 'bg-cyan-500/15', border: 'border-cyan-500/30', text: 'text-cyan-600 dark:text-cyan-400', dot: 'bg-cyan-500' },
     Running:  { bg: 'bg-amber-500/15', border: 'border-amber-500/30', text: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-500' },
     Standing: { bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', text: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500' },
     Sitting:  { bg: 'bg-violet-500/15', border: 'border-violet-500/30', text: 'text-violet-600 dark:text-violet-400', dot: 'bg-violet-500' },
-    Fall:     { bg: 'bg-rose-500/15', border: 'border-rose-500/30', text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500' }
+    Fall:     { bg: 'bg-rose-500/15', border: 'border-rose-500/30', text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500' },
+    Offline:  { bg: 'bg-slate-500/15', border: 'border-slate-500/30', text: 'text-slate-500 dark:text-slate-400', dot: 'bg-slate-400' },
+    Standby:  { bg: 'bg-slate-500/15', border: 'border-slate-500/30', text: 'text-slate-500 dark:text-slate-400', dot: 'bg-slate-400' }
   };
-  const normAct = activity ? (activity.charAt(0).toUpperCase() + activity.slice(1).toLowerCase()) : '—';
-  const actColor = ACTIVITY_COLORS[normAct] || ACTIVITY_COLORS.Walking;
+  const actColor = isDeviceLive ? (ACTIVITY_COLORS[normAct] || ACTIVITY_COLORS.Walking) : ACTIVITY_COLORS.Offline;
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in stagger-children">
@@ -63,7 +65,7 @@ function HomePageComponent({ telemetry = {}, deviceId = 'insole_left_01', onSwit
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Real-time insole biomechanics overview</p>
         </div>
         <div className="flex items-center gap-2">
-          {hasData ? (
+          {isDeviceLive ? (
             <>
               <span className="live-dot" />
               <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Live Telemetry</span>
@@ -71,7 +73,9 @@ function HomePageComponent({ telemetry = {}, deviceId = 'insole_left_01', onSwit
           ) : (
             <>
               <WifiOff className="w-3.5 h-3.5 text-amber-500 status-pulse" />
-              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">Awaiting Data…</span>
+              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                {todaySteps > 0 ? 'Device Offline (Standby)' : 'Awaiting Connection…'}
+              </span>
             </>
           )}
         </div>
@@ -125,22 +129,26 @@ function HomePageComponent({ telemetry = {}, deviceId = 'insole_left_01', onSwit
           <div className="flex-1 min-w-0 w-full text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${actColor.bg} ${actColor.border} ${actColor.text} border`}>
-                <span className={`w-2 h-2 rounded-full ${actColor.dot} ${hasData ? 'animate-breathe' : ''}`} />
-                {hasData ? activity : 'Waiting…'}
+                <span className={`w-2 h-2 rounded-full ${actColor.dot} ${isDeviceLive ? 'animate-breathe' : ''}`} />
+                {isDeviceLive ? normAct : 'Offline'}
               </span>
-              {hasData && (
+              {isDeviceLive ? (
                 <span className="text-xs text-slate-500 dark:text-slate-400 font-mono font-medium tabular-nums">
                   {confPct}% confidence
+                </span>
+              ) : (
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono font-medium">
+                  {todaySteps > 0 ? 'Sync standby' : 'Device paused'}
                 </span>
               )}
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 pt-3 border-t border-slate-200/70 dark:border-white/[0.05]">
               {[
-                { label: 'Cadence', value: `${cadence}`, unit: 'SPM', color: 'text-slate-900 dark:text-white' },
-                { label: 'Symmetry', value: symmetry.toFixed(1), unit: '%', color: 'text-amber-600 dark:text-amber-300' },
+                { label: 'Cadence', value: isDeviceLive ? `${cadence}` : '0', unit: 'SPM', color: isDeviceLive ? 'text-slate-900 dark:text-white' : 'text-slate-400' },
+                { label: 'Symmetry', value: symmetry.toFixed(1), unit: '%', color: isDeviceLive ? 'text-amber-600 dark:text-amber-300' : 'text-slate-400' },
                 { label: 'Goal', value: `${stepPct}%`, unit: '', color: 'text-cyan-600 dark:text-cyan-400' },
-                { label: 'Impact', value: forceLevel, unit: '', color: 'text-emerald-600 dark:text-emerald-400' }
+                { label: 'Impact', value: isDeviceLive ? forceLevel : 'Standby', unit: '', color: isDeviceLive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400' }
               ].map((metric) => (
                 <div key={metric.label} className="bg-slate-100/70 dark:bg-slate-900/40 p-2.5 rounded-xl border border-slate-200/50 dark:border-white/[0.03]">
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">{metric.label}</span>
@@ -176,9 +184,9 @@ function HomePageComponent({ telemetry = {}, deviceId = 'insole_left_01', onSwit
               hoverGlow: 'group-hover:shadow-glow-cyan',
               footer: (
                 <>
-                  <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 font-bold tabular-nums">H: {sensors.p1}</span>
+                  <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 font-bold tabular-nums">H: {isDeviceLive ? sensors.p1 : 0}</span>
                   <span className="text-slate-400">•</span>
-                  <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 font-bold tabular-nums">F: {sensors.p2}</span>
+                  <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 font-bold tabular-nums">F: {isDeviceLive ? sensors.p2 : 0}</span>
                 </>
               )
             },

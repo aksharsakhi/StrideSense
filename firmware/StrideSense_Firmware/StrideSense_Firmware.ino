@@ -105,6 +105,11 @@ void loop() {
                 step_counter,
                 current_inference.inference_time_us
             );
+
+            // If a fall is detected, trigger immediate out-of-band transmission to cloud with zero delay
+            if (current_inference.activity == ACTIVITY_FALL || FallEngine.isFallPending()) {
+                last_cloud_time = 0;
+            }
         }
     }
 
@@ -115,11 +120,14 @@ void loop() {
     Cloud.updateNetwork();
 #endif
 
-    // 6. Transmit Cloud Telemetry every 1000 ms
+    // 6. Transmit Cloud Telemetry every 1000 ms (or immediately on fall)
     if (now - last_cloud_time >= CLOUD_TELEMETRY_MS) {
         last_cloud_time = now;
 
         SensorSample latest = SensorWindow.get(SensorWindow.count() - 1);
+        bool is_fall = FallEngine.isFallPending() || 
+                       FallEngine.isEmergencyDispatched() || 
+                       (current_inference.activity == ACTIVITY_FALL);
 
 #if BACKEND_USE_SUPABASE
         SupabaseTelemetryPayload payload;
@@ -128,7 +136,7 @@ void loop() {
         payload.step_count = step_counter;
         payload.cadence_spm = current_inference.cadence_spm;
         payload.symmetry_index = constrain(100.0f - (fabsf(1.0f - current_inference.medial_lateral_ratio) * 40.0f), 60.0f, 100.0f);
-        payload.fall_alert = FallEngine.isFallPending();
+        payload.fall_alert = is_fall;
         payload.p1 = latest.p1;
         payload.p2 = latest.p2;
         payload.p3 = latest.p3;

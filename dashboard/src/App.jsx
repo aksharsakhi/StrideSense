@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Home,
   HeartPulse,
@@ -8,6 +8,7 @@ import {
   Settings,
   Battery,
   Wifi,
+  WifiOff,
   Sun,
   Moon,
   Monitor,
@@ -160,8 +161,17 @@ const TopHeader = React.memo(function TopHeader({
               : 'bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400'
           }`}
         >
-          <Wifi className="w-3 h-3" />
-          <span className="font-mono">{isConnected ? 'LIVE' : 'OFFLINE'}</span>
+          {isConnected ? (
+            <>
+              <Wifi className="w-3 h-3 text-emerald-500" />
+              <span className="font-mono">LIVE</span>
+            </>
+          ) : (
+            <>
+              <WifiOff className="w-3 h-3 text-amber-500" />
+              <span className="font-mono">OFFLINE</span>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -233,7 +243,10 @@ export default function App() {
   const [telemetry, setTelemetry] = useState(EMPTY_TELEMETRY);
   const [fallModalOpen, setFallModalOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [isDeviceOnline, setIsDeviceOnline] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('stridesense_theme') || 'system');
+
+  const lastPacketTimeRef = useRef(0);
 
   // Device Selection State
   const [selectedDeviceId, setSelectedDeviceId] = useState(() => supabaseService.getDeviceId());
@@ -245,6 +258,32 @@ export default function App() {
     supabaseService.fetchAvailableDevices().then((devs) => {
       setAvailableDevices(devs);
     });
+  }, []);
+
+  /* ─── Heartbeat Monitor: Detect Offline Device ───────── */
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = Date.now();
+      const lastTime = lastPacketTimeRef.current;
+      // If hardware device hasn't sent a packet in > 6 seconds, transition to Offline
+      if (lastTime > 0 && (now - lastTime) > 6000) {
+        setIsDeviceOnline(false);
+        setIsConnected(false);
+        setTelemetry((prev) => {
+          if (prev.activity === 'Offline') return prev;
+          return {
+            ...prev,
+            activity: 'Offline',
+            confidence: 0,
+            cadence: 0,
+            fallAlert: false,
+            fallEmergency: false,
+            sensors: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0 }
+          };
+        });
+      }
+    }, 1500);
+    return () => clearInterval(timer);
   }, []);
 
   /* ─── Theme Sync Effect ───────────────── */
@@ -290,13 +329,23 @@ export default function App() {
     }
 
     supabaseService.connectRealtime();
-    setIsConnected(true);
 
     const unsub = supabaseService.subscribeTelemetry((data) => {
-      setTelemetry(data);
-      healthService.updateLiveTelemetry(data, selectedDeviceId);
+      lastPacketTimeRef.current = Date.now();
+      setIsDeviceOnline(true);
       setIsConnected(true);
-      if (data.fallAlert && !fallModalOpen) {
+      setTelemetry(data);
+      if (data.isOnline) {
+        healthService.updateLiveTelemetry(data, selectedDeviceId);
+      }
+
+      // Check if fall detected by either TinyML or Fall Guard Engine
+      const isFall = Boolean(data.fallAlert) ||
+        Boolean(data.fallEmergency) ||
+        (data.activity && String(data.activity).toLowerCase() === 'fall');
+
+      if (isFall && !fallModalOpen) {
+        console.log('[FallGuard] Triggering fall alert modal & notification:', data);
         nativeBridge.triggerEmergencyVibration();
         notificationService.notifyFallDetected(data);
         setFallModalOpen(true);
@@ -306,14 +355,38 @@ export default function App() {
     // Load latest telemetry for active device
     supabaseService.fetchLatestTelemetry().then((latest) => {
       if (latest) {
-        setTelemetry(latest);
-        healthService.updateLiveTelemetry(latest, selectedDeviceId);
+        const isFresh = latest.isOnline;
+        setIsDeviceOnline(isFresh);
+        setIsConnected(isFresh);
+
+        if (isFresh) {
+          lastPacketTimeRef.current = Date.now();
+          setTelemetry(latest);
+          healthService.updateLiveTelemetry(latest, selectedDeviceId);
+        } else {
+          // Device is offline: retain cumulative steps, but reset live motion
+          setTelemetry((prev) => ({
+            ...prev,
+            timestamp: latest.timestamp,
+            steps: latest.steps || prev.steps,
+            activity: 'Offline',
+            confidence: 0,
+            cadence: 0,
+            fallAlert: false,
+            fallEmergency: false,
+            sensors: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0 }
+          }));
+        }
+      } else {
+        setIsDeviceOnline(false);
+        setIsConnected(false);
       }
     });
 
     return () => {
       unsub();
       supabaseService.disconnectRealtime();
+      setIsDeviceOnline(false);
       setIsConnected(false);
     };
   }, [selectedDeviceId]);
@@ -337,6 +410,16 @@ export default function App() {
   const cancelFall = useCallback(() => {
     nativeBridge.impactMedium();
     setFallModalOpen(false);
+  }, []);
+
+  const triggerTestFall = useCallback(() => {
+    console.log('[FallGuard] Manual test fall alert triggered');
+    nativeBridge.triggerEmergencyVibration();
+    notificationService.notifyFallDetected({
+      imu: { svmA: 3.82 },
+      timestamp: Date.now()
+    });
+    setFallModalOpen(true);
   }, []);
 
   const handleSelectDevice = useCallback((newId) => {
@@ -380,7 +463,7 @@ export default function App() {
           pageTitle={pageTitle}
           theme={theme}
           batteryPct={telemetry.batteryPct}
-          isConnected={isConnected}
+          isConnected={isDeviceOnline}
           selectedDeviceId={selectedDeviceId}
           onOpenDeviceSelector={() => setIsDeviceModalOpen(true)}
           onNavigate={navigate}
@@ -395,6 +478,7 @@ export default function App() {
             <HomePage
               telemetry={telemetry}
               deviceId={selectedDeviceId}
+              isOnline={isDeviceOnline}
               onSwitchDevice={() => setIsDeviceModalOpen(true)}
               onNavigate={navigate}
             />
@@ -441,6 +525,7 @@ export default function App() {
             <div className="animate-fade-in">
               <FallGuardMobile
                 isFallActive={telemetry.fallAlert}
+                onTriggerTestFall={triggerTestFall}
               />
             </div>
           )}
@@ -449,7 +534,7 @@ export default function App() {
             <SettingsPage
               batteryPct={telemetry.batteryPct}
               batteryVoltage={telemetry.batteryVoltage}
-              isCloudConnected={isConnected}
+              isCloudConnected={isDeviceOnline}
               selectedDeviceId={selectedDeviceId}
               onOpenDeviceSelector={() => setIsDeviceModalOpen(true)}
               theme={theme}

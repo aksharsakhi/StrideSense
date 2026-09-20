@@ -7,7 +7,8 @@ import { nativeBridge } from '../services/native.js';
 import { emergencyContactsService } from '../services/emergencyContacts.js';
 
 export default function FallGuardMobile({
-  isFallActive = false
+  isFallActive = false,
+  onTriggerTestFall
 }) {
   const [guardActive, setGuardActive] = useState(true);
   const [contacts, setContacts] = useState(() => emergencyContactsService.getContacts());
@@ -123,6 +124,34 @@ export default function FallGuardMobile({
               ))}
             </div>
           </div>
+
+          {/* Test Fall Alert Trigger (Demo & Safety Verification) */}
+          <button
+            type="button"
+            onClick={() => {
+              nativeBridge.impactHeavy();
+              if (onTriggerTestFall) {
+                onTriggerTestFall();
+              }
+            }}
+            className="glass-panel p-4 flex items-center justify-between border-amber-500/40 hover:border-amber-500/80 bg-amber-500/[0.08] dark:bg-amber-500/[0.12] active-press transition-all text-left animate-fade-in"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-amber-500 text-slate-950 font-bold shadow-lg shadow-amber-500/30">
+                <AlertTriangle className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">Simulate / Test Fall Alert</span>
+                  <span className="badge badge-amber text-[9px] px-1.5 py-0.5">VIVA DEMO</span>
+                </div>
+                <div className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
+                  Triggers 15s emergency buzzer, push notification & haptic pulse
+                </div>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-amber-500" />
+          </button>
 
           {/* Primary Call Dispatch Hero Button */}
           {primaryContact && (

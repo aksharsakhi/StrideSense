@@ -47,34 +47,34 @@ void FallDetector::update(const SensorSample &sample) {
                 freefall_timestamp = now;
                 current_state = FALL_FREEFALL_DETECTED;
             }
-            // Or immediate massive collision shock (> 3.5g)
-            else if (svm_acc > (FALL_IMPACT_G * 1.25f)) {
+            // Or immediate massive collision shock (> 3.0g)
+            else if (svm_acc > (FALL_IMPACT_G * 1.10f)) {
                 impact_timestamp = now;
                 current_state = FALL_IMPACT_DETECTED;
             }
             break;
 
         case FALL_FREEFALL_DETECTED:
-            // Expect impact within 100ms - 800ms of free-fall
-            if (now - freefall_timestamp > 800) {
+            // Expect impact within 100ms - 900ms of free-fall
+            if (now - freefall_timestamp > 900) {
                 // Timeout, false alarm (e.g. jumping or fast swing)
                 current_state = FALL_IDLE;
-            } else if (svm_acc > FALL_IMPACT_G) {
+            } else if (svm_acc > (FALL_IMPACT_G * 0.90f)) {
                 impact_timestamp = now;
                 current_state = FALL_IMPACT_DETECTED;
             }
             break;
 
         case FALL_IMPACT_DETECTED: {
-            // Check post-impact orientation change and settle time (1.5s after impact)
-            if (now - impact_timestamp >= 1500) {
+            // Check post-impact orientation change and settle time (1.0s after impact)
+            if (now - impact_timestamp >= 1000) {
                 float delta_pitch = fabsf(sample.pitch - pre_fall_pitch);
                 float delta_roll = fabsf(sample.roll - pre_fall_roll);
 
-                // If orientation shifted by > 45 degrees or gyroscope is quiet (lying down)
+                // If orientation shifted by > 30 degrees or strong impact with quiet gyroscope
                 float gyro_mag = sqrtf(sample.gx * sample.gx + sample.gy * sample.gy + sample.gz * sample.gz);
 
-                if ((delta_pitch > 45.0f || delta_roll > 45.0f) && gyro_mag < 35.0f) {
+                if ((delta_pitch > 30.0f || delta_roll > 30.0f || svm_acc > 3.0f) && gyro_mag < 80.0f) {
                     // Confirmed fall -> Enter 15s confirmation grace period
                     current_state = FALL_CONFIRMATION_PENDING;
                     alert_start_timestamp = now;
