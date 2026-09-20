@@ -14,6 +14,7 @@
 #include "filter.h"
 #include "fall_detector.h"
 #include "tinyml_infer.h"
+#include "storage.h"
 
 #if BACKEND_USE_SUPABASE
 #include "supabase_client.h"
@@ -42,6 +43,8 @@ void setup() {
     digitalWrite(PIN_STATUS_LED, HIGH);
 
     // Initialize Subsystems
+    Storage.begin();
+    step_counter = Storage.loadStepCount();
     FallEngine.begin();
     Sensors.begin();
     Sensors.calibrateZeroBaseline(40);
@@ -77,10 +80,11 @@ void loop() {
         // 2. Feed into Fall Detector state machine
         FallEngine.update(sample);
 
-        // 3. Step Counting via Heel-Strike Peak Transition
+        // 3. Step Counting via Heel-Strike Peak Transition with Flash Persistence
         bool heel_pressed = (sample.p1 > 1200);
         if (heel_pressed && !last_heel_strike) {
             step_counter++;
+            Storage.saveStepCount(step_counter); // Persist across reboots
         }
         last_heel_strike = heel_pressed;
 

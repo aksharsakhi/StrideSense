@@ -3,6 +3,7 @@
  */
 
 #include "fall_detector.h"
+#include "storage.h"
 #include <math.h>
 
 FallDetector FallEngine;
@@ -91,6 +92,7 @@ void FallDetector::update(const SensorSample &sample) {
             // Check if 15-second grace period elapsed without user cancellation
             if (now - alert_start_timestamp >= FALL_CANCEL_WINDOW_MS) {
                 current_state = FALL_EMERGENCY_DISPATCHED;
+                Storage.logFallEvent(alert_start_timestamp, FALL_IMPACT_G, "Fall");
                 Serial.println(F("[FallEngine] !!! EMERGENCY ALERT DISPATCHED TO CLOUD & CAREGIVER !!!"));
             }
             break;
