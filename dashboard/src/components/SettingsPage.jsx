@@ -4,10 +4,12 @@ import {
   Bell, HardDrive, Zap, Heart, FileText, Info,
   Sun, Moon, Monitor, Palette, Sparkles, Shield,
   PhoneCall, MessageSquare, Plus, Trash2, Edit3,
-  Star, Smartphone, Check, X, AlertTriangle, Send
+  Star, Smartphone, Check, X, AlertTriangle, Send,
+  ChevronRight
 } from 'lucide-react';
 import { nativeBridge } from '../services/native.js';
 import { emergencyContactsService } from '../services/emergencyContacts.js';
+import SystemDetailView from './SystemDetailView.jsx';
 
 function SettingsPageComponent({
   batteryPct = 88,
@@ -34,6 +36,7 @@ function SettingsPageComponent({
     notifySms: true
   });
   const [testStatus, setTestStatus] = useState(null);
+  const [activeDetail, setActiveDetail] = useState(null);
 
   useEffect(() => {
     const unsub = emergencyContactsService.subscribe((updatedContacts, updatedSettings) => {
@@ -56,21 +59,22 @@ function SettingsPageComponent({
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
-      className={`w-full flex items-center justify-between py-3.5 px-1 text-left ${
-        onClick ? 'cursor-pointer active-press touch-manipulation select-none' : ''
+      className={`w-full flex items-center justify-between py-3.5 px-1.5 text-left rounded-xl transition-colors ${
+        onClick ? 'cursor-pointer active-press touch-manipulation select-none hover:bg-slate-100/60 dark:hover:bg-white/[0.03]' : ''
       } ${!last ? 'border-b border-slate-200/70 dark:border-white/[0.04]' : ''}`}
     >
-      <div className="flex items-center gap-3">
-        <div className={`p-2 rounded-xl ${iconColor}`}>
+      <div className="flex items-center gap-3 min-w-0 pr-2">
+        <div className={`p-2 rounded-xl ${iconColor} flex-shrink-0`}>
           <Icon className="w-4 h-4" />
         </div>
-        <div>
-          <span className="text-sm font-semibold text-slate-900 dark:text-white block">{label}</span>
-          {subtitle && <span className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</span>}
+        <div className="min-w-0">
+          <span className="text-sm font-semibold text-slate-900 dark:text-white block truncate">{label}</span>
+          {subtitle && <span className="text-xs text-slate-500 dark:text-slate-400 block truncate">{subtitle}</span>}
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         {right}
+        {onClick && <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 flex-shrink-0" />}
       </div>
     </div>
   );
@@ -166,6 +170,18 @@ function SettingsPageComponent({
       setTimeout(() => setTestStatus(null), 4000);
     }, 1000);
   };
+
+  if (activeDetail) {
+    return (
+      <SystemDetailView
+        detailKey={activeDetail}
+        onBack={() => {
+          nativeBridge.impactLight();
+          setActiveDetail(null);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in stagger-children pb-12">
@@ -650,6 +666,10 @@ function SettingsPageComponent({
                 label="Fall Guard Sensitivity"
                 subtitle="Dual-trigger threshold (0.6g / 2.8g)"
                 right={<span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mr-1">Normal</span>}
+                onClick={() => {
+                  nativeBridge.impactLight();
+                  setActiveDetail('fall_guard');
+                }}
                 last
               />
             </div>
@@ -662,23 +682,30 @@ function SettingsPageComponent({
 
           {/* Hardware Specs */}
           <div className="animate-fade-in-scale">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1 mb-1.5 block">
-              Hardware & System
-            </span>
+            <div className="flex items-center justify-between px-1 mb-1.5">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
+                Hardware & System
+              </span>
+              <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-medium">Tap to view details</span>
+            </div>
             <div className="glass-panel px-4">
               {[
-                { icon: HardDrive, color: 'bg-slate-500/15 text-slate-600 dark:text-slate-400', label: 'Microcontroller', val: 'ESP32 Dual-Core 240 MHz' },
-                { icon: Zap, color: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400', label: 'TinyML Latency', val: '< 0.27 µs' },
-                { icon: Cpu, color: 'bg-violet-500/15 text-violet-600 dark:text-violet-400', label: 'Sampling Rate', val: '50 Hz (20ms cycle)' },
-                { icon: Sliders, color: 'bg-amber-500/15 text-amber-600 dark:text-amber-400', label: 'Calibration', val: 'Zero-Tare Baseline OK' },
-                { icon: Sparkles, color: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400', label: 'Mobile Native Core', val: 'Capacitor 8 (iOS)' }
+                { id: 'microcontroller', icon: HardDrive, color: 'bg-slate-500/15 text-slate-600 dark:text-slate-400', label: 'Microcontroller', val: 'ESP32 Dual-Core 240 MHz' },
+                { id: 'tinyml', icon: Zap, color: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400', label: 'TinyML Latency', val: '< 0.38 ms On-Chip' },
+                { id: 'sampling', icon: Cpu, color: 'bg-violet-500/15 text-violet-600 dark:text-violet-400', label: 'Sampling Rate', val: '50 Hz (20ms cycle)' },
+                { id: 'calibration', icon: Sliders, color: 'bg-amber-500/15 text-amber-600 dark:text-amber-400', label: 'Calibration', val: 'Zero-Tare Baseline OK' },
+                { id: 'mobile_native', icon: Sparkles, color: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400', label: 'Mobile Native Core', val: 'Capacitor 8 (iOS)' }
               ].map((row, i, arr) => (
                 <SettingRow
-                  key={i}
+                  key={row.id}
                   icon={row.icon}
                   iconColor={row.color}
                   label={row.label}
                   right={<span className="text-xs font-mono font-medium text-slate-700 dark:text-slate-300">{row.val}</span>}
+                  onClick={() => {
+                    nativeBridge.impactLight();
+                    setActiveDetail(row.id);
+                  }}
                   last={i === arr.length - 1}
                 />
               ))}
@@ -687,9 +714,12 @@ function SettingsPageComponent({
 
           {/* About & Clinical Intelligence */}
           <div className="animate-fade-in-scale">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1 mb-1.5 block">
-              About StrideSense
-            </span>
+            <div className="flex items-center justify-between px-1 mb-1.5">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
+                About StrideSense
+              </span>
+              <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-medium">Tap to view details</span>
+            </div>
             <div className="glass-panel px-4">
               <SettingRow
                 icon={Info}
@@ -697,13 +727,21 @@ function SettingsPageComponent({
                 label="StrideSense Core"
                 subtitle="AI-Powered Smart Insole Biomechanics"
                 right={<span className="text-xs font-mono text-slate-500">v1.4.2</span>}
+                onClick={() => {
+                  nativeBridge.impactLight();
+                  setActiveDetail('core');
+                }}
               />
               <SettingRow
                 icon={FileText}
                 iconColor="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                 label="TinyML Model Engine"
-                subtitle="RandomForest 8-tree • 98.97% validation accuracy"
+                subtitle="Neural Net 3-layer • 98.97% validation accuracy"
                 right={<span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Validated</span>}
+                onClick={() => {
+                  nativeBridge.impactLight();
+                  setActiveDetail('tinyml');
+                }}
                 last
               />
             </div>
