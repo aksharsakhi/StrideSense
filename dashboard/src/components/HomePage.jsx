@@ -31,7 +31,7 @@ function HomePageComponent({ telemetry = {}, deviceId = 'insole_left_01', isOnli
 
   // Total pressure
   const totalForce = (sensors.p1 || 0) + (sensors.p2 || 0) + (sensors.p3 || 0) + (sensors.p4 || 0) + (sensors.p5 || 0) + (sensors.p6 || 0);
-  const forceLevel = totalForce > 6000 ? 'High' : (totalForce > 2000 ? 'Normal' : 'Low');
+  const forceLevel = totalForce > 1800 ? 'High' : (totalForce > 250 ? 'Normal' : 'Low');
 
   // Time-of-day greeting
   const hour = new Date().getHours();

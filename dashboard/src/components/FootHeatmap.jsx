@@ -25,12 +25,12 @@ export default function FootHeatmap({ sensors = {} }) {
   const p4 = sensors.p4 || 0;
   const p5 = sensors.p5 || (sensors.p2 || sensors.p4 || 0);
 
-  // Normalize 12-bit ADC (0 - 4095)
-  const nHeel = Math.min(1.0, p1 / 3800);
-  const nForefoot = Math.min(1.0, (p5 || p2 || p4) / 3800);
+  // Normalize 12-bit ADC (0 - 4095) tailored for 2x Square FSR hardware
+  const nHeel = Math.min(1.0, p1 / 2200);
+  const nForefoot = Math.min(1.0, (p5 || p2 || p4) / 2200);
 
   const totalForce = p1 + (p5 || p2 || p4);
-  const estNewtons = Math.round((totalForce / 8000) * 700);
+  const estNewtons = Math.round((totalForce / 4400) * 680);
 
   // 2 Square FSRs (Matching Physical Hardware)
   const dualFsrNodes = [

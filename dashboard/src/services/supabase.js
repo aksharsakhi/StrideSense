@@ -289,8 +289,8 @@ class SupabaseService {
 
   normalizeRow(row, forceFresh = false) {
     const rowTime = row.created_at ? new Date(row.created_at).getTime() : Date.now();
-    const ageMs = Date.now() - rowTime;
-    const isFresh = forceFresh || (ageMs < 8000);
+    const ageMs = Math.abs(Date.now() - rowTime);
+    const isFresh = forceFresh || (ageMs < 12000);
 
     const isFall = Boolean(row.fall_alert) ||
       Boolean(row.fall_emergency) ||
@@ -301,7 +301,7 @@ class SupabaseService {
       isOnline: isFresh,
       activity: isFresh ? (row.activity || 'Standing') : 'Offline',
       confidence: isFresh ? (Number(row.confidence) || 0.95) : 0,
-      steps: row.steps || 0,
+      steps: Number(row.steps) || 0,
       cadence: isFresh ? (Number(row.cadence) || 0) : 0,
       symmetry: Number(row.symmetry) || 100,
       fallAlert: isFall,
@@ -309,12 +309,12 @@ class SupabaseService {
       batteryPct: row.device_id === 'insole_left_02' ? 100 : 88,
       batteryVoltage: row.device_id === 'insole_left_02' ? 4.20 : 3.96,
       sensors: isFresh ? {
-        p1: row.p1 || 0,
-        p2: row.p2 || 0,
-        p3: row.p3 || 0,
-        p4: row.p4 || 0,
-        p5: row.p5 || 0,
-        p6: row.p6 || 0
+        p1: Number(row.p1) || 0,
+        p2: Number(row.p2) || 0,
+        p3: Number(row.p3) || 0,
+        p4: Number(row.p4) || 0,
+        p5: Number(row.p5) || Number(row.p2) || 0,
+        p6: Number(row.p6) || 0
       } : {
         p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0
       },

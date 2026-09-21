@@ -23,8 +23,10 @@ bool SensorsManager::begin() {
     pinMode(PIN_FSR_S2_FOREFOOT, INPUT);
     pinMode(PIN_BATTERY_ADC, INPUT);
 
-    // Set 12-bit ADC resolution (0 - 4095)
+    // Set 12-bit ADC resolution (0 - 4095) with full 0-3.3V attenuation
     analogReadResolution(12);
+    analogSetPinAttenuation(PIN_FSR_S1_HEEL, ADC_11db);
+    analogSetPinAttenuation(PIN_FSR_S2_FOREFOOT, ADC_11db);
 
     // Initialize I2C for MPU-6050
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL, 400000); // 400 kHz Fast-Mode I2C
@@ -109,18 +111,32 @@ void SensorsManager::readMPU6050(float &ax, float &ay, float &az, float &gx, flo
 bool SensorsManager::readSample(SensorSample &sample) {
     sample.timestamp_ms = millis();
 
-    // Read dual square FSR ADC values with multi-sample smoothing
-    sample.p1 = readAveragedADC(PIN_FSR_S1_HEEL);     // Calcaneus Heel
-    sample.p2 = readAveragedADC(PIN_FSR_S2_FOREFOOT); // Metatarsal Forefoot Ball
+    // Read dual square FSR ADC values with multi-pin auto-detection
+    uint16_t raw_heel = readAveragedADC(PIN_FSR_S1_HEEL);
+    if (raw_heel < 40) {
+        // Fallback check on GPIO 36 (VP) or GPIO 32
+        uint16_t alt36 = readAveragedADC(36, 2);
+        if (alt36 > raw_heel) raw_heel = alt36;
+        uint16_t alt32 = readAveragedADC(32, 2);
+        if (alt32 > raw_heel) raw_heel = alt32;
+    }
+
+    uint16_t raw_forefoot = readAveragedADC(PIN_FSR_S2_FOREFOOT);
+    if (raw_forefoot < 40) {
+        // Fallback check on GPIO 39 (VN) or GPIO 33
+        uint16_t alt39 = readAveragedADC(39, 2);
+        if (alt39 > raw_forefoot) raw_forefoot = alt39;
+        uint16_t alt33 = readAveragedADC(33, 2);
+        if (alt33 > raw_forefoot) raw_forefoot = alt33;
+    }
+
+    // Apply baseline subtraction (zero-tare) with safe floor
+    sample.p1 = (raw_heel > fsr_baseline[0]) ? (raw_heel - fsr_baseline[0]) : 0;
+    sample.p2 = (raw_forefoot > fsr_baseline[1]) ? (raw_forefoot - fsr_baseline[1]) : 0;
     sample.p3 = 0;
     sample.p4 = 0;
     sample.p5 = sample.p2; // Map forefoot reading to metatarsal zone for TinyML feature balance
     sample.p6 = 0;
-
-    // Apply baseline subtraction (zero-tare)
-    sample.p1 = (sample.p1 > fsr_baseline[0]) ? (sample.p1 - fsr_baseline[0]) : 0;
-    sample.p2 = (sample.p2 > fsr_baseline[1]) ? (sample.p2 - fsr_baseline[1]) : 0;
-    sample.p5 = sample.p2;
 
     // Read MPU6050
     readMPU6050(sample.ax, sample.ay, sample.az, sample.gx, sample.gy, sample.gz);
@@ -154,7 +170,9 @@ void SensorsManager::calibrateZeroBaseline(int samples) {
     }
 
     for (int i = 0; i < 2; i++) {
-        fsr_baseline[i] = (uint16_t)(p_sums[i] / samples);
+        uint16_t avg = (uint16_t)(p_sums[i] / samples);
+        // Cap baseline to 100 max so an accidental boot touch never zeroes out the sensors
+        fsr_baseline[i] = (avg > 100) ? 100 : avg;
     }
 
     ax_offset = ax_sum / samples;
@@ -164,7 +182,8 @@ void SensorsManager::calibrateZeroBaseline(int samples) {
     gy_offset = gy_sum / samples;
     gz_offset = gz_sum / samples;
 
-    Serial.println(F("[Sensors] Calibration complete."));
+    Serial.printf("[Sensors] Calibration complete. FSR Baselines: Heel=%u, Forefoot=%u\n",
+                  fsr_baseline[0], fsr_baseline[1]);
 }
 
 float SensorsManager::readBatteryVoltage() {

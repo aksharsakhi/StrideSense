@@ -28,7 +28,14 @@ static unsigned long last_cloud_time = 0;
 static uint32_t step_counter = 0;
 static uint8_t inference_cycle = 0;
 static InferenceResult current_inference;
-static bool last_heel_strike = false;
+
+// Multi-Modal Step Detection & Peak Pressure State
+static unsigned long last_step_time = 0;
+static bool last_plantar_contact = false;
+static bool imu_swing_armed = false;
+static float imu_min_trough = 1.0f;
+static uint16_t window_peak_p1 = 0;
+static uint16_t window_peak_p2 = 0;
 
 void setup() {
     Serial.begin(115200);
@@ -77,16 +84,56 @@ void loop() {
         SensorSample sample;
         Sensors.readSample(sample);
 
+        // Track peak pressures across the active stride window
+        if (sample.p1 > window_peak_p1) window_peak_p1 = sample.p1;
+        if (sample.p2 > window_peak_p2) window_peak_p2 = sample.p2;
+
         // 2. Feed into Fall Detector state machine
         FallEngine.update(sample);
 
-        // 3. Step Counting via Heel-Strike Peak Transition with Flash Persistence
-        bool heel_pressed = (sample.p1 > 1200);
-        if (heel_pressed && !last_heel_strike) {
-            step_counter++;
-            Storage.saveStepCount(step_counter); // Persist across reboots
+        // 3. Multi-Modal Step Counting Engine (FSR + IMU Kinematic Fusion)
+        float svm_acc = sqrtf(sample.ax * sample.ax + sample.ay * sample.ay + sample.az * sample.az);
+
+        // Plantar contact on either Heel (p1) or Forefoot (p2)
+        bool plantar_contact = (sample.p1 > 120 || sample.p2 > 120);
+        bool refractory_ok = (now - last_step_time >= 250); // Max 240 steps/min
+        bool step_detected = false;
+
+        // Condition A: Plantar strike rising edge (Heel or Forefoot strike)
+        if (plantar_contact && !last_plantar_contact && refractory_ok) {
+            step_detected = true;
         }
-        last_heel_strike = heel_pressed;
+        last_plantar_contact = plantar_contact;
+
+        // Condition B: IMU Kinematic Stride (Swing phase trough < 0.88g followed by ground impact > 1.25g)
+        if (svm_acc < 0.88f) {
+            imu_swing_armed = true;
+            if (svm_acc < imu_min_trough) imu_min_trough = svm_acc;
+        }
+        if (imu_swing_armed && (svm_acc > 1.25f) && refractory_ok) {
+            step_detected = true;
+            imu_swing_armed = false;
+            imu_min_trough = 1.0f;
+        }
+
+        // Condition C: TinyML Walking/Running Model Cadence Generation
+        if (current_inference.cadence_spm > 45.0f && 
+            (current_inference.activity == ACTIVITY_WALKING || current_inference.activity == ACTIVITY_RUNNING)) {
+            unsigned long stride_period_ms = (unsigned long)(60000.0f / current_inference.cadence_spm);
+            if (stride_period_ms < 280) stride_period_ms = 280;
+            if (now - last_step_time >= stride_period_ms) {
+                step_detected = true;
+            }
+        }
+
+        if (step_detected) {
+            step_counter++;
+            last_step_time = now;
+            // Persist periodically to Flash NVS every 5 steps
+            if (step_counter % 5 == 0) {
+                Storage.saveStepCount(step_counter);
+            }
+        }
 
         // 4. Push sample to circular sliding window
         SensorWindow.push(sample);
@@ -97,13 +144,15 @@ void loop() {
             inference_cycle = 0;
             current_inference = TinyML.runInference(SensorWindow);
 
-            // Serial Debug Output
-            Serial.printf("[TinyML] Activity: %-8s | Conf: %3.0f%% | Cadence: %3.0f SPM | Steps: %5u | Latency: %lu us\n",
+            // Detailed Serial Debug Output with live FSR & SVM metrics
+            Serial.printf("[TinyML] Activity: %-8s | Conf: %3.0f%% | Cadence: %3.0f SPM | Steps: %5u | FSR[H:%4u, F:%4u] | SVM: %4.2fg\n",
                 current_inference.activity_name,
                 current_inference.confidence * 100.0f,
                 current_inference.cadence_spm,
                 step_counter,
-                current_inference.inference_time_us
+                sample.p1,
+                sample.p2,
+                svm_acc
             );
 
             // If a fall is detected, trigger immediate out-of-band transmission to cloud with zero delay
@@ -129,6 +178,14 @@ void loop() {
                        FallEngine.isEmergencyDispatched() || 
                        (current_inference.activity == ACTIVITY_FALL);
 
+        // Send peak pressure captured during this stride interval (or active if held)
+        uint16_t send_p1 = (latest.p1 > 60) ? latest.p1 : window_peak_p1;
+        uint16_t send_p2 = (latest.p2 > 60) ? latest.p2 : window_peak_p2;
+
+        // Reset window peaks with exponential decay
+        window_peak_p1 = (latest.p1 > 60) ? latest.p1 : 0;
+        window_peak_p2 = (latest.p2 > 60) ? latest.p2 : 0;
+
 #if BACKEND_USE_SUPABASE
         SupabaseTelemetryPayload payload;
         payload.activity = current_inference.activity_name;
@@ -137,12 +194,12 @@ void loop() {
         payload.cadence_spm = current_inference.cadence_spm;
         payload.symmetry_index = constrain(100.0f - (fabsf(1.0f - current_inference.medial_lateral_ratio) * 40.0f), 60.0f, 100.0f);
         payload.fall_alert = is_fall;
-        payload.p1 = latest.p1;
-        payload.p2 = latest.p2;
-        payload.p3 = latest.p3;
-        payload.p4 = latest.p4;
-        payload.p5 = latest.p5;
-        payload.p6 = latest.p6;
+        payload.p1 = send_p1;
+        payload.p2 = send_p2;
+        payload.p3 = 0;
+        payload.p4 = 0;
+        payload.p5 = send_p2;
+        payload.p6 = 0;
         payload.pitch = latest.pitch;
         payload.roll = latest.roll;
         payload.svm_a = sqrtf(latest.ax * latest.ax + latest.ay * latest.ay + latest.az * latest.az);
