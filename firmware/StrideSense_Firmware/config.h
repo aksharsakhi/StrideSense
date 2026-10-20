@@ -62,7 +62,7 @@
 // ==========================================
 // 4. UNIFIED BILATERAL CLOUD CONFIGURATION
 // ==========================================
-#define DEVICE_ID                 "insole_left_01"
+#define DEVICE_ID                 "stridesense_esp32_01"
 #define SYSTEM_MODE_NAME          "UNIFIED BILATERAL (1x ESP32, 4x FSR, 1x MPU6050)"
 #define INSOLE_SIDE_NAME          SYSTEM_MODE_NAME
 

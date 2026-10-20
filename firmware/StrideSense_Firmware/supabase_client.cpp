@@ -30,10 +30,20 @@ void SupabaseClient::updateNetwork() {
     if (status == WL_CONNECTED) {
         if (!was_connected) {
             was_connected = true;
+            
             Serial.printf("\n=======================================================\n");
             Serial.printf(" [✓] ESP32 Wi-Fi CONNECTED!\n");
             Serial.printf(" IP Address: %s\n", WiFi.localIP().toString().c_str());
+            Serial.printf(" Gateway:    %s\n", WiFi.gatewayIP().toString().c_str());
+            Serial.printf(" DHCP DNS:   %s\n", WiFi.dnsIP(0).toString().c_str());
             Serial.printf(" Signal:     %d dBm\n", WiFi.RSSI());
+
+            IPAddress resolvedIP;
+            if (WiFi.hostByName("sgooptohhldguitvhbrl.supabase.co", resolvedIP)) {
+                Serial.printf(" DNS Test:   sgooptohhldguitvhbrl.supabase.co -> %s\n", resolvedIP.toString().c_str());
+            } else {
+                Serial.printf(" DNS Test:   FAILED to resolve via DHCP DNS %s!\n", WiFi.dnsIP(0).toString().c_str());
+            }
             Serial.printf("=======================================================\n\n");
         }
         digitalWrite(PIN_STATUS_LED, HIGH);
@@ -61,34 +71,24 @@ bool SupabaseClient::sendTelemetry(const SupabaseTelemetryPayload &payload) {
         return false;
     }
 
-    // Check & resolve DNS with automatic 8.8.8.8 fallback
-    const char* supabase_domain = "sgooptohhldguitvhbrl.supabase.co";
-    IPAddress resolvedIP;
-    if (!WiFi.hostByName(supabase_domain, resolvedIP)) {
-        // Fallback to Google DNS 8.8.8.8 & Cloudflare 1.1.1.1
-        WiFi.config(WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), IPAddress(8, 8, 8, 8), IPAddress(1, 1, 1, 1));
-        delay(50);
-        if (!WiFi.hostByName(supabase_domain, resolvedIP)) {
-            last_http_code = -1;
-            snprintf(last_error_msg, sizeof(last_error_msg), "DNS FAILED for %s", supabase_domain);
-            return false;
-        }
+    WiFiClientSecure *client = new WiFiClientSecure;
+    if (!client) {
+        last_http_code = -1;
+        snprintf(last_error_msg, sizeof(last_error_msg), "Out of Memory");
+        return false;
     }
 
-    WiFiClientSecure client;
-    client.setInsecure(); // Non-blocking TLS without bundling massive root CAs
-    client.setHandshakeTimeout(10); // 10 seconds handshake timeout
-    client.setTimeout(10000); // 10000 ms socket timeout
+    client->setInsecure(); // Non-blocking TLS without bundling massive root CAs
+    client->setTimeout(10000); // 10s socket timeout
 
     HTTPClient http;
-    http.setReuse(false); // Ensure clean teardown to prevent socket leak on Cloudflare
     http.setTimeout(10000);
-    http.setConnectTimeout(10000);
 
     String url = String(SUPABASE_HOST) + String(SUPABASE_ENDPOINT);
-    if (!http.begin(client, url)) {
+    if (!http.begin(*client, url)) {
         last_http_code = -1;
         snprintf(last_error_msg, sizeof(last_error_msg), "http.begin failed");
+        delete client;
         return false;
     }
 
@@ -96,7 +96,6 @@ bool SupabaseClient::sendTelemetry(const SupabaseTelemetryPayload &payload) {
     http.addHeader("apikey", SUPABASE_PUBLISHABLE_KEY);
     http.addHeader("Authorization", String("Bearer ") + SUPABASE_PUBLISHABLE_KEY);
     http.addHeader("Prefer", "return=minimal");
-    http.addHeader("Connection", "close");
 
     // Format JSON matching Supabase public.telemetry schema
     char json[512];
@@ -133,13 +132,16 @@ bool SupabaseClient::sendTelemetry(const SupabaseTelemetryPayload &payload) {
         delay(25);
         digitalWrite(PIN_STATUS_LED, HIGH);
     } else if (httpCode < 0) {
-        snprintf(last_error_msg, sizeof(last_error_msg), "No Internet on Wi-Fi AP (Check Hotspot Mobile Data)");
+        char tls_err[64] = {0};
+        int code = client->lastError(tls_err, sizeof(tls_err));
+        snprintf(last_error_msg, sizeof(last_error_msg), "%s [Code: %d, %s] (Heap: %u)", 
+            http.errorToString(httpCode).c_str(), code, tls_err, ESP.getFreeHeap());
     } else {
         snprintf(last_error_msg, sizeof(last_error_msg), "HTTP_%d", httpCode);
     }
 
     http.end();
-    client.stop();
+    delete client;
 
     return (httpCode >= 200 && httpCode < 300);
 }
@@ -149,23 +151,25 @@ bool SupabaseClient::logFallIncident(float impact_g, const char* status) {
         return false;
     }
 
-    WiFiClientSecure client;
-    client.setInsecure();
-    client.setTimeout(8000);
+    WiFiClientSecure *client = new WiFiClientSecure;
+    if (!client) return false;
+
+    client->setInsecure();
+    client->setTimeout(10000);
 
     HTTPClient http;
-    http.setReuse(false);
-    http.setTimeout(8000);
-    http.setConnectTimeout(8000);
+    http.setTimeout(10000);
 
     String url = String(SUPABASE_HOST) + "/rest/v1/fall_incidents";
-    if (!http.begin(client, url)) return false;
+    if (!http.begin(*client, url)) {
+        delete client;
+        return false;
+    }
 
     http.addHeader("Content-Type", "application/json");
     http.addHeader("apikey", SUPABASE_PUBLISHABLE_KEY);
     http.addHeader("Authorization", String("Bearer ") + SUPABASE_PUBLISHABLE_KEY);
     http.addHeader("Prefer", "return=minimal");
-    http.addHeader("Connection", "close");
 
     char json[256];
     snprintf(json, sizeof(json),
@@ -180,7 +184,7 @@ bool SupabaseClient::logFallIncident(float impact_g, const char* status) {
 
     int httpCode = http.POST(json);
     http.end();
-    client.stop();
+    delete client;
 
     return (httpCode >= 200 && httpCode < 300);
 }

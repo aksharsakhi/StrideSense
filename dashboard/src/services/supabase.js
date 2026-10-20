@@ -18,15 +18,16 @@ const INITIAL_DEVICE_ID =
 
 export const FALLBACK_DEVICES = [
   {
-    id: 'bilateral_hw',
-    name: 'Bilateral Hardware Kit (Left + Right)',
+    id: 'stridesense_esp32_01',
+    name: 'StrideSense Unified Hardware (1x ESP32, 4x FSR)',
     type: 'pair',
-    leftId: 'insole_left_01',
-    rightId: 'insole_right_01',
-    battery_pct: 90,
-    battery_voltage: 4.02,
-    firmware_version: 'v1.4.2-TinyML',
-    badge: 'BILATERAL HW'
+    side: 'bilateral',
+    leftId: 'stridesense_esp32_01',
+    rightId: 'stridesense_esp32_01',
+    battery_pct: 95,
+    battery_voltage: 4.08,
+    firmware_version: 'v1.5.0-Unified-TinyML',
+    badge: 'UNIFIED HW'
   },
   {
     id: 'bilateral_sim',
@@ -38,26 +39,6 @@ export const FALLBACK_DEVICES = [
     battery_voltage: 4.20,
     firmware_version: 'v1.4.2-VirtualSim',
     badge: 'BILATERAL SIM'
-  },
-  {
-    id: 'insole_left_01',
-    name: 'Left ESP32 Insole (Hardware)',
-    type: 'single',
-    side: 'left',
-    battery_pct: 90,
-    battery_voltage: 4.02,
-    firmware_version: 'v1.4.2-TinyML',
-    badge: 'HW LEFT'
-  },
-  {
-    id: 'insole_right_01',
-    name: 'Right ESP32 Insole (Hardware)',
-    type: 'single',
-    side: 'right',
-    battery_pct: 90,
-    battery_voltage: 4.02,
-    firmware_version: 'v1.4.2-TinyML',
-    badge: 'HW RIGHT'
   },
   {
     id: 'insole_left_02',
@@ -91,8 +72,8 @@ class SupabaseService {
     this.deviceId = INITIAL_DEVICE_ID;
 
     // Cache state for bilateral nodes
-    this.cachedLeft = this.getEmptyFootTelemetry('left', 'insole_left_01');
-    this.cachedRight = this.getEmptyFootTelemetry('right', 'insole_right_01');
+    this.cachedLeft = this.getEmptyFootTelemetry('left', 'stridesense_esp32_01');
+    this.cachedRight = this.getEmptyFootTelemetry('right', 'stridesense_esp32_01');
 
     this.init();
   }
@@ -116,12 +97,14 @@ class SupabaseService {
   }
 
   isBilateralMode() {
-    return this.deviceId === 'bilateral_hw' || this.deviceId === 'bilateral_sim';
+    return this.deviceId === 'stridesense_esp32_01' || 
+           this.deviceId === 'bilateral_hw' || 
+           this.deviceId === 'bilateral_sim';
   }
 
   getPairedDeviceIds(id = this.deviceId) {
-    if (id === 'bilateral_hw') {
-      return { leftId: 'insole_left_01', rightId: 'insole_right_01' };
+    if (id === 'stridesense_esp32_01' || id === 'bilateral_hw') {
+      return { leftId: 'stridesense_esp32_01', rightId: 'stridesense_esp32_01' };
     }
     if (id === 'bilateral_sim') {
       return { leftId: 'insole_left_02', rightId: 'insole_right_02' };
@@ -330,6 +313,31 @@ class SupabaseService {
    * Fetches available devices from Supabase public.devices including bilateral pairs
    */
   async fetchAvailableDevices() {
+    if (this.client) {
+      try {
+        const { data, error } = await this.client.from('devices').select('*');
+        if (!error && data && data.length > 0) {
+          return data.map((d) => {
+            const isUnified = d.id === 'stridesense_esp32_01' || d.id === 'bilateral_hw';
+            const isSim = d.id.includes('02') || d.id.includes('sim');
+            return {
+              id: d.id,
+              name: d.name || (isUnified ? 'StrideSense Unified Hardware' : d.id),
+              type: isUnified ? 'pair' : 'single',
+              side: isUnified ? 'bilateral' : (d.id.includes('right') ? 'right' : 'left'),
+              leftId: isUnified ? d.id : (d.id.includes('left') ? d.id : null),
+              rightId: isUnified ? d.id : (d.id.includes('right') ? d.id : null),
+              battery_pct: d.battery_pct ?? (isSim ? 100 : 95),
+              battery_voltage: d.battery_voltage ?? (isSim ? 4.20 : 4.08),
+              firmware_version: d.firmware_version || 'v1.5.0-Unified-TinyML',
+              badge: isUnified ? 'UNIFIED HW' : (isSim ? 'SIM' : 'HW')
+            };
+          });
+        }
+      } catch (e) {
+        console.warn('[Supabase] Using fallback devices list:', e);
+      }
+    }
     return FALLBACK_DEVICES;
   }
 
@@ -361,14 +369,36 @@ class SupabaseService {
           this.isConnected = true;
           const row = payload.new;
 
+          // Unified Single ESP32 Hardware Kit (Carries both Left & Right FSRs in 1 packet)
+          if (row.device_id === 'stridesense_esp32_01' || 
+             (this.deviceId === 'stridesense_esp32_01' && row.device_id === 'stridesense_esp32_01')) {
+            const leftRow = {
+              ...row,
+              device_id: 'stridesense_esp32_01',
+              p1: row.p1 || 0,
+              p2: row.p2 || 0,
+              p5: row.p5 || row.p2 || 0
+            };
+            const rightRow = {
+              ...row,
+              device_id: 'stridesense_esp32_01',
+              p1: row.p3 || 0,
+              p2: row.p4 || 0,
+              p5: row.p6 || row.p4 || 0
+            };
+            this.cachedLeft = this.normalizeSingleFootRow(leftRow, 'left', true);
+            this.cachedRight = this.normalizeSingleFootRow(rightRow, 'right', true);
+            this.notify(this.combineBilateralTelemetry(this.cachedLeft, this.cachedRight));
+            return;
+          }
+
           if (this.isBilateralMode()) {
             if (row.device_id === leftId) {
               this.cachedLeft = this.normalizeSingleFootRow(row, 'left', true);
-              // Handle unified single ESP32 sending both left (p1, p2) and right (p3, p4) foot FSR telemetry
-              if (leftId === 'insole_left_01' && (row.p3 !== undefined || row.p4 !== undefined)) {
+              if (row.p3 !== undefined || row.p4 !== undefined) {
                 const rightRow = {
                   ...row,
-                  device_id: 'insole_right_01',
+                  device_id: rightId || 'stridesense_esp32_01',
                   p1: row.p3 || 0,
                   p2: row.p4 || 0,
                   p5: row.p6 || row.p4 || 0
@@ -389,11 +419,10 @@ class SupabaseService {
                 this.cachedRight = single;
               } else {
                 this.cachedLeft = single;
-                // If single board is insole_left_01 carrying 4 FSRs, mirror right side
                 if (row.p3 !== undefined || row.p4 !== undefined) {
                   const rightRow = {
                     ...row,
-                    device_id: 'insole_right_01',
+                    device_id: 'stridesense_esp32_01',
                     p1: row.p3 || 0,
                     p2: row.p4 || 0,
                     p5: row.p6 || row.p4 || 0
@@ -431,6 +460,37 @@ class SupabaseService {
     try {
       const { leftId, rightId } = this.getPairedDeviceIds(this.deviceId);
 
+      // Handle Unified Single ESP32 Hardware Kit
+      if (this.deviceId === 'stridesense_esp32_01' || leftId === 'stridesense_esp32_01') {
+        const { data, error } = await this.client
+          .from('telemetry')
+          .select('*')
+          .eq('device_id', 'stridesense_esp32_01')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          const lRow = data[0];
+          const leftRow = {
+            ...lRow,
+            device_id: 'stridesense_esp32_01',
+            p1: lRow.p1 || 0,
+            p2: lRow.p2 || 0,
+            p5: lRow.p5 || lRow.p2 || 0
+          };
+          const rightRow = {
+            ...lRow,
+            device_id: 'stridesense_esp32_01',
+            p1: lRow.p3 || 0,
+            p2: lRow.p4 || 0,
+            p5: lRow.p6 || lRow.p4 || 0
+          };
+          this.cachedLeft = this.normalizeSingleFootRow(leftRow, 'left');
+          this.cachedRight = this.normalizeSingleFootRow(rightRow, 'right');
+          return this.combineBilateralTelemetry(this.cachedLeft, this.cachedRight);
+        }
+      }
+
       if (this.isBilateralMode()) {
         const [resLeft, resRight] = await Promise.all([
           this.client
@@ -450,11 +510,10 @@ class SupabaseService {
         if (resLeft.data && resLeft.data.length > 0) {
           const lRow = resLeft.data[0];
           this.cachedLeft = this.normalizeSingleFootRow(lRow, 'left');
-          // Unified single ESP32 kit populates right foot automatically
-          if (leftId === 'insole_left_01' && (!resRight.data || resRight.data.length === 0 || lRow.p3 > 0 || lRow.p4 > 0)) {
+          if (lRow.p3 > 0 || lRow.p4 > 0) {
             const rRow = {
               ...lRow,
-              device_id: 'insole_right_01',
+              device_id: rightId || 'stridesense_esp32_01',
               p1: lRow.p3 || 0,
               p2: lRow.p4 || 0,
               p5: lRow.p6 || lRow.p4 || 0
@@ -489,7 +548,7 @@ class SupabaseService {
         if (data.p3 !== undefined || data.p4 !== undefined) {
           const rRow = {
             ...data,
-            device_id: 'insole_right_01',
+            device_id: 'stridesense_esp32_01',
             p1: data.p3 || 0,
             p2: data.p4 || 0,
             p5: data.p6 || data.p4 || 0

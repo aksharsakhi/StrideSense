@@ -214,8 +214,14 @@ void loop() {
 
         bool sent = Supabase.sendTelemetry(payload);
 
+        // Output machine-readable JSON line for resilient direct/bridge sync
+        Serial.printf("[TELEMETRY_JSON] {\"device_id\":\"%s\",\"activity\":\"%s\",\"confidence\":%.2f,\"steps\":%u,\"cadence\":%.1f,\"symmetry\":%.1f,\"fall_alert\":%s,\"p1\":%u,\"p2\":%u,\"p3\":%u,\"p4\":%u,\"p5\":%u,\"p6\":%u,\"pitch\":%.1f,\"roll\":%.1f,\"svm_a\":%.2f}\n",
+            DEVICE_ID, payload.activity, payload.confidence, payload.step_count, payload.cadence_spm, payload.symmetry_index,
+            payload.fall_alert ? "true" : "false", payload.p1, payload.p2, payload.p3, payload.p4, payload.p5, payload.p6,
+            payload.pitch, payload.roll, payload.svm_a);
+
         // 7. Clear, Comprehensive 1 Hz Terminal Monitor Dashboard
-        Serial.println(F("\n========================================================================================"));
+        Serial.println(F("========================================================================================"));
         if (WiFi.status() == WL_CONNECTED) {
             int code = Supabase.getLastHttpCode();
             if (code >= 200 && code < 300) {

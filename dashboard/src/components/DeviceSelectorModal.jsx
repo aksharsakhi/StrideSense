@@ -17,8 +17,8 @@ export default function DeviceSelectorModal({
     onClose();
   };
 
-  const bilateralPairs = availableDevices.filter((d) => d.id?.startsWith('bilateral'));
-  const singleNodes = availableDevices.filter((d) => !d.id?.startsWith('bilateral'));
+  const bilateralPairs = availableDevices.filter((d) => d.id?.startsWith('bilateral') || d.id?.includes('stridesense_esp32') || d.type === 'pair');
+  const singleNodes = availableDevices.filter((d) => !d.id?.startsWith('bilateral') && !d.id?.includes('stridesense_esp32') && d.type !== 'pair');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto">
@@ -58,7 +58,7 @@ export default function DeviceSelectorModal({
             <div className="flex flex-col gap-2.5">
               {bilateralPairs.map((dev) => {
                 const isSelected = dev.id === selectedDeviceId;
-                const isHardware = dev.id === 'bilateral_hw';
+                const isHardware = dev.id === 'bilateral_hw' || dev.id === 'stridesense_esp32_01' || dev.id?.includes('esp32');
                 const Icon = isHardware ? Cpu : Monitor;
 
                 return (
@@ -89,7 +89,7 @@ export default function DeviceSelectorModal({
                             </span>
                           </div>
                           <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 font-mono">
-                            {dev.leftId} + {dev.rightId}
+                            {dev.id === 'stridesense_esp32_01' ? 'Single ESP32 (4x FSR: Left + Right)' : `${dev.leftId} + ${dev.rightId}`}
                           </span>
                         </div>
                       </div>
