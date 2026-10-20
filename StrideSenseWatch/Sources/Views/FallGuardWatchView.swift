@@ -23,7 +23,7 @@ public struct FallGuardWatchView: View {
                             .frame(width: 60, height: 44)
                             .background(Circle().fill(Color.red.opacity(0.4)))
                         
-                        Text("Dispatching SOS in seconds...")
+                        Text(vm.sosDispatched ? "Emergency SOS Dispatched!" : "Dispatching SOS in seconds...")
                             .font(.system(size: 8))
                             .foregroundColor(.gray)
                         
@@ -46,18 +46,18 @@ public struct FallGuardWatchView: View {
                     // NORMAL MONITORING STATE
                     VStack(spacing: 6) {
                         HStack {
-                            Image(systemName: "shield.fill")
-                                .foregroundColor(.green)
+                            Image(systemName: vm.telemetry.isOnline ? "shield.fill" : "shield.slash.fill")
+                                .foregroundColor(vm.telemetry.isOnline ? .green : .gray)
                                 .font(.system(size: 12))
-                            Text("FALL GUARD ARMED")
+                            Text(vm.telemetry.isOnline ? "FALL GUARD ARMED" : "GUARD STANDBY")
                                 .font(.system(size: 9, weight: .bold, design: .rounded))
-                                .foregroundColor(.green)
+                                .foregroundColor(vm.telemetry.isOnline ? .green : .gray)
                             Spacer()
                         }
                         .padding(.horizontal, 4)
                         
                         VStack(spacing: 3) {
-                            Text("Edge Kinematics Active")
+                            Text(vm.telemetry.isOnline ? "Edge Kinematics Active" : "Insole Disconnected")
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundColor(.white)
                             Text("Dual Trigger: Free-Fall <0.6g + Impact >2.8g")
@@ -69,39 +69,41 @@ public struct FallGuardWatchView: View {
                         .padding(.vertical, 6)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color(white: 0.08)))
                         
-                        // Test Trigger Button
-                        Button(action: {
-                            vm.triggerFallAlert(reason: "Watch UI Button Test")
-                        }) {
-                            HStack {
-                                Image(systemName: "bolt.fill")
-                                    .font(.system(size: 9))
-                                Text("Simulate Fall Event")
-                                    .font(.system(size: 9, weight: .bold))
+                        // Caregiver Contact Info
+                        HStack {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("Emergency Contact")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(.gray)
+                                Text(vm.patient.emergencyContactName)
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundColor(.white)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.25)))
-                            .foregroundColor(.orange)
+                            Spacer()
+                            Image(systemName: "phone.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(.cyan)
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .padding(6)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color(white: 0.06)))
                         
-                        // Manual SOS Button
+                        // Manual Emergency SOS Button
                         Button(action: {
                             vm.triggerManualSOS()
                         }) {
-                            HStack {
+                            HStack(spacing: 6) {
                                 Image(systemName: "sos")
+                                    .font(.system(size: 11, weight: .heavy))
+                                Text("EMERGENCY SOS")
                                     .font(.system(size: 10, weight: .heavy))
-                                Text("Emergency SOS")
-                                    .font(.system(size: 9, weight: .heavy))
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.red))
+                            .padding(.vertical, 8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.red))
                             .foregroundColor(.white)
                         }
                         .buttonStyle(PlainButtonStyle())
+                        .padding(.top, 2)
                     }
                 }
             }

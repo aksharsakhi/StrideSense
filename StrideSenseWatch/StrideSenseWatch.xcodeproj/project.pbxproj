@@ -10,6 +10,7 @@
 		0C3944F819F9272B81CF296D /* StrideSenseWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B2345D605C6A98DEB1FB0F /* StrideSenseWatchApp.swift */; };
 		0E761F74BAC3E9E86B54E99C /* SupabaseWatchClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E749C859CCB9782FCE6CDC /* SupabaseWatchClient.swift */; };
 		2BB07DC2B5907920A1D49998 /* MotionWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 277DD8110D2FEEE66926EB69 /* MotionWatchView.swift */; };
+		3CBA816814680B53099E846C /* HealthStepsWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE8E0959877204F7C0BBB985 /* HealthStepsWatchView.swift */; };
 		4FD9EFA765AD0CE53ADD7EDA /* WatchTelemetryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9186FC4DCCC721F7B95645B /* WatchTelemetryViewModel.swift */; };
 		6AE8B1D519C5E1BA1B58750D /* FallGuardWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 404B53B08CE5080D41C5134F /* FallGuardWatchView.swift */; };
 		6D0C4A7B616F05EB904712EF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9DF893750B4DBD4DCD61DCA0 /* Assets.xcassets */; };
@@ -37,6 +38,7 @@
 		C1BC7189D348853FCCA29CD3 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
 		E9186FC4DCCC721F7B95645B /* WatchTelemetryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchTelemetryViewModel.swift; sourceTree = "<group>"; };
 		EA4F0C04ACFDB670960E8A5C /* TelemetryData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryData.swift; sourceTree = "<group>"; };
+		FE8E0959877204F7C0BBB985 /* HealthStepsWatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthStepsWatchView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -54,6 +56,7 @@
 			children = (
 				404B53B08CE5080D41C5134F /* FallGuardWatchView.swift */,
 				3460573F198D29E2D63BAA28 /* GaitBiomechanicsWatchView.swift */,
+				FE8E0959877204F7C0BBB985 /* HealthStepsWatchView.swift */,
 				A69E7F42B1D00725AD86E67F /* MainWatchTabView.swift */,
 				277DD8110D2FEEE66926EB69 /* MotionWatchView.swift */,
 				7BB30CCA764C4FC02FA3AC5A /* PlantarPressureWatchView.swift */,
@@ -190,6 +193,7 @@
 				6AE8B1D519C5E1BA1B58750D /* FallGuardWatchView.swift in Sources */,
 				E228C8F79AF118D1E0AE496C /* GaitBiomechanicsWatchView.swift in Sources */,
 				D6B90A238AA9E3AB3B8075E5 /* HapticManager.swift in Sources */,
+				3CBA816814680B53099E846C /* HealthStepsWatchView.swift in Sources */,
 				B10651A826FB3B0342BC3759 /* MainWatchTabView.swift in Sources */,
 				2BB07DC2B5907920A1D49998 /* MotionWatchView.swift in Sources */,
 				DC46FA59448CDDB1FB9C765B /* PatientProfile.swift in Sources */,

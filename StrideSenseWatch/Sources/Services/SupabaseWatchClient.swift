@@ -26,18 +26,24 @@ public actor SupabaseWatchClient {
     
     private let baseUrl = "https://sgooptohhldguitvhbrl.supabase.co/rest/v1"
     private let apiKey = "sb_publishable_XOwUeGn_OBNf0XoAMNmT9g_3M91ATSI"
+    private let targetDeviceId = "stridesense_esp32_01"
     
     private let session: URLSession
+    private let isoFormatter: ISO8601DateFormatter
     
     public init() {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 4.0
-        config.timeoutIntervalForResource = 8.0
+        config.timeoutIntervalForRequest = 3.5
+        config.timeoutIntervalForResource = 6.0
         self.session = URLSession(configuration: config)
+        
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        self.isoFormatter = formatter
     }
     
-    public func fetchLatestTelemetry(deviceId: String = "stridesense_esp32_01") async throws -> TelemetryData? {
-        guard let url = URL(string: "\(baseUrl)/telemetry?order=created_at.desc&limit=1") else {
+    public func fetchLatestESP32Telemetry() async throws -> TelemetryData? {
+        guard let url = URL(string: "\(baseUrl)/telemetry?device_id=eq.\(targetDeviceId)&order=created_at.desc&limit=1") else {
             return nil
         }
         
@@ -57,58 +63,83 @@ public actor SupabaseWatchClient {
         let rows = try decoder.decode([SupabaseTelemetryRow].self, from: data)
         guard let row = rows.first else { return nil }
         
-        // Map FSR pressure sensors:
+        // Parse timestamp and determine freshness
+        var packetDate = Date()
+        var secondsAgo: Double = 999.0
+        if let createdStr = row.created_at {
+            if let parsed = isoFormatter.date(from: createdStr) {
+                packetDate = parsed
+                secondsAgo = max(0, Date().timeIntervalSince(parsed))
+            } else {
+                let simpleFormatter = ISO8601DateFormatter()
+                if let parsed = simpleFormatter.date(from: createdStr) {
+                    packetDate = parsed
+                    secondsAgo = max(0, Date().timeIntervalSince(parsed))
+                }
+            }
+        }
+        
+        // Freshness window: if received within last 8 seconds, ESP32 is actively streaming live
+        let isOnline = (secondsAgo <= 8.0)
+        
+        // Sensor mapping for unified ESP32 insole:
         // p1: Left Forefoot, p2: Left Heel, p3: Right Forefoot, p4: Right Heel
-        let lFore = row.p1 ?? 0
-        let lHeel = row.p2 ?? 0
-        let rFore = row.p3 ?? 0
-        let rHeel = row.p4 ?? 0
+        let lFore = isOnline ? min(100.0, max(0.0, row.p1 ?? 0)) : 0.0
+        let lHeel = isOnline ? min(100.0, max(0.0, row.p2 ?? 0)) : 0.0
+        let rFore = isOnline ? min(100.0, max(0.0, row.p3 ?? 0)) : 0.0
+        let rHeel = isOnline ? min(100.0, max(0.0, row.p4 ?? 0)) : 0.0
         
         let leftFoot = FootPressure(
-            heel: min(100.0, lHeel),
-            forefoot: min(100.0, lFore),
-            contact: (lHeel > 15 || lFore > 15)
+            heel: lHeel,
+            forefoot: lFore,
+            contact: isOnline && (lHeel > 15 || lFore > 15)
         )
         let rightFoot = FootPressure(
-            heel: min(100.0, rHeel),
-            forefoot: min(100.0, rFore),
-            contact: (rHeel > 15 || rFore > 15)
+            heel: rHeel,
+            forefoot: rFore,
+            contact: isOnline && (rHeel > 15 || rFore > 15)
         )
         
-        // Map gait pattern
-        let act = (row.activity ?? "Normal Gait").lowercased()
+        // Gait Pattern Mapping
+        let act = (row.activity ?? "Standing").lowercased()
         let pattern: GaitPattern
-        if act.contains("pro") {
+        if !isOnline {
+            pattern = .offline
+        } else if act.contains("pro") {
             pattern = .overpronation
         } else if act.contains("sup") {
             pattern = .supination
         } else if act.contains("limp") || act.contains("asym") {
             pattern = .limpAsymmetric
+        } else if act.contains("stand") {
+            pattern = .standing
         } else {
             pattern = .normal
         }
         
         return TelemetryData(
-            deviceId: row.device_id ?? deviceId,
-            timestamp: Date(),
+            deviceId: targetDeviceId,
+            timestamp: packetDate,
+            isOnline: isOnline,
+            lastSeenSecondsAgo: secondsAgo,
             pressure: BilateralPressure(left: leftFoot, right: rightFoot),
             gaitClass: pattern,
-            confidence: row.confidence ?? 0.98,
-            cadenceSPM: row.cadence ?? 108.0,
+            confidence: isOnline ? (row.confidence ?? 0.0) : 0.0,
+            cadenceSPM: isOnline ? (row.cadence ?? 0.0) : 0.0,
             stanceRatio: 62.0,
             swingRatio: 38.0,
-            symmetryPct: row.symmetry ?? 96.0,
-            steps: row.steps ?? 1241,
-            pitch: row.pitch ?? 0.0,
-            roll: row.roll ?? 0.0,
-            svmA: row.svm_a ?? 1.0,
+            symmetryPct: isOnline ? (row.symmetry ?? 0.0) : 0.0,
+            steps: row.steps ?? 1241, // Cumulative daily steps retained
+            pitch: isOnline ? (row.pitch ?? 0.0) : 0.0,
+            roll: isOnline ? (row.roll ?? 0.0) : 0.0,
+            svmA: isOnline ? (row.svm_a ?? 1.0) : 1.0,
             batteryPct: 95,
             batteryVoltage: 4.08,
-            fallAlert: row.fall_alert ?? false
+            fallAlert: isOnline && (row.fall_alert ?? false)
         )
     }
     
-    public func reportFallIncident(device: String, reason: String) async {
+    public func reportFallIncident(device: String = "stridesense_esp32_01", reason: String) async {
         guard let url = URL(string: "\(baseUrl)/fall_incidents") else { return }
         
         var request = URLRequest(url: url)
@@ -120,8 +151,8 @@ public actor SupabaseWatchClient {
         
         let payload: [String: Any] = [
             "device_id": device,
-            "incident_type": "IMPACT_FREEFALL_FALL",
-            "confidence": 0.99,
+            "incident_type": "EMERGENCY_SOS_APPLE_WATCH",
+            "confidence": 1.00,
             "notes": "Emergency alert triggered via StrideSense Apple Watch Companion: \(reason)",
             "created_at": ISO8601DateFormatter().string(from: Date())
         ]

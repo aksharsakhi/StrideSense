@@ -7,6 +7,8 @@ public enum GaitPattern: String, Codable, CaseIterable {
     case overpronation = "Overpronation"
     case supination = "Supination"
     case limpAsymmetric = "Asymmetric Limp"
+    case standing = "Standing"
+    case offline = "Offline"
     
     public var shortName: String {
         switch self {
@@ -14,6 +16,8 @@ public enum GaitPattern: String, Codable, CaseIterable {
         case .overpronation: return "PRONATION"
         case .supination: return "SUPINATION"
         case .limpAsymmetric: return "LIMP"
+        case .standing: return "STANDING"
+        case .offline: return "OFFLINE"
         }
     }
     
@@ -23,6 +27,8 @@ public enum GaitPattern: String, Codable, CaseIterable {
         case .overpronation: return Color(red: 0.96, green: 0.62, blue: 0.04) // Amber
         case .supination: return Color(red: 0.66, green: 0.33, blue: 0.97) // Purple
         case .limpAsymmetric: return Color(red: 0.94, green: 0.27, blue: 0.27) // Red
+        case .standing: return Color(red: 0.2, green: 0.6, blue: 0.9) // Blue
+        case .offline: return Color(white: 0.4) // Gray
         }
     }
 }
@@ -71,17 +77,19 @@ public struct BilateralPressure: Codable, Equatable {
 public struct TelemetryData: Codable, Equatable {
     public var deviceId: String
     public var timestamp: Date
+    public var isOnline: Bool
+    public var lastSeenSecondsAgo: Double
     public var pressure: BilateralPressure
     public var gaitClass: GaitPattern
-    public var confidence: Double // 0.0 - 1.0
-    public var cadenceSPM: Double // Steps per minute
-    public var stanceRatio: Double // e.g. 62%
-    public var swingRatio: Double  // e.g. 38%
-    public var symmetryPct: Double // e.g. 96.5%
+    public var confidence: Double
+    public var cadenceSPM: Double
+    public var stanceRatio: Double
+    public var swingRatio: Double
+    public var symmetryPct: Double
     public var steps: Int
     public var pitch: Double
     public var roll: Double
-    public var svmA: Double // G-force magnitude
+    public var svmA: Double
     public var batteryPct: Int
     public var batteryVoltage: Double
     public var fallAlert: Bool
@@ -89,26 +97,27 @@ public struct TelemetryData: Codable, Equatable {
     public init(
         deviceId: String = "stridesense_esp32_01",
         timestamp: Date = Date(),
-        pressure: BilateralPressure = BilateralPressure(
-            left: FootPressure(heel: 42, forefoot: 65, contact: true),
-            right: FootPressure(heel: 38, forefoot: 58, contact: true)
-        ),
-        gaitClass: GaitPattern = .normal,
-        confidence: Double = 0.98,
-        cadenceSPM: Double = 108,
+        isOnline: Bool = false,
+        lastSeenSecondsAgo: Double = 999.0,
+        pressure: BilateralPressure = BilateralPressure(),
+        gaitClass: GaitPattern = .offline,
+        confidence: Double = 0.0,
+        cadenceSPM: Double = 0.0,
         stanceRatio: Double = 62.0,
         swingRatio: Double = 38.0,
-        symmetryPct: Double = 96.0,
+        symmetryPct: Double = 0.0,
         steps: Int = 1241,
-        pitch: Double = 4.2,
-        roll: Double = -1.8,
-        svmA: Double = 1.02,
+        pitch: Double = 0.0,
+        roll: Double = 0.0,
+        svmA: Double = 1.0,
         batteryPct: Int = 95,
         batteryVoltage: Double = 4.08,
         fallAlert: Bool = false
     ) {
         self.deviceId = deviceId
         self.timestamp = timestamp
+        self.isOnline = isOnline
+        self.lastSeenSecondsAgo = lastSeenSecondsAgo
         self.pressure = pressure
         self.gaitClass = gaitClass
         self.confidence = confidence

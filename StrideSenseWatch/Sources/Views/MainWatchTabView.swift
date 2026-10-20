@@ -9,20 +9,29 @@ public struct MainWatchTabView: View {
     public var body: some View {
         ZStack {
             TabView(selection: $selectedTab) {
-                PlantarPressureWatchView(vm: vm)
+                // Screen 1: Activity & Steps (Apple Health Style)
+                HealthStepsWatchView(vm: vm)
                     .tag(0)
                 
-                GaitBiomechanicsWatchView(vm: vm)
+                // Screen 2: Plantar Pressure Sensors
+                PlantarPressureWatchView(vm: vm)
                     .tag(1)
                 
-                FallGuardWatchView(vm: vm)
+                // Screen 3: Gait Biomechanics Analysis
+                GaitBiomechanicsWatchView(vm: vm)
                     .tag(2)
                 
-                MotionWatchView(vm: vm)
+                // Screen 4: Fall Guard Alarm & Emergency Shield
+                FallGuardWatchView(vm: vm)
                     .tag(3)
                 
-                SettingsWatchView(vm: vm)
+                // Screen 5: 6-DOF IMU Motion
+                MotionWatchView(vm: vm)
                     .tag(4)
+                
+                // Screen 6: Settings & Patient Profile
+                SettingsWatchView(vm: vm)
+                    .tag(5)
             }
             .tabViewStyle(.page)
             
@@ -36,7 +45,7 @@ public struct MainWatchTabView: View {
         }
         .onChange(of: vm.fallAlertActive) { active in
             if active {
-                selectedTab = 2 // Switch directly to Fall Guard tab
+                selectedTab = 3 // Jump directly to Fall Guard tab
             }
         }
     }

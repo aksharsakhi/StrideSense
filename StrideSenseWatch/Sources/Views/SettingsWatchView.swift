@@ -8,44 +8,21 @@ public struct SettingsWatchView: View {
             VStack(spacing: 8) {
                 // Header
                 HStack {
-                    Image(systemName: "gearshape.fill")
-                        .foregroundColor(.gray)
+                    Image(systemName: "person.crop.circle.fill")
+                        .foregroundColor(.cyan)
                         .font(.system(size: 11))
-                    Text("SETTINGS & PROFILE")
+                    Text("PATIENT & HARDWARE")
                         .font(.system(size: 9, weight: .bold, design: .rounded))
                         .foregroundColor(.gray)
                     Spacer()
                 }
                 .padding(.horizontal, 4)
                 
-                // Mode Toggle
-                Button(action: {
-                    vm.toggleDemoMode()
-                }) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(vm.isDemoMode ? "Mode: Demo Walk" : "Mode: Live Cloud")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white)
-                            Text(vm.isDemoMode ? "Generating 20Hz Gait" : "Supabase REST Polling")
-                                .font(.system(size: 7))
-                                .foregroundColor(.gray)
-                        }
-                        Spacer()
-                        Image(systemName: vm.isDemoMode ? "play.circle.fill" : "icloud.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(vm.isDemoMode ? .purple : .cyan)
-                    }
-                    .padding(6)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color(white: 0.08)))
-                }
-                .buttonStyle(PlainButtonStyle())
-                
                 // Patient Card
                 VStack(alignment: .leading, spacing: 3) {
                     HStack {
                         Text(vm.patient.name)
-                            .font(.system(size: 10, weight: .heavy, design: .rounded))
+                            .font(.system(size: 11, weight: .heavy, design: .rounded))
                             .foregroundColor(.white)
                         Spacer()
                         Text("BMI \(String(format: "%.1f", vm.patient.bmi))")
@@ -53,7 +30,7 @@ public struct SettingsWatchView: View {
                             .foregroundColor(.green)
                     }
                     
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Text("Age \(vm.patient.age)")
                             .font(.system(size: 7))
                             .foregroundColor(.gray)
@@ -74,25 +51,60 @@ public struct SettingsWatchView: View {
                 .padding(6)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color(white: 0.08)))
                 
-                // Battery & Device Info
-                HStack(spacing: 8) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "battery.75")
-                            .foregroundColor(.green)
-                            .font(.system(size: 9))
-                        Text("\(vm.telemetry.batteryPct)%")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.white)
+                // Hardware Device Card (stridesense_esp32_01)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack {
+                        Text("Hardware Device")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundColor(.gray)
+                        Spacer()
+                        Circle()
+                            .fill(vm.telemetry.isOnline ? Color.green : Color.orange)
+                            .frame(width: 5, height: 5)
+                        Text(vm.telemetry.isOnline ? "ONLINE" : "OFFLINE")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundColor(vm.telemetry.isOnline ? .green : .orange)
                     }
                     
-                    Spacer()
+                    Text(vm.telemetry.deviceId)
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(.cyan)
                     
-                    Text("\(String(format: "%.2f", vm.telemetry.batteryVoltage))V")
-                        .font(.system(size: 8, weight: .medium))
-                        .foregroundColor(.gray)
+                    HStack {
+                        HStack(spacing: 3) {
+                            Image(systemName: "battery.75")
+                                .font(.system(size: 8))
+                                .foregroundColor(.green)
+                            Text("\(vm.telemetry.batteryPct)%")
+                                .font(.system(size: 8, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        Spacer()
+                        Text("\(String(format: "%.2f", vm.telemetry.batteryVoltage))V LiPo")
+                            .font(.system(size: 8))
+                            .foregroundColor(.gray)
+                    }
                 }
                 .padding(6)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color(white: 0.08)))
+                
+                // Refresh / Sync Button
+                Button(action: {
+                    HapticManager.shared.playTap()
+                    vm.refreshNow()
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 9, weight: .bold))
+                        Text(vm.isFetching ? "Syncing..." : "Sync With ESP32 Cloud")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.cyan.opacity(0.2)))
+                    .foregroundColor(.cyan)
+                }
+                .buttonStyle(PlainButtonStyle())
             }
             .padding(.horizontal, 2)
         }
