@@ -6,7 +6,9 @@
 
 SupabaseClient Supabase;
 
-SupabaseClient::SupabaseClient() : last_wifi_check(0), was_connected(false) {}
+SupabaseClient::SupabaseClient() : last_wifi_check(0), was_connected(false), last_http_code(0) {
+    strncpy(last_error_msg, "INIT", sizeof(last_error_msg));
+}
 
 void SupabaseClient::begin() {
     pinMode(PIN_STATUS_LED, OUTPUT);
@@ -17,60 +19,34 @@ void SupabaseClient::begin() {
     WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(true);
 
-    Serial.println(F("\n[Wi-Fi] Scanning nearby 2.4 GHz wireless networks..."));
-    int n = WiFi.scanNetworks();
-    if (n == 0) {
-        Serial.println(F("[Wi-Fi] No networks found."));
-    } else {
-        Serial.printf("[Wi-Fi] Found %d networks:\n", n);
-        for (int i = 0; i < n; ++i) {
-            Serial.printf("  [%d] %-20s (RSSI: %d dBm)\n",
-                i + 1,
-                WiFi.SSID(i).c_str(),
-                WiFi.RSSI(i)
-            );
-        }
-    }
-
-    Serial.printf("\n[Supabase] Connecting to Wi-Fi SSID: '%s' ...\n", WIFI_SSID);
+    Serial.printf("\n[Wi-Fi] Connecting to Wi-Fi SSID: '%s' ...\n", WIFI_SSID);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-    secureClient.setInsecure(); // Non-blocking TLS for IoT without bundling certificates
 }
 
 void SupabaseClient::updateNetwork() {
     unsigned long now = millis();
-    if (now - last_wifi_check >= 3000) {
-        last_wifi_check = now;
-        wl_status_t status = WiFi.status();
-        if (status == WL_CONNECTED) {
-            if (!was_connected) {
-                was_connected = true;
-                Serial.printf("\n==========================================\n");
-                Serial.printf(" [✓] ESP32 Wi-Fi CONNECTED!\n");
-                Serial.printf(" IP Address: %s\n", WiFi.localIP().toString().c_str());
-                Serial.printf(" Signal:     %d dBm\n", WiFi.RSSI());
-                Serial.printf("==========================================\n\n");
-            }
-            digitalWrite(PIN_STATUS_LED, HIGH);
-        } else {
-            digitalWrite(PIN_STATUS_LED, LOW);
-            was_connected = false;
+    wl_status_t status = WiFi.status();
 
-            const char* statusStr = "UNKNOWN";
-            switch (status) {
-                case WL_NO_SHIELD: statusStr = "WL_NO_SHIELD"; break;
-                case WL_IDLE_STATUS: statusStr = "WL_IDLE_STATUS (Connecting...)"; break;
-                case WL_NO_SSID_AVAIL: statusStr = "WL_NO_SSID_AVAIL (SSID 'LADDA' Not Found - Ensure 2.4GHz hotspot is on!)"; break;
-                case WL_SCAN_COMPLETED: statusStr = "WL_SCAN_COMPLETED"; break;
-                case WL_CONNECT_FAILED: statusStr = "WL_CONNECT_FAILED"; break;
-                case WL_CONNECTION_LOST: statusStr = "WL_CONNECTION_LOST"; break;
-                case WL_DISCONNECTED: statusStr = "WL_DISCONNECTED"; break;
-                default: break;
-            }
-            Serial.printf("[Wi-Fi Status] %s - Retrying '%s'...\n", statusStr, WIFI_SSID);
-            WiFi.disconnect();
-            WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    if (status == WL_CONNECTED) {
+        if (!was_connected) {
+            was_connected = true;
+            Serial.printf("\n=======================================================\n");
+            Serial.printf(" [✓] ESP32 Wi-Fi CONNECTED!\n");
+            Serial.printf(" IP Address: %s\n", WiFi.localIP().toString().c_str());
+            Serial.printf(" Signal:     %d dBm\n", WiFi.RSSI());
+            Serial.printf("=======================================================\n\n");
+        }
+        digitalWrite(PIN_STATUS_LED, HIGH);
+        last_wifi_check = now;
+    } else {
+        digitalWrite(PIN_STATUS_LED, LOW);
+        was_connected = false;
+
+        // Allow 12 seconds for auto-reconnect before triggering reconnect
+        if (now - last_wifi_check >= 12000) {
+            last_wifi_check = now;
+            Serial.printf("[Wi-Fi] Status: NOT CONNECTED (Retrying '%s')...\n", WIFI_SSID);
+            WiFi.reconnect();
         }
     }
 }
@@ -81,17 +57,46 @@ bool SupabaseClient::isConnected() const {
 
 bool SupabaseClient::sendTelemetry(const SupabaseTelemetryPayload &payload) {
     if (WiFi.status() != WL_CONNECTED) {
+        last_http_code = -4; // Not connected
         return false;
     }
 
-    HTTPClient http;
-    String url = String(SUPABASE_HOST) + String(SUPABASE_ENDPOINT);
+    // Check & resolve DNS with automatic 8.8.8.8 fallback
+    const char* supabase_domain = "sgooptohhldguitvhbrl.supabase.co";
+    IPAddress resolvedIP;
+    if (!WiFi.hostByName(supabase_domain, resolvedIP)) {
+        // Fallback to Google DNS 8.8.8.8 & Cloudflare 1.1.1.1
+        WiFi.config(WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), IPAddress(8, 8, 8, 8), IPAddress(1, 1, 1, 1));
+        delay(50);
+        if (!WiFi.hostByName(supabase_domain, resolvedIP)) {
+            last_http_code = -1;
+            snprintf(last_error_msg, sizeof(last_error_msg), "DNS FAILED for %s", supabase_domain);
+            return false;
+        }
+    }
 
-    http.begin(secureClient, url);
+    WiFiClientSecure client;
+    client.setInsecure(); // Non-blocking TLS without bundling massive root CAs
+    client.setHandshakeTimeout(10); // 10 seconds handshake timeout
+    client.setTimeout(10000); // 10000 ms socket timeout
+
+    HTTPClient http;
+    http.setReuse(false); // Ensure clean teardown to prevent socket leak on Cloudflare
+    http.setTimeout(10000);
+    http.setConnectTimeout(10000);
+
+    String url = String(SUPABASE_HOST) + String(SUPABASE_ENDPOINT);
+    if (!http.begin(client, url)) {
+        last_http_code = -1;
+        snprintf(last_error_msg, sizeof(last_error_msg), "http.begin failed");
+        return false;
+    }
+
     http.addHeader("Content-Type", "application/json");
     http.addHeader("apikey", SUPABASE_PUBLISHABLE_KEY);
     http.addHeader("Authorization", String("Bearer ") + SUPABASE_PUBLISHABLE_KEY);
     http.addHeader("Prefer", "return=minimal");
+    http.addHeader("Connection", "close");
 
     // Format JSON matching Supabase public.telemetry schema
     char json[512];
@@ -119,16 +124,22 @@ bool SupabaseClient::sendTelemetry(const SupabaseTelemetryPayload &payload) {
     );
 
     int httpCode = http.POST(json);
+    last_http_code = httpCode;
+
     if (httpCode >= 200 && httpCode < 300) {
-        Serial.printf("[Supabase] Telemetry sent successfully (HTTP %d)\n", httpCode);
-        // Brief visual heartbeat blip indicating successful cloud push
+        snprintf(last_error_msg, sizeof(last_error_msg), "OK");
+        // Heartbeat LED flash on successful upload
         digitalWrite(PIN_STATUS_LED, LOW);
-        delay(35);
+        delay(25);
         digitalWrite(PIN_STATUS_LED, HIGH);
+    } else if (httpCode < 0) {
+        snprintf(last_error_msg, sizeof(last_error_msg), "No Internet on Wi-Fi AP (Check Hotspot Mobile Data)");
     } else {
-        Serial.printf("[Supabase] Telemetry upload failed: HTTP %d\n", httpCode);
+        snprintf(last_error_msg, sizeof(last_error_msg), "HTTP_%d", httpCode);
     }
+
     http.end();
+    client.stop();
 
     return (httpCode >= 200 && httpCode < 300);
 }
@@ -138,14 +149,23 @@ bool SupabaseClient::logFallIncident(float impact_g, const char* status) {
         return false;
     }
 
-    HTTPClient http;
-    String url = String(SUPABASE_HOST) + "/rest/v1/fall_incidents";
+    WiFiClientSecure client;
+    client.setInsecure();
+    client.setTimeout(8000);
 
-    http.begin(secureClient, url);
+    HTTPClient http;
+    http.setReuse(false);
+    http.setTimeout(8000);
+    http.setConnectTimeout(8000);
+
+    String url = String(SUPABASE_HOST) + "/rest/v1/fall_incidents";
+    if (!http.begin(client, url)) return false;
+
     http.addHeader("Content-Type", "application/json");
     http.addHeader("apikey", SUPABASE_PUBLISHABLE_KEY);
     http.addHeader("Authorization", String("Bearer ") + SUPABASE_PUBLISHABLE_KEY);
     http.addHeader("Prefer", "return=minimal");
+    http.addHeader("Connection", "close");
 
     char json[256];
     snprintf(json, sizeof(json),
@@ -160,6 +180,7 @@ bool SupabaseClient::logFallIncident(float impact_g, const char* status) {
 
     int httpCode = http.POST(json);
     http.end();
+    client.stop();
 
     return (httpCode >= 200 && httpCode < 300);
 }

@@ -32,11 +32,14 @@ public:
     bool isConnected() const;
     bool sendTelemetry(const SupabaseTelemetryPayload &payload);
     bool logFallIncident(float impact_g, const char* status);
+    int getLastHttpCode() const { return last_http_code; }
+    const char* getLastErrorMessage() const { return last_error_msg; }
 
 private:
     unsigned long last_wifi_check;
     bool was_connected;
-    WiFiClientSecure secureClient;
+    int last_http_code;
+    char last_error_msg[64];
 };
 
 extern SupabaseClient Supabase;

@@ -149,29 +149,6 @@ void loop() {
             inference_cycle = 0;
             current_inference = TinyML.runInference(SensorWindow);
 
-            // Detailed Serial Debug Output with live bilateral FSR & MPU-6050 IMU metrics
-            Serial.printf("[TinyML] Activity: %-8s | Conf: %3.0f%% | Steps: %5u | L[H:%4u, F:%4u] R[H:%4u, F:%4u]\n",
-                current_inference.activity_name,
-                current_inference.confidence * 100.0f,
-                step_counter,
-                sample.p1,
-                sample.p2,
-                sample.p3,
-                sample.p4
-            );
-            if (Sensors.isMPUConnected()) {
-                Serial.printf(" └─ [MPU-6050: ✓ CONNECTED] Pitch:%+5.1f° Roll:%+5.1f° | Acc(%+.2f, %+.2f, %+.2f)g | SVM: %4.2fg\n",
-                    sample.pitch,
-                    sample.roll,
-                    sample.ax,
-                    sample.ay,
-                    sample.az,
-                    svm_acc
-                );
-            } else {
-                Serial.println(F(" └─ [MPU-6050: ❌ NOT DETECTED] Check wiring: VCC->3V3, GND->GND, SDA->G21, SCL->G22"));
-            }
-
             // If a fall is detected, trigger immediate out-of-band transmission to cloud with zero delay
             if (current_inference.activity == ACTIVITY_FALL || FallEngine.isFallPending()) {
                 last_cloud_time = 0;
@@ -186,7 +163,7 @@ void loop() {
     Cloud.updateNetwork();
 #endif
 
-    // 6. Transmit Cloud Telemetry every 1000 ms (or immediately on fall)
+    // 6. Transmit Cloud Telemetry & Output Formatted 1 Hz Dashboard
     if (now - last_cloud_time >= CLOUD_TELEMETRY_MS) {
         last_cloud_time = now;
 
@@ -236,9 +213,38 @@ void loop() {
         payload.svm_a = sqrtf(latest.ax * latest.ax + latest.ay * latest.ay + latest.az * latest.az);
 
         bool sent = Supabase.sendTelemetry(payload);
-        if (sent) {
-            Serial.println(F("[Supabase] Telemetry sent successfully (HTTP 201)"));
+
+        // 7. Clear, Comprehensive 1 Hz Terminal Monitor Dashboard
+        Serial.println(F("\n========================================================================================"));
+        if (WiFi.status() == WL_CONNECTED) {
+            int code = Supabase.getLastHttpCode();
+            if (code >= 200 && code < 300) {
+                Serial.printf(" 🌐 NETWORK     | Wi-Fi: [✓ CONNECTED] SSID: '%s' | IP: %s (RSSI: %d dBm)\n",
+                    WIFI_SSID, WiFi.localIP().toString().c_str(), WiFi.RSSI());
+                Serial.printf(" ☁️  SUPABASE    | Status: [✓ HTTP %d OK - TELEMETRY UPLOADED]\n", code);
+            } else {
+                Serial.printf(" 🌐 NETWORK     | Wi-Fi: [✓ CONNECTED] SSID: '%s' | IP: %s (RSSI: %d dBm)\n",
+                    WIFI_SSID, WiFi.localIP().toString().c_str(), WiFi.RSSI());
+                Serial.printf(" ☁️  SUPABASE    | Status: [❌ HTTP %d ERROR: %s]\n", code, Supabase.getLastErrorMessage());
+            }
+        } else {
+            Serial.printf(" 🌐 NETWORK     | Wi-Fi: [❌ DISCONNECTED] (Searching SSID: '%s'...)\n", WIFI_SSID);
+            Serial.println(F(" ☁️  SUPABASE    | Status: [⏸ PAUSED - WAITING FOR WI-FI]"));
         }
+        Serial.println(F("----------------------------------------------------------------------------------------"));
+        Serial.printf(" 🦶 FSR SENSORS | LEFT FOOT  : Heel (GPIO 36): %4u | Forefoot (GPIO 39): %4u\n", send_p1, send_p2);
+        Serial.printf("                | RIGHT FOOT : Heel (GPIO 34): %4u | Forefoot (GPIO 35): %4u\n", send_p3, send_p4);
+        if (Sensors.isMPUConnected()) {
+            Serial.printf(" 📐 MPU-6050 IMU| [✓ OK] Pitch: %+5.1f° | Roll: %+5.1f° | SVM Accel: %4.2fg\n",
+                latest.pitch, latest.roll, payload.svm_a);
+            Serial.printf("                | Accel (g): [X:%+.2f, Y:%+.2f, Z:%+.2f] | Gyro (°/s): [X:%+.1f, Y:%+.1f, Z:%+.1f]\n",
+                latest.ax, latest.ay, latest.az, latest.gx, latest.gy, latest.gz);
+        } else {
+            Serial.println(F(" 📐 MPU-6050 IMU| [❌ NOT DETECTED] Check wiring: VCC->3V3, GND->GND, SDA->G21, SCL->G22"));
+        }
+        Serial.printf(" 🧠 TinyML AI   | Activity: %-8s (%2.0f%%) | Steps: %5u | Cadence: %3.0f SPM | Symmetry: %2.0f%%\n",
+            current_inference.activity_name, current_inference.confidence * 100.0f, step_counter, current_inference.cadence_spm, sym_index);
+        Serial.println(F("========================================================================================"));
 
         if (FallEngine.isEmergencyDispatched()) {
             Supabase.logFallIncident(3.5f, "EMERGENCY_DISPATCHED");
