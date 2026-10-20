@@ -176,40 +176,29 @@ Step 4: Mechanical Insole Assembly & Cable Routing
 Step 5: Connect Mobile / Web App & Verify Real-Time Telemetry
 ```
 
-### 📦 Part 1: Complete Bilateral Hardware Inventory (2 Feet Setup)
-To build the complete bilateral smart insole system (Left Insole + Right Insole), you have two identical hardware kits operating in tandem:
+### 📦 Part 1: Hardware Inventory (Unified Bilateral Kit: 1x ESP32, 4x FSRs, 1x IMU)
+To build the complete bilateral smart insole system connecting both legs to **a single ESP32**, the parts are organized into a central processing node and two insole sensor pads:
 
-#### 🟢 Left Insole Kit (ESP32 Board #1 — `insole_left_01`):
+#### 🧠 Central Processing & Actuator Hub (1x ESP32 + 1x MPU-6050):
 - [x] **1x ESP32 Dev Board** (38-Pin NodeMCU-32S or 30-Pin ESP-WROOM-32).
-- [x] **1x MPU-6050 6-DOF IMU Module** (3-axis Accel + 3-axis Gyroscope).
-- [x] **2x Square Force-Sensitive Resistors (FSR)**:
-  - **FSR 1**: Left Calcaneus (Heel Strike Sensor).
-  - **FSR 2**: Left 1st–2nd Metatarsal Head (Forefoot / Ball Propulsion Sensor).
-- [x] **1x Coin Type Micro Vibration Motor** (3.3V disc motor for left haptic fall feedback).
-- [x] **2x 10 kΩ Resistors** (*Brown-Black-Orange-Gold*) — Pull-down voltage dividers for FSRs.
+- [x] **1x MPU-6050 6-DOF IMU Module** (3-axis Accel + 3-axis Gyroscope mounted on shoe collar or waist clip).
+- [x] **1x Coin Type Micro Vibration Motor** (3.3V disc motor for haptic fall/gait biofeedback on GPIO 12).
 - [x] **1x 2N2222 or BC547 NPN Transistor** — Motor current switch.
 - [x] **1x 1 kΩ Resistor** (*Brown-Black-Red-Gold*) — Transistor base current limiter.
 - [x] **1x 1N4148 or 1N4001 Diode** — Flyback snubber protection across motor leads.
-- [x] **1x Status LED** (Uses ESP32 **Onboard Blue LED on GPIO 2** — **No external wiring or extra resistors needed!** Or 1x optional external LED on GPIO 2).
-- [x] **1x Push Button** (Optional SOS / Fall Alert Cancel button).
-- [x] **1x Left Shoe Insole** (Sport foam/gel insole, size matched).
-- [x] **Jumper Wires & Thin Flexible Ribbon Cable** (4-conductor ribbon for insole routing).
+- [x] **1x Status LED** (Uses ESP32 **Onboard Blue LED on GPIO 2** — **Zero external wiring or extra resistors needed!**).
+- [x] **1x Push Button** (Optional SOS / Fall Alert Cancel button on GPIO 14).
+- [x] **4x 10 kΩ Resistors** (*Brown-Black-Orange-Gold*) — Pull-down voltage dividers for the 4 FSR channels.
 
-#### 🔵 Right Insole Kit (ESP32 Board #2 — `insole_right_01`):
-- [x] **1x ESP32 Dev Board** (38-Pin NodeMCU-32S or 30-Pin ESP-WROOM-32).
-- [x] **1x MPU-6050 6-DOF IMU Module** (3-axis Accel + 3-axis Gyroscope).
-- [x] **2x Square Force-Sensitive Resistors (FSR)**:
-  - **FSR 1**: Right Calcaneus (Heel Strike Sensor).
-  - **FSR 2**: Right 1st–2nd Metatarsal Head (Forefoot / Ball Propulsion Sensor).
-- [x] **1x Coin Type Micro Vibration Motor** (3.3V disc motor for right haptic fall feedback).
-- [x] **2x 10 kΩ Resistors** (*Brown-Black-Orange-Gold*) — Pull-down voltage dividers for FSRs.
-- [x] **1x 2N2222 or BC547 NPN Transistor** — Motor current switch.
-- [x] **1x 1 kΩ Resistor** (*Brown-Black-Red-Gold*) — Transistor base current limiter.
-- [x] **1x 1N4148 or 1N4001 Diode** — Flyback snubber protection across motor leads.
-- [x] **1x Status LED** (Uses ESP32 **Onboard Blue LED on GPIO 2** — **No external wiring or extra resistors needed!** Or 1x optional external LED on GPIO 2).
-- [x] **1x Push Button** (Optional SOS / Fall Alert Cancel button).
-- [x] **1x Right Shoe Insole** (Sport foam/gel insole, size matched).
-- [x] **Jumper Wires & Thin Flexible Ribbon Cable** (4-conductor ribbon for insole routing).
+#### 👟 Bilateral Insole Sensor Array (4x FSRs — 2 for Each Leg):
+- [x] **Left Leg Insole (2x FSRs)**:
+  - **FSR L1**: Left Calcaneus (Heel Strike Sensor) ➔ Connected to **GPIO 36 (ADC1_CH0)**
+  - **FSR L2**: Left 1st–2nd Metatarsal Head (Forefoot Ball Sensor) ➔ Connected to **GPIO 39 (ADC1_CH3)**
+- [x] **Right Leg Insole (2x FSRs)**:
+  - **FSR R1**: Right Calcaneus (Heel Strike Sensor) ➔ Connected to **GPIO 34 (ADC1_CH6)**
+  - **FSR R2**: Right 1st–2nd Metatarsal Head (Forefoot Ball Sensor) ➔ Connected to **GPIO 35 (ADC1_CH7)**
+- [x] **1x Left Shoe Insole & 1x Right Shoe Insole** (Sport foam/gel insole, size matched).
+- [x] **Jumper Wires & Flexible 4-Conductor Cable** (Crossover ribbon between feet or drop-cables from waist).
 
 ---
 
@@ -263,45 +252,64 @@ The anatomy of human feet is mirrored. Proper anatomical sensor positioning is r
 
 ---
 
-## 4. Circuit Diagrams & Hardware Wiring (Both Left & Right ESP32s)
+## 4. Master Circuit Diagram & Hardware Wiring (Single ESP32 Unified Bilateral Kit)
 
-Both physical insoles use identical electronic circuits. However, each board is assigned its own distinct device identity in firmware (`insole_left_01` vs `insole_right_01`), allowing the cloud backend and mobile application to reconstruct a true bilateral biomechanical gait profile.
+In this unified hardware architecture, **a single ESP32** simultaneously acquires data from:
+1. **Left Shoe Insole**: 2x FSR sensors (Left Heel Calcaneus & Left Forefoot Metatarsal).
+2. **Right Shoe Insole**: 2x FSR sensors (Right Heel Calcaneus & Right Forefoot Metatarsal).
+3. **Motion Engine**: 1x MPU-6050 6-DOF IMU (3-axis Accelerometer + 3-axis Gyroscope via I2C).
+4. **Haptic Actuator**: 1x Micro Coin Vibration Motor (driven via 2N2222 NPN transistor on GPIO 12).
+5. **System Indicators**: 1x Single Multi-Status LED (uses ESP32 **Onboard Blue LED on GPIO 2** — zero external parts or extra wiring required!).
+6. **Safety Control**: 1x SOS Fall Cancel Push Button (Active LOW on GPIO 14).
+
+> [!IMPORTANT]
+> **Why ADC1 Channels are Mandatory on ESP32:**
+> The ESP32 integrates two analog-to-digital converters: **ADC1** and **ADC2**.
+> - **ADC2** (GPIOs 0, 2, 4, 12, 13, 14, 15, 25, 26, 27) is shared internally with the 2.4 GHz Wi-Fi radio. When Wi-Fi is actively transmitting telemetry packets to Supabase, any read attempt on ADC2 yields invalid readings or crashes the RF driver.
+> - **ADC1** (GPIOs 32, 33, 34, 35, 36, 39) operates on an independent hardware SAR architecture and is **100% immune to Wi-Fi transmission interference**.
+> All 4 FSR channels are mapped exclusively to **ADC1**:
+> - **Left Heel**: GPIO 36 (`ADC1_CH0`)
+> - **Left Forefoot**: GPIO 39 (`ADC1_CH3`)
+> - **Right Heel**: GPIO 34 (`ADC1_CH6`)
+> - **Right Forefoot**: GPIO 35 (`ADC1_CH7`)
 
 ---
 
-### 4.1 Circuit Diagram: ESP32 #1 — LEFT INSOLE (`insole_left_01`)
+### 4.1 Master ASCII Schematic (Single ESP32 + 4x FSRs + 1x MPU6050 + Motor)
 
 ```
                                   +3.3V POWER RAIL (ESP32 3V3)
-    ───────┬──────────────────────────┬──────────────────────────┬──────────────────────┬─────────────
-           │                          │                          │                      │
-           │                          │                          │                      │
-      [MPU-6050]                 [FSR 1: HEEL]              [FSR 2: FOREFOOT]           │
-      +---------+                 (Left Calcaneus)           (Left Metatarsal)          │
-      | VCC     |                     │                          │                      │
-      |         |                     │                          │                      │
-      | SDA ────┼── GPIO 21           │                          │                      │
-      | SCL ────┼── GPIO 22           │                          │                      │
-      | AD0 ────┼── GND (Addr 0x68)   │                          │                      │
-      | GND ────┼── GND               │                          │                      │
-      +---------+                     ▼                          ▼                      │
-                                Node (A)                   Node (B)                     │
-                                ├── GPIO 36 (VP / D34)     ├── GPIO 39 (VN / D35)       │
-                                │   (Analog ADC1_CH0)      │   (Analog ADC1_CH3)        │
-                                │                          │                            │
-                                [ 10kΩ Pull-down ]         [ 10kΩ Pull-down ]           │
-                                (Brown-Black-Orange)       (Brown-Black-Orange)         │
-                                │                          │                            │
-                                ▼                          ▼                            │
-                               GND                        GND                           │
-                                                                                        │
-                                                                   +3.3V (or 5V VIN) ───┘
+    ──────┬─────────────────┬─────────────────┬─────────────────┬─────────────────┬─────────────
+          │                 │                 │                 │                 │
+          │                 │                 │                 │                 │
+     [MPU-6050]        [FSR L1: HEEL]   [FSR L2: FORE]    [FSR R1: HEEL]   [FSR R2: FORE]       │
+     6-DOF IMU         Left Calcaneus    Left Metatarsal   Right Calcaneus  Right Metatarsal     │
+     +---------+            │                 │                 │                 │             │
+     | VCC     |            │                 │                 │                 │             │
+     |         |            │                 │                 │                 │             │
+     | SDA ────┼── GPIO 21  │                 │                 │                 │             │
+     | SCL ────┼── GPIO 22  │                 │                 │                 │             │
+     | AD0 ────┼── GND      │                 │                 │                 │             │
+     | GND ────┼── GND      │                 │                 │                 │             │
+     +---------+            ▼                 ▼                 ▼                 ▼             │
+                        Node (A)          Node (B)          Node (C)          Node (D)          │
+                        ├── GPIO 36       ├── GPIO 39       ├── GPIO 34       ├── GPIO 35       │
+                        │   (ADC1_CH0)    │   (ADC1_CH3)    │   (ADC1_CH6)    │   (ADC1_CH7)    │
+                        │   [Left Heel]   │   [Left Fore]   │   [Right Heel]  │   [Right Fore]  │
+                        │                 │                 │                 │                 │
+                        [ 10kΩ Resistor ] [ 10kΩ Resistor ] [ 10kΩ Resistor ] [ 10kΩ Resistor ] │
+                        (Brown-Black-Org) (Brown-Black-Org) (Brown-Black-Org) (Brown-Black-Org) │
+                        │                 │                 │                 │                 │
+                        ▼                 ▼                 ▼                 ▼                 │
+                       GND               GND               GND               GND                │
+                                                                                                │
+                                                                   +3.3V (or VIN for 5V Motor) ─┘
                                                                            │
                                                                            ├─────────────────────┐
                                                                            │                     │
                                                                      [ + Lead ]             [ CATHODE ]
                                                                   +──────────────+            (Band)
-                                                                  | LEFT COIN    |              ▲
+                                                                  | COIN HAPTIC  |              ▲
                                                                   | VIB MOTOR    |              │ 1N4148
                                                                   +──────────────+          [ DIODE ]
                                                                      [ - Lead ]                 │ Snubber
@@ -317,111 +325,58 @@ Both physical insoles use identical electronic circuits. However, each board is 
                                                                            │
                                                                            ▼
                                                                           GND
-    ──────────────────────────────────────────────────────────────────────────────────────────────────
+    ────────────────────────────────────────────────────────────────────────────────────────────
                                        COMMON GROUND BUS (ESP32 GND)
 ```
 
-#### Left Insole ESP32 Pinout Mapping:
-| Component Lead | Module Pin | ESP32 Pin | Pin Description / Role |
-|---|---|---|---|
-| **MPU-6050** | VCC | **3V3** | 3.3V regulated power rail |
-| **MPU-6050** | GND | **GND** | System ground rail |
-| **MPU-6050** | SDA | **GPIO 21** | I2C Hardware Data line |
-| **MPU-6050** | SCL | **GPIO 22** | I2C Hardware Clock line (400 kHz) |
-| **MPU-6050** | AD0 | **GND** | Sets I2C address to `0x68` (grounded) |
-| **Left FSR 1 (Heel)** | Pin A | **3V3** | 3.3V excitation rail |
-| **Left FSR 1 (Heel)** | Pin B | **GPIO 36 (VP)** or **GPIO 34** | ADC1 input tied to 10kΩ pull-down resistor to GND |
-| **Left FSR 2 (Forefoot)** | Pin A | **3V3** | 3.3V excitation rail |
-| **Left FSR 2 (Forefoot)** | Pin B | **GPIO 39 (VN)** or **GPIO 35** | ADC1 input tied to 10kΩ pull-down resistor to GND |
-| **Vibration Motor** | Red (+) wire | **3V3** (or VIN) | Motor power supply rail |
-| **Vibration Motor** | Blue/Black (-) | **Transistor Collector** | Switched negative ground through NPN collector |
-| **1N4148 Diode** | Cathode (Black Band) | **Motor Red (+)** | Reverse biased snubber: absorbs motor inductive discharge |
-| **1N4148 Diode** | Anode | **Motor Blue (-)** | Prevents back-EMF voltage spikes from damaging the ESP32 |
-| **2N2222 NPN Transistor** | Base (Pin 2) | **GPIO 12** via 1kΩ | Transistor base switch (1kΩ limits ESP32 GPIO drive current) |
-| **2N2222 NPN Transistor** | Emitter (Pin 1) | **GND** | Transistor emitter connected directly to common ground |
-| **Single Status LED** | Onboard LED (or GPIO 2 via 330Ω to GND) | **GPIO 2** | Multi-Status: Solid ON = Wi-Fi Active; Brief Blip = Cloud Sync; Fast Strobe = Fall Alert |
-| **SOS Push Button** | Pin 1 to GPIO, Pin 2 to GND | **GPIO 14** | Active LOW emergency fall cancel button (`INPUT_PULLUP`) |
+---
+
+### 4.2 Complete Pinout Mapping Reference Table
+
+| Component Lead | Module Pin | ESP32 Pin | Color Convention | Description & Functional Role |
+|---|---|---|---|---|
+| **MPU-6050** | VCC | **3V3** | Red | 3.3V regulated power rail |
+| **MPU-6050** | GND | **GND** | Black | System ground rail |
+| **MPU-6050** | SDA | **GPIO 21** | Blue / Cyan | I2C Serial Data line |
+| **MPU-6050** | SCL | **GPIO 22** | Yellow | I2C Serial Clock line (400 kHz Fast-Mode) |
+| **MPU-6050** | AD0 | **GND** | Black | Hardware address select -> `0x68` |
+| **Left FSR L1 (Heel)** | Pin 1 | **3V3** | Red | 3.3V excitation rail |
+| **Left FSR L1 (Heel)** | Pin 2 | **GPIO 36 (VP)** | Orange | ADC1 input tied to 10kΩ pull-down resistor to GND |
+| **Left FSR L2 (Forefoot)** | Pin 1 | **3V3** | Red | 3.3V excitation rail |
+| **Left FSR L2 (Forefoot)** | Pin 2 | **GPIO 39 (VN)** | Purple | ADC1 input tied to 10kΩ pull-down resistor to GND |
+| **Right FSR R1 (Heel)** | Pin 1 | **3V3** | Red | 3.3V excitation rail |
+| **Right FSR R1 (Heel)** | Pin 2 | **GPIO 34** | Green | ADC1 input tied to 10kΩ pull-down resistor to GND |
+| **Right FSR R2 (Forefoot)** | Pin 1 | **3V3** | Red | 3.3V excitation rail |
+| **Right FSR R2 (Forefoot)** | Pin 2 | **GPIO 35** | White / Grey | ADC1 input tied to 10kΩ pull-down resistor to GND |
+| **Vibration Motor** | Red wire (+) | **3V3** (or VIN) | Red | Motor power supply rail |
+| **Vibration Motor** | Blue/Black wire (-) | **Transistor Collector** | Blue | Switched negative ground through NPN collector |
+| **1N4148 Diode** | Cathode (Black Band) | **Motor Red (+)** | Stripe end | Reverse biased snubber: absorbs motor inductive discharge |
+| **1N4148 Diode** | Anode | **Motor Blue (-)** | Plain end | Prevents back-EMF voltage spikes from damaging the ESP32 |
+| **2N2222 NPN Transistor** | Base (Pin 2) | **GPIO 12** via 1kΩ | Brown-Blk-Red | Transistor base switch (1kΩ limits ESP32 GPIO drive current) |
+| **2N2222 NPN Transistor** | Emitter (Pin 1) | **GND** | Black | Transistor emitter connected directly to common ground |
+| **Single Status LED** | Onboard LED | **GPIO 2** | *Built-in* | Multi-Status: Solid ON = Wi-Fi; Brief Blip = Sync; Strobe = Fall Alert |
+| **SOS Push Button** | Pin 1 & Pin 2 | **GPIO 14** & **GND** | Any / Black | Active LOW emergency fall cancel button (`INPUT_PULLUP`) |
 
 ---
 
-### 4.2 Circuit Diagram: ESP32 #2 — RIGHT INSOLE (`insole_right_01`)
+### 4.3 Physical Wearable Setup & Cable Routing (2 Easy Options)
 
-```
-                                  +3.3V POWER RAIL (ESP32 3V3)
-    ───────┬──────────────────────────┬──────────────────────────┬──────────────────────┬─────────────
-           │                          │                          │                      │
-           │                          │                          │                      │
-      [MPU-6050]                 [FSR 1: HEEL]              [FSR 2: FOREFOOT]           │
-      +---------+                 (Right Calcaneus)          (Right Metatarsal)         │
-      | VCC     |                     │                          │                      │
-      |         |                     │                          │                      │
-      | SDA ────┼── GPIO 21           │                          │                      │
-      | SCL ────┼── GPIO 22           │                          │                      │
-      | AD0 ────┼── GND (Addr 0x68)   │                          │                      │
-      | GND ────┼── GND               │                          │                      │
-      +---------+                     ▼                          ▼                      │
-                                Node (A)                   Node (B)                     │
-                                ├── GPIO 36 (VP / D34)     ├── GPIO 39 (VN / D35)       │
-                                │   (Analog ADC1_CH0)      │   (Analog ADC1_CH3)        │
-                                │                          │                            │
-                                [ 10kΩ Pull-down ]         [ 10kΩ Pull-down ]           │
-                                (Brown-Black-Orange)       (Brown-Black-Orange)         │
-                                │                          │                            │
-                                ▼                          ▼                            │
-                               GND                        GND                           │
-                                                                                        │
-                                                                   +3.3V (or 5V VIN) ───┘
-                                                                           │
-                                                                           ├─────────────────────┐
-                                                                           │                     │
-                                                                     [ + Lead ]             [ CATHODE ]
-                                                                  +──────────────+            (Band)
-                                                                  | RIGHT COIN   |              ▲
-                                                                  | VIB MOTOR    |              │ 1N4148
-                                                                  +──────────────+          [ DIODE ]
-                                                                     [ - Lead ]                 │ Snubber
-                                                                           │                    │
-                                                                           ├────────────────────┘
-                                                                           │
-                                                                      (COLLECTOR)
-                                                                      ┌─────────┐
-                                  GPIO 12 ──────[ 1kΩ Resistor ]──────┤  2N2222 ├
-                                 (Haptic Pin)   (Brown-Black-Red)     │   NPN   │
-                                                                      └────┬────┘
-                                                                       (EMITTER)
-                                                                           │
-                                                                           ▼
-                                                                          GND
-    ──────────────────────────────────────────────────────────────────────────────────────────────────
-                                       COMMON GROUND BUS (ESP32 GND)
-```
+Because you are using 1 ESP32 and 1 MPU-6050 to measure both feet, choose either of the following mechanical layouts:
 
-#### Right Insole ESP32 Pinout Mapping:
-| Component Lead | Module Pin | ESP32 Pin | Pin Description / Role |
-|---|---|---|---|
-| **MPU-6050** | VCC | **3V3** | 3.3V regulated power rail |
-| **MPU-6050** | GND | **GND** | System ground rail |
-| **MPU-6050** | SDA | **GPIO 21** | I2C Hardware Data line |
-| **MPU-6050** | SCL | **GPIO 22** | I2C Hardware Clock line (400 kHz) |
-| **MPU-6050** | AD0 | **GND** | Sets I2C address to `0x68` (grounded) |
-| **Right FSR 1 (Heel)** | Pin A | **3V3** | 3.3V excitation rail |
-| **Right FSR 1 (Heel)** | Pin B | **GPIO 36 (VP)** or **GPIO 34** | ADC1 input tied to 10kΩ pull-down resistor to GND |
-| **Right FSR 2 (Forefoot)** | Pin A | **3V3** | 3.3V excitation rail |
-| **Right FSR 2 (Forefoot)** | Pin B | **GPIO 39 (VN)** or **GPIO 35** | ADC1 input tied to 10kΩ pull-down resistor to GND |
-| **Vibration Motor** | Red (+) wire | **3V3** (or VIN) | Motor power supply rail |
-| **Vibration Motor** | Blue/Black (-) | **Transistor Collector** | Switched negative ground through NPN collector |
-| **1N4148 Diode** | Cathode (Black Band) | **Motor Red (+)** | Reverse biased snubber: absorbs motor inductive discharge |
-| **1N4148 Diode** | Anode | **Motor Blue (-)** | Prevents back-EMF voltage spikes from damaging the ESP32 |
-| **2N2222 NPN Transistor** | Base (Pin 2) | **GPIO 12** via 1kΩ | Transistor base switch (1kΩ limits ESP32 GPIO drive current) |
-| **2N2222 NPN Transistor** | Emitter (Pin 1) | **GND** | Transistor emitter connected directly to common ground |
-| **Single Status LED** | Onboard LED (or GPIO 2 via 330Ω to GND) | **GPIO 2** | Multi-Status: Solid ON = Wi-Fi Active; Brief Blip = Cloud Sync; Fast Strobe = Fall Alert |
-| **SOS Push Button** | Pin 1 to GPIO, Pin 2 to GND | **GPIO 14** | Active LOW emergency fall cancel button (`INPUT_PULLUP`) |
+#### Option 1: Left Ankle / Shoe Collar Hub (Recommended)
+1. **Hub Placement**: Mount the ESP32 and MPU-6050 inside a small pouch on the outer collar of the **Left Shoe** (or an ankle neoprene strap).
+2. **Left Insole**: Route the 2 Left FSR leads directly under the left insole into the ESP32 (GPIO 36 and 39).
+3. **Right Insole Connection**: Run a lightweight, ultra-thin 4-conductor flexible wire (carrying 3.3V, GND, Right Heel signal, and Right Forefoot signal) along the back hem of the trousers to the right shoe.
+4. **IMU Kinematics**: Because the MPU-6050 is on the ankle, it captures high-fidelity swing and stance phase impact dynamics.
+
+#### Option 2: Central Waist Clip / Belt Hub
+1. **Hub Placement**: Clip the ESP32, MPU-6050, and battery to your belt or waistband at the sacrum (lower back center).
+2. **Bilateral Drops**: Run two thin 3-conductor cables down the inner seams of each trouser leg (one down to the left insole, one down to the right insole).
+3. **IMU Advantage**: Placing the MPU-6050 near the body's center of mass (sacrum) provides clinical-grade trunk tilt, postural sway, and whole-body fall impact detection!
 
 ---
 
-### 4.3 Component Pinout & Polarity Quick Reference Guide
-
-To ensure error-free assembly on breadboard or prototype PCB:
+### 4.4 Component Pinout & Polarity Quick Reference Guide
 
 ```
   2N2222 / BC547 NPN TRANSISTOR              1N4148 / 1N4001 SNUBBER DIODE
@@ -440,7 +395,7 @@ To ensure error-free assembly on breadboard or prototype PCB:
            └──────────────────> To Common Ground (GND)
 
 
-  10 kΩ PULL-DOWN RESISTORS                  1 kΩ BASE CURRENT RESISTORS
+  10 kΩ PULL-DOWN RESISTORS (x4)             1 kΩ BASE CURRENT RESISTOR (x1)
   Color Bands:                               Color Bands:
   [Brown][Black][Orange] [Gold]              [Brown][Black][Red]   [Gold]
     1      0    x1,000    ±5%                  1      0     x100    ±5%
@@ -449,121 +404,69 @@ To ensure error-free assembly on breadboard or prototype PCB:
 
 ---
 
-## 5. ESP32 Firmware Flashing Guide (Step-by-Step for 2 Boards)
+## 5. ESP32 Firmware Flashing Guide (Single-Board 1-Click Flashing)
 
 Firmware location: [`firmware/StrideSense_Firmware/StrideSense_Firmware.ino`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/StrideSense_Firmware.ino)
 
-You will flash **Board #1** with the Left Insole role, and **Board #2** with the Right Insole role.
-
----
-
 ### ⚡ Option A (Recommended): Automated 1-Click Terminal Flashing
 
-Our automated script handles board detection, configures the insole role in `config.h`, compiles, and uploads in one command.
-
-#### Step 1: Flash LEFT Insole (ESP32 #1)
-1. Plug your **first ESP32 board** into your Mac using a micro-USB / USB-C data cable.
+1. Connect your single **ESP32 board** to your Mac using a micro-USB / USB-C data cable.
 2. In your terminal, run:
    ```bash
    cd firmware
-   ./upload_esp32.sh left
+   ./upload_esp32.sh
    ```
-3. The script auto-configures `INSOLE_SIDE_LEFT` (`insole_left_01`), compiles the TinyML model, and flashes the ESP32.
-4. When finished, unplug the Left ESP32 and mark it with a small piece of tape: **"LEFT"**.
-
-#### Step 2: Flash RIGHT Insole (ESP32 #2)
-1. Plug your **second ESP32 board** into your Mac.
-2. In your terminal, run:
-   ```bash
-   ./upload_esp32.sh right
-   ```
-3. The script auto-configures `INSOLE_SIDE_RIGHT` (`insole_right_01`), compiles, and flashes the ESP32.
-4. Mark this board: **"RIGHT"**.
+3. The script automatically:
+   - Detects the USB serial port (e.g. `/dev/cu.usbserial-...` or `/dev/cu.wchusbserial-...`).
+   - Compiles the StrideSense firmware along with the embedded TinyML neural inference engine.
+   - Flashes the program directly onto the ESP32.
 
 ---
 
 ### 🛠️ Option B: Manual Flashing via Arduino IDE
 
 If you prefer using the Arduino IDE GUI:
-
 1. Open **Arduino IDE** (`/Applications/Arduino IDE.app`).
 2. Open [`firmware/StrideSense_Firmware/StrideSense_Firmware.ino`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/StrideSense_Firmware.ino).
-3. Open the `config.h` tab:
-   - Check your Wi-Fi credentials:
-     ```cpp
-     #define WIFI_SSID     "Your_2.4GHz_WiFi"
-     #define WIFI_PASSWORD "Your_WiFi_Password"
-     ```
-   - **For Board #1 (Left Insole)**:
-     ```cpp
-     #define INSOLE_SIDE   INSOLE_SIDE_LEFT
-     ```
-   - Select **Tools ➔ Board ➔ esp32 ➔ ESP32 Dev Module**.
-   - Select your USB Port (`/dev/cu.usbserial-...`).
-   - Click **Upload** (Arrow icon `➔`).
-   - After upload completes, disconnect Board #1.
-   - **For Board #2 (Right Insole)**:
-     Connect Board #2, change line 63 of `config.h` to:
-     ```cpp
-     #define INSOLE_SIDE   INSOLE_SIDE_RIGHT
-     ```
-   - Click **Upload** again.
+3. Verify Wi-Fi credentials in `config.h`:
+   ```cpp
+   #define WIFI_SSID     "LADDA"
+   #define WIFI_PASSWORD "ladda5555"
+   ```
+4. Select **Tools ➔ Board ➔ esp32 ➔ ESP32 Dev Module**.
+5. Select your USB Port (`/dev/cu.usbserial-...`).
+6. Click **Upload** (Arrow icon `➔`).
 
 ---
 
 ### 🔍 Verification via Serial Monitor (115200 Baud)
 
-Open the serial monitor for each board using `./serial_monitor.sh` or Arduino IDE:
+Open the serial monitor using `./serial_monitor.sh` or in Arduino IDE:
 
-#### Expected Output on Left Insole ESP32:
 ```
 ==========================================
      STRIDESENSE - AI SMART INSOLE       
-     ROLE: LEFT INSOLE [insole_left_01]
+     ROLE: UNIFIED BILATERAL (1x ESP32, 4x FSR, 1x MPU6050) [insole_left_01]
 ==========================================
 [Sensors] MPU-6050 detected at I2C address 0x68.
-[Sensors] MPU-6050 and Dual-FSR ADC initialized successfully.
-[Sensors] Calibrating zero-force baseline and IMU bias for 2-FSR kit...
-[Sensors] Calibration complete. FSR Baselines: Heel=22, Forefoot=18
+[Sensors] MPU-6050 and 4x Bilateral FSR ADC channels initialized successfully.
+[Sensors] Calibrating zero-force baseline and IMU bias for 4-FSR bilateral setup...
+[Sensors] Calibration complete. FSR Baselines: L_Heel=18, L_Forefoot=21, R_Heel=16, R_Forefoot=19
 [Supabase] Connecting to Wi-Fi SSID: 'LADDA' ...
 
 ==========================================
  [✓] ESP32 Wi-Fi CONNECTED!
  IP Address: 192.168.1.142
- Signal:     -54 dBm
-==========================================
-
-[System] Initialization complete. Starting 50 Hz telemetry loop...
-
-[TinyML] Activity: Standing | Conf: 100% | Cadence:   0 SPM | Steps:     0 | FSR[H:   0, F:   0] | SVM: 1.00g
-[Supabase] Telemetry sent successfully (HTTP 201)
-```
-
-#### Expected Output on Right Insole ESP32:
-```
-==========================================
-     STRIDESENSE - AI SMART INSOLE       
-     ROLE: RIGHT INSOLE [insole_right_01]
-==========================================
-[Sensors] MPU-6050 detected at I2C address 0x68.
-[Sensors] MPU-6050 and Dual-FSR ADC initialized successfully.
-[Sensors] Calibrating zero-force baseline and IMU bias for 2-FSR kit...
-[Sensors] Calibration complete. FSR Baselines: Heel=19, Forefoot=25
-[Supabase] Connecting to Wi-Fi SSID: 'LADDA' ...
-
-==========================================
- [✓] ESP32 Wi-Fi CONNECTED!
- IP Address: 192.168.1.143
  Signal:     -52 dBm
 ==========================================
 
 [System] Initialization complete. Starting 50 Hz telemetry loop...
 
-[TinyML] Activity: Standing | Conf: 100% | Cadence:   0 SPM | Steps:     0 | FSR[H:   0, F:   0] | SVM: 1.01g
+[TinyML] Activity: Standing | Conf: 100% | Cadence:   0 SPM | Steps:     0 | L[H:   0, F:   0] R[H:   0, F:   0] | SVM: 1.00g
 [Supabase] Telemetry sent successfully (HTTP 201)
 ```
 
-When both ESP32 boards are powered on and sending data, the mobile app on iPhone (`akshar's iPhone`) and the web dashboard will receive real-time telemetry from both insoles via Supabase Realtime CDC, rendering the dynamic dual-foot pressure heatmap, live weight distribution (e.g. 50% L / 50% R), and bilateral gait symmetry in real time!
+When you step on the insoles, you will see both the Left (`L[H, F]`) and Right (`R[H, F]`) numbers react live! The mobile app and web dashboard will instantly display both feet, render the bilateral plantar pressure heatmap, and compute real-time gait symmetry!
 
 ---
 

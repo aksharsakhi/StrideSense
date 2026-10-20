@@ -364,6 +364,17 @@ class SupabaseService {
           if (this.isBilateralMode()) {
             if (row.device_id === leftId) {
               this.cachedLeft = this.normalizeSingleFootRow(row, 'left', true);
+              // Handle unified single ESP32 sending both left (p1, p2) and right (p3, p4) foot FSR telemetry
+              if (leftId === 'insole_left_01' && (row.p3 !== undefined || row.p4 !== undefined)) {
+                const rightRow = {
+                  ...row,
+                  device_id: 'insole_right_01',
+                  p1: row.p3 || 0,
+                  p2: row.p4 || 0,
+                  p5: row.p6 || row.p4 || 0
+                };
+                this.cachedRight = this.normalizeSingleFootRow(rightRow, 'right', true);
+              }
               this.notify(this.combineBilateralTelemetry(this.cachedLeft, this.cachedRight));
             } else if (row.device_id === rightId) {
               this.cachedRight = this.normalizeSingleFootRow(row, 'right', true);
@@ -378,6 +389,17 @@ class SupabaseService {
                 this.cachedRight = single;
               } else {
                 this.cachedLeft = single;
+                // If single board is insole_left_01 carrying 4 FSRs, mirror right side
+                if (row.p3 !== undefined || row.p4 !== undefined) {
+                  const rightRow = {
+                    ...row,
+                    device_id: 'insole_right_01',
+                    p1: row.p3 || 0,
+                    p2: row.p4 || 0,
+                    p5: row.p6 || row.p4 || 0
+                  };
+                  this.cachedRight = this.normalizeSingleFootRow(rightRow, 'right', true);
+                }
               }
               this.notify(this.combineBilateralTelemetry(this.cachedLeft, this.cachedRight));
             }
@@ -426,7 +448,19 @@ class SupabaseService {
         ]);
 
         if (resLeft.data && resLeft.data.length > 0) {
-          this.cachedLeft = this.normalizeSingleFootRow(resLeft.data[0], 'left');
+          const lRow = resLeft.data[0];
+          this.cachedLeft = this.normalizeSingleFootRow(lRow, 'left');
+          // Unified single ESP32 kit populates right foot automatically
+          if (leftId === 'insole_left_01' && (!resRight.data || resRight.data.length === 0 || lRow.p3 > 0 || lRow.p4 > 0)) {
+            const rRow = {
+              ...lRow,
+              device_id: 'insole_right_01',
+              p1: lRow.p3 || 0,
+              p2: lRow.p4 || 0,
+              p5: lRow.p6 || lRow.p4 || 0
+            };
+            this.cachedRight = this.normalizeSingleFootRow(rRow, 'right');
+          }
         }
         if (resRight.data && resRight.data.length > 0) {
           this.cachedRight = this.normalizeSingleFootRow(resRight.data[0], 'right');
@@ -452,6 +486,16 @@ class SupabaseService {
         this.cachedRight = single;
       } else {
         this.cachedLeft = single;
+        if (data.p3 !== undefined || data.p4 !== undefined) {
+          const rRow = {
+            ...data,
+            device_id: 'insole_right_01',
+            p1: data.p3 || 0,
+            p2: data.p4 || 0,
+            p5: data.p6 || data.p4 || 0
+          };
+          this.cachedRight = this.normalizeSingleFootRow(rRow, 'right');
+        }
       }
       return this.combineBilateralTelemetry(this.cachedLeft, this.cachedRight);
     } catch (e) {

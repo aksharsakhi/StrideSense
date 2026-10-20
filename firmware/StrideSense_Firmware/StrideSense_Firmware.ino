@@ -36,6 +36,8 @@ static bool imu_swing_armed = false;
 static float imu_min_trough = 1.0f;
 static uint16_t window_peak_p1 = 0;
 static uint16_t window_peak_p2 = 0;
+static uint16_t window_peak_p3 = 0;
+static uint16_t window_peak_p4 = 0;
 
 void setup() {
     Serial.begin(115200);
@@ -85,9 +87,11 @@ void loop() {
         SensorSample sample;
         Sensors.readSample(sample);
 
-        // Track peak pressures across the active stride window
+        // Track peak pressures across the active stride window (Left & Right legs)
         if (sample.p1 > window_peak_p1) window_peak_p1 = sample.p1;
         if (sample.p2 > window_peak_p2) window_peak_p2 = sample.p2;
+        if (sample.p3 > window_peak_p3) window_peak_p3 = sample.p3;
+        if (sample.p4 > window_peak_p4) window_peak_p4 = sample.p4;
 
         // 2. Feed into Fall Detector state machine
         FallEngine.update(sample);
@@ -95,8 +99,8 @@ void loop() {
         // 3. Multi-Modal Step Counting Engine (FSR + IMU Kinematic Fusion)
         float svm_acc = sqrtf(sample.ax * sample.ax + sample.ay * sample.ay + sample.az * sample.az);
 
-        // Plantar contact on either Heel (p1) or Forefoot (p2)
-        bool plantar_contact = (sample.p1 > 120 || sample.p2 > 120);
+        // Plantar contact on either Left foot (p1, p2) or Right foot (p3, p4)
+        bool plantar_contact = (sample.p1 > 120 || sample.p2 > 120 || sample.p3 > 120 || sample.p4 > 120);
         bool refractory_ok = (now - last_step_time >= 250); // Max 240 steps/min
         bool step_detected = false;
 
@@ -145,14 +149,16 @@ void loop() {
             inference_cycle = 0;
             current_inference = TinyML.runInference(SensorWindow);
 
-            // Detailed Serial Debug Output with live FSR & SVM metrics
-            Serial.printf("[TinyML] Activity: %-8s | Conf: %3.0f%% | Cadence: %3.0f SPM | Steps: %5u | FSR[H:%4u, F:%4u] | SVM: %4.2fg\n",
+            // Detailed Serial Debug Output with live bilateral FSR & SVM metrics
+            Serial.printf("[TinyML] Activity: %-8s | Conf: %3.0f%% | Cadence: %3.0f SPM | Steps: %5u | L[H:%4u, F:%4u] R[H:%4u, F:%4u] | SVM: %4.2fg\n",
                 current_inference.activity_name,
                 current_inference.confidence * 100.0f,
                 current_inference.cadence_spm,
                 step_counter,
                 sample.p1,
                 sample.p2,
+                sample.p3,
+                sample.p4,
                 svm_acc
             );
 
@@ -182,10 +188,24 @@ void loop() {
         // Send peak pressure captured during this stride interval (or active if held)
         uint16_t send_p1 = (latest.p1 > 60) ? latest.p1 : window_peak_p1;
         uint16_t send_p2 = (latest.p2 > 60) ? latest.p2 : window_peak_p2;
+        uint16_t send_p3 = (latest.p3 > 60) ? latest.p3 : window_peak_p3;
+        uint16_t send_p4 = (latest.p4 > 60) ? latest.p4 : window_peak_p4;
 
         // Reset window peaks with exponential decay
         window_peak_p1 = (latest.p1 > 60) ? latest.p1 : 0;
         window_peak_p2 = (latest.p2 > 60) ? latest.p2 : 0;
+        window_peak_p3 = (latest.p3 > 60) ? latest.p3 : 0;
+        window_peak_p4 = (latest.p4 > 60) ? latest.p4 : 0;
+
+        // Compute true real-time bilateral gait symmetry
+        uint32_t left_load = (uint32_t)send_p1 + (uint32_t)send_p2;
+        uint32_t right_load = (uint32_t)send_p3 + (uint32_t)send_p4;
+        float sym_index = 95.0f;
+        if ((left_load + right_load) > 120) {
+            float diff = fabsf((float)left_load - (float)right_load);
+            sym_index = 100.0f - ((diff / (float)(left_load + right_load)) * 100.0f);
+            sym_index = constrain(sym_index, 40.0f, 100.0f);
+        }
 
 #if BACKEND_USE_SUPABASE
         SupabaseTelemetryPayload payload;
@@ -193,14 +213,14 @@ void loop() {
         payload.confidence = current_inference.confidence;
         payload.step_count = step_counter;
         payload.cadence_spm = current_inference.cadence_spm;
-        payload.symmetry_index = constrain(100.0f - (fabsf(1.0f - current_inference.medial_lateral_ratio) * 40.0f), 60.0f, 100.0f);
+        payload.symmetry_index = sym_index;
         payload.fall_alert = is_fall;
         payload.p1 = send_p1;
         payload.p2 = send_p2;
-        payload.p3 = 0;
-        payload.p4 = 0;
+        payload.p3 = send_p3;
+        payload.p4 = send_p4;
         payload.p5 = send_p2;
-        payload.p6 = 0;
+        payload.p6 = send_p4;
         payload.pitch = latest.pitch;
         payload.roll = latest.roll;
         payload.svm_a = sqrtf(latest.ax * latest.ax + latest.ay * latest.ay + latest.az * latest.az);
@@ -221,18 +241,18 @@ void loop() {
         payload.confidence = current_inference.confidence;
         payload.step_count = step_counter;
         payload.cadence_spm = current_inference.cadence_spm;
-        payload.symmetry_index = constrain(100.0f - (fabsf(1.0f - current_inference.medial_lateral_ratio) * 40.0f), 60.0f, 100.0f);
+        payload.symmetry_index = sym_index;
         payload.fall_alert = FallEngine.isFallPending();
         payload.fall_emergency = FallEngine.isEmergencyDispatched();
         payload.battery_pct = Sensors.getBatteryPercentage();
         payload.battery_voltage = Sensors.readBatteryVoltage();
 
-        payload.p1 = latest.p1;
-        payload.p2 = latest.p2;
-        payload.p3 = latest.p3;
-        payload.p4 = latest.p4;
-        payload.p5 = latest.p5;
-        payload.p6 = latest.p6;
+        payload.p1 = send_p1;
+        payload.p2 = send_p2;
+        payload.p3 = send_p3;
+        payload.p4 = send_p4;
+        payload.p5 = send_p2;
+        payload.p6 = send_p4;
         payload.pitch = latest.pitch;
         payload.roll = latest.roll;
 

@@ -11,12 +11,12 @@
 #include "config.h"
 
 struct SensorSample {
-    uint16_t p1; // Heel (FSR 1, GPIO 36)
-    uint16_t p2; // Forefoot Ball (FSR 2, GPIO 39)
-    uint16_t p3; // Reserved / 0
-    uint16_t p4; // Reserved / 0
-    uint16_t p5; // Forefoot Medial mapped
-    uint16_t p6; // Reserved / 0
+    uint16_t p1; // Left Calcaneus Heel (FSR L1, GPIO 36)
+    uint16_t p2; // Left Metatarsal Forefoot Ball (FSR L2, GPIO 39)
+    uint16_t p3; // Right Calcaneus Heel (FSR R1, GPIO 34)
+    uint16_t p4; // Right Metatarsal Forefoot Ball (FSR R2, GPIO 35)
+    uint16_t p5; // Left Forefoot medial mapped
+    uint16_t p6; // Right Forefoot medial mapped
 
     float ax;    // Accel X (g)
     float ay;    // Accel Y (g)
@@ -53,7 +53,7 @@ private:
     float gy_offset;
     float gz_offset;
 
-    uint16_t fsr_baseline[2];
+    uint16_t fsr_baseline[4];
     uint8_t mpu_i2c_addr;
 };
 

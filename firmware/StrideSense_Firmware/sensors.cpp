@@ -13,25 +13,25 @@ SensorsManager::SensorsManager()
     : ax_offset(0), ay_offset(0), az_offset(0),
       gx_offset(0), gy_offset(0), gz_offset(0),
       mpu_i2c_addr(MPU6050_I2C_ADDR) {
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 4; i++) {
         fsr_baseline[i] = 0;
     }
 }
 
 bool SensorsManager::begin() {
-    // Configure dual square FSR ADC pins (ADC1 channels are safe with active Wi-Fi)
-    pinMode(PIN_FSR_S1_HEEL, INPUT);
-    pinMode(PIN_FSR_S2_FOREFOOT, INPUT);
-    pinMode(PIN_FSR_S1_ALT, INPUT);
-    pinMode(PIN_FSR_S2_ALT, INPUT);
-    pinMode(PIN_BATTERY_ADC, INPUT);
+    // Configure all 4 FSR ADC pins on ESP32 ADC1 (safe with active Wi-Fi)
+    pinMode(PIN_FSR_L_HEEL, INPUT);      // GPIO 36 (Left Heel)
+    pinMode(PIN_FSR_L_FOREFOOT, INPUT);  // GPIO 39 (Left Forefoot)
+    pinMode(PIN_FSR_R_HEEL, INPUT);      // GPIO 34 (Right Heel)
+    pinMode(PIN_FSR_R_FOREFOOT, INPUT);  // GPIO 35 (Right Forefoot)
+    pinMode(PIN_BATTERY_ADC, INPUT);     // GPIO 33 (Battery)
 
     // Set 12-bit ADC resolution (0 - 4095) with full 0-3.3V attenuation (ADC_11db)
     analogReadResolution(12);
-    analogSetPinAttenuation(PIN_FSR_S1_HEEL, ADC_11db);
-    analogSetPinAttenuation(PIN_FSR_S2_FOREFOOT, ADC_11db);
-    analogSetPinAttenuation(PIN_FSR_S1_ALT, ADC_11db);
-    analogSetPinAttenuation(PIN_FSR_S2_ALT, ADC_11db);
+    analogSetPinAttenuation(PIN_FSR_L_HEEL, ADC_11db);
+    analogSetPinAttenuation(PIN_FSR_L_FOREFOOT, ADC_11db);
+    analogSetPinAttenuation(PIN_FSR_R_HEEL, ADC_11db);
+    analogSetPinAttenuation(PIN_FSR_R_FOREFOOT, ADC_11db);
     analogSetPinAttenuation(PIN_BATTERY_ADC, ADC_11db);
 
     // Initialize Hardware I2C for MPU-6050 (GPIO 21 = SDA, GPIO 22 = SCL)
@@ -57,7 +57,7 @@ bool SensorsManager::begin() {
     }
 
     initMPU6050();
-    Serial.println(F("[Sensors] MPU-6050 and Dual-FSR ADC initialized successfully."));
+    Serial.println(F("[Sensors] MPU-6050 and 4x Bilateral FSR ADC channels initialized successfully."));
     return true;
 }
 
@@ -128,22 +128,19 @@ void SensorsManager::readMPU6050(float &ax, float &ay, float &az, float &gx, flo
 bool SensorsManager::readSample(SensorSample &sample) {
     sample.timestamp_ms = millis();
 
-    // Read dual square FSR ADC values with multi-pin auto-detection (GPIO 36 / 34 and GPIO 39 / 35)
-    uint16_t raw_heel = readAveragedADC(PIN_FSR_S1_HEEL);
-    uint16_t alt_heel = readAveragedADC(PIN_FSR_S1_ALT);
-    if (alt_heel > raw_heel) raw_heel = alt_heel;
-
-    uint16_t raw_forefoot = readAveragedADC(PIN_FSR_S2_FOREFOOT);
-    uint16_t alt_forefoot = readAveragedADC(PIN_FSR_S2_ALT);
-    if (alt_forefoot > raw_forefoot) raw_forefoot = alt_forefoot;
+    // Read all 4 FSR ADC channels (Left & Right legs)
+    uint16_t raw_l_heel     = readAveragedADC(PIN_FSR_L_HEEL);
+    uint16_t raw_l_forefoot = readAveragedADC(PIN_FSR_L_FOREFOOT);
+    uint16_t raw_r_heel     = readAveragedADC(PIN_FSR_R_HEEL);
+    uint16_t raw_r_forefoot = readAveragedADC(PIN_FSR_R_FOREFOOT);
 
     // Apply baseline subtraction (zero-tare) with safe floor
-    sample.p1 = (raw_heel > fsr_baseline[0]) ? (raw_heel - fsr_baseline[0]) : 0;
-    sample.p2 = (raw_forefoot > fsr_baseline[1]) ? (raw_forefoot - fsr_baseline[1]) : 0;
-    sample.p3 = 0;
-    sample.p4 = 0;
-    sample.p5 = sample.p2; // Map forefoot reading to metatarsal zone for TinyML feature balance
-    sample.p6 = 0;
+    sample.p1 = (raw_l_heel > fsr_baseline[0]) ? (raw_l_heel - fsr_baseline[0]) : 0;
+    sample.p2 = (raw_l_forefoot > fsr_baseline[1]) ? (raw_l_forefoot - fsr_baseline[1]) : 0;
+    sample.p3 = (raw_r_heel > fsr_baseline[2]) ? (raw_r_heel - fsr_baseline[2]) : 0;
+    sample.p4 = (raw_r_forefoot > fsr_baseline[3]) ? (raw_r_forefoot - fsr_baseline[3]) : 0;
+    sample.p5 = sample.p2; // Map Left forefoot reading to zone 5
+    sample.p6 = sample.p4; // Map Right forefoot reading to zone 6
 
     // Read MPU6050
     readMPU6050(sample.ax, sample.ay, sample.az, sample.gx, sample.gy, sample.gz);
@@ -156,19 +153,16 @@ bool SensorsManager::readSample(SensorSample &sample) {
 }
 
 void SensorsManager::calibrateZeroBaseline(int samples) {
-    Serial.println(F("[Sensors] Calibrating zero-force baseline and IMU bias for 2-FSR kit..."));
-    long p_sums[2] = {0};
+    Serial.println(F("[Sensors] Calibrating zero-force baseline and IMU bias for 4-FSR bilateral setup..."));
+    long p_sums[4] = {0, 0, 0, 0};
     float ax_sum = 0, ay_sum = 0, az_sum = 0;
     float gx_sum = 0, gy_sum = 0, gz_sum = 0;
 
     for (int i = 0; i < samples; i++) {
-        uint16_t h1 = analogRead(PIN_FSR_S1_HEEL);
-        uint16_t h2 = analogRead(PIN_FSR_S1_ALT);
-        p_sums[0] += (h2 > h1) ? h2 : h1;
-
-        uint16_t f1 = analogRead(PIN_FSR_S2_FOREFOOT);
-        uint16_t f2 = analogRead(PIN_FSR_S2_ALT);
-        p_sums[1] += (f2 > f1) ? f2 : f1;
+        p_sums[0] += analogRead(PIN_FSR_L_HEEL);
+        p_sums[1] += analogRead(PIN_FSR_L_FOREFOOT);
+        p_sums[2] += analogRead(PIN_FSR_R_HEEL);
+        p_sums[3] += analogRead(PIN_FSR_R_FOREFOOT);
 
         float a_x, a_y, a_z, g_x, g_y, g_z;
         readMPU6050(a_x, a_y, a_z, g_x, g_y, g_z);
@@ -181,7 +175,7 @@ void SensorsManager::calibrateZeroBaseline(int samples) {
         delay(15);
     }
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 4; i++) {
         uint16_t avg = (uint16_t)(p_sums[i] / samples);
         // Cap baseline to 100 max so an accidental boot touch never zeroes out the sensors
         fsr_baseline[i] = (avg > 100) ? 100 : avg;
@@ -194,8 +188,8 @@ void SensorsManager::calibrateZeroBaseline(int samples) {
     gy_offset = gy_sum / samples;
     gz_offset = gz_sum / samples;
 
-    Serial.printf("[Sensors] Calibration complete. FSR Baselines: Heel=%u, Forefoot=%u\n",
-                  fsr_baseline[0], fsr_baseline[1]);
+    Serial.printf("[Sensors] Calibration complete. FSR Baselines: L_Heel=%u, L_Forefoot=%u, R_Heel=%u, R_Forefoot=%u\n",
+                  fsr_baseline[0], fsr_baseline[1], fsr_baseline[2], fsr_baseline[3]);
 }
 
 float SensorsManager::readBatteryVoltage() {
