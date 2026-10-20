@@ -12,21 +12,43 @@
 
 ---
 
-## 👥 Engineering Team & Individual Contributions
+## 👥 Engineering Team & Individual Contributions (4-Layer IoT Architecture)
 
-This project was engineered collaboratively with equal distribution of responsibilities across the full IoT stack:
+This project was developed for the **Internet of Things (IoT)** engineering curriculum. The engineering workload and system deliverables were divided equally (**25% per team member**) across the four fundamental layers of the end-to-end IoT reference architecture:
 
-| Team Member | Engineering Role & Core Focus | Key Responsibilities & Deliverables | Contribution Share |
+```
++---------------------------------------------------------------------------------------------------------+
+|                                    4-LAYER IoT SYSTEM ARCHITECTURE                                      |
++---------------------------------------------------------------------------------------------------------+
+|  [LAYER 4: IoT APPLICATION & CLOUD LAYER]             ==> AKSHAR SAKHI (25%)                           |
+|  - Cross-Platform Mobile App (Capacitor iOS/Android)  - Supabase Realtime Telemetry WebSocket Broadcast |
+|  - Biomechanical Gait Dashboard & Heatmap Renderer    - Cloud Incident Audit Logging & SOS Emergency    |
++---------------------------------------------------------------------------------------------------------+
+|  [LAYER 3: EDGE AI & TINYML INTELLIGENCE LAYER]       ==> DIYA BHAT (25%)                               |
+|  - 24-Feature Kinematic Vector Extraction Pipeline    - Decision Forest Model Optimization (98.97% Acc) |
+|  - Multi-Class Gait Classifier (Supination/Pronation) - Embedded Zero-Dependency C Header (<0.3 µs)     |
++---------------------------------------------------------------------------------------------------------+
+|  [LAYER 2: EDGE COMPUTING & EMBEDDED ACTUATION]       ==> SIDDHARTHA LADDA (25%)                        |
+|  - ESP32 Dual-Core C++ Firmware (50 Hz RTOS Loop)     - Dual-Trigger Fall Detector State Machine        |
+|  - Multi-Channel ADC Tare Baseline & GPIO34 Tuning    - NPN Transistor Haptic Vibration Driver Circuit  |
++---------------------------------------------------------------------------------------------------------+
+|  [LAYER 1: PERCEPTION & PHYSICAL SENSING LAYER]       ==> NISHANTH S GOWDA (25%)                        |
+|  - Bilateral Insole 4x FSR Sensor Matrix              - 10 kΩ Precision Voltage Divider Conditioning    |
+|  - MPU-6050 6-Axis IMU (400 kHz Fast I2C Bus)         - Wearable Insole Fabrication & Arch Wire Loom    |
++---------------------------------------------------------------------------------------------------------+
+```
+
+| Team Member | IoT Architectural Layer & Role | Key Responsibilities & Deliverables | Contribution Share |
 |---|---|---|:---:|
-| **Akshar Sakhi** | **System Architecture, Mobile Application & Cloud Integration** | • End-to-end system architecture & multi-subsystem integration lead<br>• Cross-platform mobile app development (Capacitor iOS/Android + React 19)<br>• Real-time Supabase PostgreSQL cloud sync & Phoenix WebSocket stream<br>• Biomechanical Patient Profile (BMI, Stride) & Emergency SOS auto-dialer | **25%** |
-| **Diya Bhat** | **Edge-AI & TinyML Machine Learning Pipeline** | • Dataset curation, biomechanical gait synthesis & data preprocessing<br>• 24-feature vector extraction algorithm (SVM, Jerk, Energy, Variance, Ratios)<br>• Model training, hyperparameter optimization & 5-fold cross-validation (98.97%)<br>• Embedded zero-dependency C code generation (`tinyml_infer.h`, <0.3 µs) | **25%** |
-| **Nishanth S Gowda** | **Sensor Hardware, Prototyping & Mechanical Assembly** | • Bilateral insole circuit design & 4x FSR sensor voltage divider circuits<br>• MPU-6050 6-Axis IMU integration & 400 kHz fast-mode I2C bus wiring<br>• Mechanical insole fabrication & zero-pressure medial arch wire routing<br>• Ankle enclosure design & hardware mounting for ESP32, IMU, and LiPo | **25%** |
-| **Siddhartha Ladda** | **Embedded Firmware, Fall Detection Engine & Power** | • ESP32 dual-core C++ firmware development & 50 Hz timer sampling loop<br>• Dual-trigger fall detector state machine (free-fall + impact + immobility)<br>• Haptic vibration motor driver circuit (2N2222 NPN switch & flyback diode)<br>• ADC tare baseline self-calibration & custom GPIO34 threshold calibration | **25%** |
+| **Nishanth S Gowda** | **Layer 1: Perception & Physical Sensing**<br>*(Hardware, Transducers & Insole Integration)* | • Bilateral plantar sensor matrix: 4x Force Sensitive Resistors (FSR-402) & 10 kΩ voltage divider circuits<br>• MPU-6050 6-DOF IMU integration & 400 kHz fast-mode I2C bus wiring (GPIO 21 SDA / GPIO 22 SCL)<br>• Mechanical insole prototyping, cut-to-size EVA substrate & medial arch wiring loom routing<br>• Ankle enclosure design, sensor noise shielding & 3.7V LiPo / TP4056 power circuit integration | **25%** |
+| **Siddhartha Ladda** | **Layer 2: Edge Computing & Embedded Actuation**<br>*(ESP32 Firmware, Fall Detection & Calibration)* | • ESP32 dual-core C++ firmware architecture & 50 Hz deterministic FreeRTOS sampling loop<br>• Dual-trigger kinematic fall detector state machine (free-fall <0.6g → impact >2.8g → immobility monitor)<br>• Hardware actuation: 2N2222 NPN transistor-switched coin haptic motor circuit with 1N4148 flyback protection<br>• ADC signal conditioning: tare baseline auto-calibration & custom GPIO 34 non-linear threshold tuning (>2100 ADC) | **25%** |
+| **Diya Bhat** | **Layer 3: Edge AI & TinyML Intelligence**<br>*(On-Device Machine Learning & Feature Engineering)* | • Biomechanical gait dataset curation, data normalization & time-series windowing (1.0 s window, 50% overlap)<br>• 24-feature vector extraction algorithm (Signal Vector Magnitude, Jerk, COP Energy, Variance, Ratios)<br>• Classifier training, hyperparameter optimization & 5-fold cross-validation (98.97% across 4 gait classes)<br>• Zero-dependency embedded C code generation (`tinyml_infer.h`) delivering <0.3 µs ultra-low latency edge inference | **25%** |
+| **Akshar Sakhi** | **Layer 4: IoT Network, Cloud & Application**<br>*(Connectivity, Supabase Telemetry & Mobile App)* | • IoT network connectivity: ESP32 Wi-Fi (802.11 b/g/n) HTTPS/REST telemetry transmission & TLS streaming<br>• Cloud backend architecture: Supabase PostgreSQL schema, time-series telemetry table & Phoenix WebSockets (<50 ms)<br>• Cross-platform mobile HMI (Capacitor iOS/Android + React 19) with real-time bilateral plantar heatmaps & gait lab<br>• Biomechanical Patient Profile (BMI, Stride) & cloud-synchronized Emergency SOS siren with auto-dialer | **25%** |
 
 ---
 
 ## 📋 Table of Contents
-- [👥 Engineering Team & Individual Contributions](#-engineering-team--individual-contributions)
+- [👥 Engineering Team & Individual Contributions (4-Layer IoT Architecture)](#-engineering-team--individual-contributions-4-layer-iot-architecture)
 1. [System Overview & Architecture](#1-system-overview--architecture)
 2. [Hardware Components & Bill of Materials (BOM)](#2-hardware-components--bill-of-materials-bom)
 3. [Circuit Diagram & Electrical Schematics](#3-circuit-diagram--electrical-schematics)
