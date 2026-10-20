@@ -42,6 +42,15 @@ echo "[+] Compilation successful!"
 # Step 3: Upload
 echo "[*] Uploading to ESP32 on $PORT..."
 echo "[!] Note: If upload stalls at 'Connecting...', press and hold the 'BOOT' button on the ESP32 for 1 second."
+
+# Auto-release port if serial monitor is holding it
+BUSY_PID=$(lsof -t "$PORT" 2>/dev/null || true)
+if [ -n "$BUSY_PID" ]; then
+    echo "[*] Automatically releasing serial port (closing PID $BUSY_PID)..."
+    kill -9 $BUSY_PID 2>/dev/null || true
+    sleep 1
+fi
+
 "$ARDUINO_CLI" upload -p "$PORT" --fqbn "$FQBN" "$SKETCH_DIR"
 
 echo "========================================================"

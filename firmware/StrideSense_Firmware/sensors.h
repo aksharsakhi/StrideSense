@@ -40,6 +40,7 @@ public:
     void calibrateZeroBaseline(int samples = 50);
     float readBatteryVoltage();
     int getBatteryPercentage();
+    bool isMPUConnected() const { return mpu_connected; }
 
 private:
     void initMPU6050();
@@ -55,6 +56,7 @@ private:
 
     uint16_t fsr_baseline[4];
     uint8_t mpu_i2c_addr;
+    bool mpu_connected;
 };
 
 extern SensorsManager Sensors;

@@ -149,18 +149,28 @@ void loop() {
             inference_cycle = 0;
             current_inference = TinyML.runInference(SensorWindow);
 
-            // Detailed Serial Debug Output with live bilateral FSR & SVM metrics
-            Serial.printf("[TinyML] Activity: %-8s | Conf: %3.0f%% | Cadence: %3.0f SPM | Steps: %5u | L[H:%4u, F:%4u] R[H:%4u, F:%4u] | SVM: %4.2fg\n",
+            // Detailed Serial Debug Output with live bilateral FSR & MPU-6050 IMU metrics
+            Serial.printf("[TinyML] Activity: %-8s | Conf: %3.0f%% | Steps: %5u | L[H:%4u, F:%4u] R[H:%4u, F:%4u]\n",
                 current_inference.activity_name,
                 current_inference.confidence * 100.0f,
-                current_inference.cadence_spm,
                 step_counter,
                 sample.p1,
                 sample.p2,
                 sample.p3,
-                sample.p4,
-                svm_acc
+                sample.p4
             );
+            if (Sensors.isMPUConnected()) {
+                Serial.printf(" └─ [MPU-6050: ✓ CONNECTED] Pitch:%+5.1f° Roll:%+5.1f° | Acc(%+.2f, %+.2f, %+.2f)g | SVM: %4.2fg\n",
+                    sample.pitch,
+                    sample.roll,
+                    sample.ax,
+                    sample.ay,
+                    sample.az,
+                    svm_acc
+                );
+            } else {
+                Serial.println(F(" └─ [MPU-6050: ❌ NOT DETECTED] Check wiring: VCC->3V3, GND->GND, SDA->G21, SCL->G22"));
+            }
 
             // If a fall is detected, trigger immediate out-of-band transmission to cloud with zero delay
             if (current_inference.activity == ACTIVITY_FALL || FallEngine.isFallPending()) {

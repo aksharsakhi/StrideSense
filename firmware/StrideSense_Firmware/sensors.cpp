@@ -12,7 +12,8 @@ SensorsManager Sensors;
 SensorsManager::SensorsManager()
     : ax_offset(0), ay_offset(0), az_offset(0),
       gx_offset(0), gy_offset(0), gz_offset(0),
-      mpu_i2c_addr(MPU6050_I2C_ADDR) {
+      mpu_i2c_addr(MPU6050_I2C_ADDR),
+      mpu_connected(false) {
     for (int i = 0; i < 4; i++) {
         fsr_baseline[i] = 0;
     }
@@ -42,16 +43,20 @@ bool SensorsManager::begin() {
     Wire.write(0x75); // WHO_AM_I register
     if (Wire.endTransmission() == 0) {
         mpu_i2c_addr = 0x68;
-        Serial.println(F("[Sensors] MPU-6050 detected at I2C address 0x68."));
+        mpu_connected = true;
+        Serial.println(F("[Sensors] [✓] MPU-6050 detected at I2C address 0x68."));
     } else {
         // Probe secondary address 0x69 (AD0 pulled to 3.3V or floating)
         Wire.beginTransmission(0x69);
         Wire.write(0x75);
         if (Wire.endTransmission() == 0) {
             mpu_i2c_addr = 0x69;
-            Serial.println(F("[Sensors] MPU-6050 detected at alternate I2C address 0x69."));
+            mpu_connected = true;
+            Serial.println(F("[Sensors] [✓] MPU-6050 detected at alternate I2C address 0x69."));
         } else {
-            Serial.println(F("[Sensors] WARNING: MPU-6050 not detected on I2C bus (checked 0x68 & 0x69)! Check SDA (GPIO 21) and SCL (GPIO 22)."));
+            mpu_connected = false;
+            Serial.println(F("[Sensors] [❌ WARNING] MPU-6050 NOT detected on I2C bus (checked 0x68 & 0x69)!"));
+            Serial.println(F("[Sensors] [❌ CHECK] Verify SDA -> G21, SCL -> G22, VCC -> 3V3, GND -> GND."));
             return false;
         }
     }
@@ -96,6 +101,12 @@ uint16_t SensorsManager::readAveragedADC(uint8_t pin, uint8_t count) {
 }
 
 void SensorsManager::readMPU6050(float &ax, float &ay, float &az, float &gx, float &gy, float &gz) {
+    if (!mpu_connected) {
+        ax = ay = gx = gy = gz = 0.0f;
+        az = 1.0f;
+        return;
+    }
+
     Wire.beginTransmission(mpu_i2c_addr);
     Wire.write(0x3B); // ACCEL_XOUT_H
     Wire.endTransmission(false);
