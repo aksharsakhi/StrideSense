@@ -45,6 +45,8 @@ This project was developed for the **Internet of Things (IoT)** engineering curr
 | **Diya Bhat** | **Layer 3: Edge AI & TinyML Intelligence**<br>*(On-Device Machine Learning & Feature Engineering)* | • Biomechanical gait dataset curation, data normalization & time-series windowing (1.0 s window, 50% overlap)<br>• 24-feature vector extraction algorithm (Signal Vector Magnitude, Jerk, COP Energy, Variance, Ratios)<br>• Classifier training, hyperparameter optimization & 5-fold cross-validation (98.97% across 4 gait classes)<br>• Zero-dependency embedded C code generation (`tinyml_infer.h`) delivering <0.3 µs ultra-low latency edge inference | **25%** |
 | **Akshar Sakhi** | **Layer 4: IoT Network, Cloud & Application**<br>*(Connectivity, Supabase Telemetry & Mobile App)* | • IoT network connectivity: ESP32 Wi-Fi (802.11 b/g/n) HTTPS/REST telemetry transmission & TLS streaming<br>• Cloud backend architecture: Supabase PostgreSQL schema, time-series telemetry table & Phoenix WebSockets (<50 ms)<br>• Cross-platform mobile HMI (Capacitor iOS/Android + React 19) with real-time bilateral plantar heatmaps & gait lab<br>• Biomechanical Patient Profile (BMI, Stride) & cloud-synchronized Emergency SOS siren with auto-dialer | **25%** |
 
+> 🗺️ **Detailed File-by-File Attribution**: For an exhaustive breakdown mapping every firmware driver, ML script, mobile screen, and watchOS view to its owner, see the [Codebase Ownership & Individual Contribution Map](CODE_OWNERSHIP_AND_CONTRIBUTION_MAP.md).
+
 ---
 
 ## 📋 Table of Contents
