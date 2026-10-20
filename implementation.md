@@ -190,6 +190,7 @@ To build the complete bilateral smart insole system (Left Insole + Right Insole)
 - [x] **1x 2N2222 or BC547 NPN Transistor** — Motor current switch.
 - [x] **1x 1 kΩ Resistor** (*Brown-Black-Red-Gold*) — Transistor base current limiter.
 - [x] **1x 1N4148 or 1N4001 Diode** — Flyback snubber protection across motor leads.
+- [x] **1x Status LED** (Uses ESP32 **Onboard Blue LED on GPIO 2** — **No external wiring or extra resistors needed!** Or 1x optional external LED on GPIO 2).
 - [x] **1x Push Button** (Optional SOS / Fall Alert Cancel button).
 - [x] **1x Left Shoe Insole** (Sport foam/gel insole, size matched).
 - [x] **Jumper Wires & Thin Flexible Ribbon Cable** (4-conductor ribbon for insole routing).
@@ -205,6 +206,7 @@ To build the complete bilateral smart insole system (Left Insole + Right Insole)
 - [x] **1x 2N2222 or BC547 NPN Transistor** — Motor current switch.
 - [x] **1x 1 kΩ Resistor** (*Brown-Black-Red-Gold*) — Transistor base current limiter.
 - [x] **1x 1N4148 or 1N4001 Diode** — Flyback snubber protection across motor leads.
+- [x] **1x Status LED** (Uses ESP32 **Onboard Blue LED on GPIO 2** — **No external wiring or extra resistors needed!** Or 1x optional external LED on GPIO 2).
 - [x] **1x Push Button** (Optional SOS / Fall Alert Cancel button).
 - [x] **1x Right Shoe Insole** (Sport foam/gel insole, size matched).
 - [x] **Jumper Wires & Thin Flexible Ribbon Cable** (4-conductor ribbon for insole routing).
@@ -337,9 +339,7 @@ Both physical insoles use identical electronic circuits. However, each board is 
 | **1N4148 Diode** | Anode | **Motor Blue (-)** | Prevents back-EMF voltage spikes from damaging the ESP32 |
 | **2N2222 NPN Transistor** | Base (Pin 2) | **GPIO 12** via 1kΩ | Transistor base switch (1kΩ limits ESP32 GPIO drive current) |
 | **2N2222 NPN Transistor** | Emitter (Pin 1) | **GND** | Transistor emitter connected directly to common ground |
-| **Status LEDs** | Red (Fall Alert) | **GPIO 25** via 330Ω | Active HIGH indicator: pulses during fall alert |
-| **Status LEDs** | Green (Wi-Fi) | **GPIO 18** via 330Ω | Solid ON when Wi-Fi connection is established |
-| **Status LEDs** | Blue (Cloud Sync)| **GPIO 19** via 330Ω | Pulses on every successful Supabase telemetry packet |
+| **Single Status LED** | Onboard LED (or GPIO 2 via 330Ω to GND) | **GPIO 2** | Multi-Status: Solid ON = Wi-Fi Active; Brief Blip = Cloud Sync; Fast Strobe = Fall Alert |
 | **SOS Push Button** | Pin 1 to GPIO, Pin 2 to GND | **GPIO 14** | Active LOW emergency fall cancel button (`INPUT_PULLUP`) |
 
 ---
@@ -414,9 +414,7 @@ Both physical insoles use identical electronic circuits. However, each board is 
 | **1N4148 Diode** | Anode | **Motor Blue (-)** | Prevents back-EMF voltage spikes from damaging the ESP32 |
 | **2N2222 NPN Transistor** | Base (Pin 2) | **GPIO 12** via 1kΩ | Transistor base switch (1kΩ limits ESP32 GPIO drive current) |
 | **2N2222 NPN Transistor** | Emitter (Pin 1) | **GND** | Transistor emitter connected directly to common ground |
-| **Status LEDs** | Red (Fall Alert) | **GPIO 25** via 330Ω | Active HIGH indicator: pulses during fall alert |
-| **Status LEDs** | Green (Wi-Fi) | **GPIO 18** via 330Ω | Solid ON when Wi-Fi connection is established |
-| **Status LEDs** | Blue (Cloud Sync)| **GPIO 19** via 330Ω | Pulses on every successful Supabase telemetry packet |
+| **Single Status LED** | Onboard LED (or GPIO 2 via 330Ω to GND) | **GPIO 2** | Multi-Status: Solid ON = Wi-Fi Active; Brief Blip = Cloud Sync; Fast Strobe = Fall Alert |
 | **SOS Push Button** | Pin 1 to GPIO, Pin 2 to GND | **GPIO 14** | Active LOW emergency fall cancel button (`INPUT_PULLUP`) |
 
 ---

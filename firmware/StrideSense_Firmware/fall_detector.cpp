@@ -17,8 +17,8 @@ void FallDetector::begin() {
     pinMode(PIN_HAPTIC_MOTOR, OUTPUT);
     digitalWrite(PIN_HAPTIC_MOTOR, LOW);
 
-    pinMode(PIN_LED_RED, OUTPUT);
-    digitalWrite(PIN_LED_RED, LOW);
+    pinMode(PIN_STATUS_LED, OUTPUT);
+    digitalWrite(PIN_STATUS_LED, LOW);
 
     pinMode(PIN_SOS_BUTTON, INPUT_PULLUP);
 }
@@ -100,24 +100,24 @@ void FallDetector::update(const SensorSample &sample) {
 
         case FALL_EMERGENCY_DISPATCHED:
             // Continuous alert
-            digitalWrite(PIN_LED_RED, HIGH);
+            digitalWrite(PIN_STATUS_LED, HIGH);
             digitalWrite(PIN_HAPTIC_MOTOR, (now % 400 < 200) ? HIGH : LOW);
             break;
     }
 }
 
 void FallDetector::triggerHapticFeedback() {
-    // Pulse haptic motor and red LED (200ms ON, 200ms OFF)
+    // Pulse haptic motor and status LED (200ms ON, 200ms OFF)
     unsigned long now = millis();
     bool pulse = (now % 500 < 250);
     digitalWrite(PIN_HAPTIC_MOTOR, pulse ? HIGH : LOW);
-    digitalWrite(PIN_LED_RED, pulse ? HIGH : LOW);
+    digitalWrite(PIN_STATUS_LED, pulse ? HIGH : LOW);
 }
 
 void FallDetector::cancelAlert() {
     current_state = FALL_IDLE;
     digitalWrite(PIN_HAPTIC_MOTOR, LOW);
-    digitalWrite(PIN_LED_RED, LOW);
+    digitalWrite(PIN_STATUS_LED, LOW);
     Serial.println(F("[FallEngine] Fall alert successfully CANCELLED by user."));
 }
 

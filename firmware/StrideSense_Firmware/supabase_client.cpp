@@ -9,8 +9,8 @@ SupabaseClient Supabase;
 SupabaseClient::SupabaseClient() : last_wifi_check(0), was_connected(false) {}
 
 void SupabaseClient::begin() {
-    pinMode(PIN_LED_GREEN, OUTPUT);
-    pinMode(PIN_LED_BLUE, OUTPUT);
+    pinMode(PIN_STATUS_LED, OUTPUT);
+    digitalWrite(PIN_STATUS_LED, LOW);
 
     WiFi.disconnect(true);
     delay(100);
@@ -52,9 +52,9 @@ void SupabaseClient::updateNetwork() {
                 Serial.printf(" Signal:     %d dBm\n", WiFi.RSSI());
                 Serial.printf("==========================================\n\n");
             }
-            digitalWrite(PIN_LED_GREEN, HIGH);
+            digitalWrite(PIN_STATUS_LED, HIGH);
         } else {
-            digitalWrite(PIN_LED_GREEN, LOW);
+            digitalWrite(PIN_STATUS_LED, LOW);
             was_connected = false;
 
             const char* statusStr = "UNKNOWN";
@@ -121,10 +121,10 @@ bool SupabaseClient::sendTelemetry(const SupabaseTelemetryPayload &payload) {
     int httpCode = http.POST(json);
     if (httpCode >= 200 && httpCode < 300) {
         Serial.printf("[Supabase] Telemetry sent successfully (HTTP %d)\n", httpCode);
-        // Pulse Cloud Sync Blue LED
-        digitalWrite(PIN_LED_BLUE, HIGH);
-        delay(10);
-        digitalWrite(PIN_LED_BLUE, LOW);
+        // Brief visual heartbeat blip indicating successful cloud push
+        digitalWrite(PIN_STATUS_LED, LOW);
+        delay(35);
+        digitalWrite(PIN_STATUS_LED, HIGH);
     } else {
         Serial.printf("[Supabase] Telemetry upload failed: HTTP %d\n", httpCode);
     }

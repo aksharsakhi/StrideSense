@@ -9,8 +9,8 @@ FirebaseCloudClient Cloud;
 FirebaseCloudClient::FirebaseCloudClient() : last_wifi_check(0) {}
 
 void FirebaseCloudClient::begin() {
-    pinMode(PIN_LED_GREEN, OUTPUT);
-    pinMode(PIN_LED_BLUE, OUTPUT);
+    pinMode(PIN_STATUS_LED, OUTPUT);
+    digitalWrite(PIN_STATUS_LED, LOW);
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -25,9 +25,9 @@ void FirebaseCloudClient::updateNetwork() {
     if (now - last_wifi_check >= 5000) {
         last_wifi_check = now;
         if (WiFi.status() == WL_CONNECTED) {
-            digitalWrite(PIN_LED_GREEN, HIGH);
+            digitalWrite(PIN_STATUS_LED, HIGH);
         } else {
-            digitalWrite(PIN_LED_GREEN, LOW);
+            digitalWrite(PIN_STATUS_LED, LOW);
             // Non-blocking reconnect attempt
             WiFi.reconnect();
         }
@@ -43,7 +43,7 @@ bool FirebaseCloudClient::sendTelemetry(const CloudPayload &payload) {
         return false;
     }
 
-    digitalWrite(PIN_LED_BLUE, HIGH);
+    digitalWrite(PIN_STATUS_LED, LOW); // brief heartbeat blip
 
     HTTPClient http;
     String endpoint = String(FIREBASE_HOST) + "/devices/" + String(DEVICE_ID) + "/telemetry.json";
@@ -88,7 +88,7 @@ bool FirebaseCloudClient::sendTelemetry(const CloudPayload &payload) {
     int httpCode = http.PUT(json);
     http.end();
 
-    digitalWrite(PIN_LED_BLUE, LOW);
+    digitalWrite(PIN_STATUS_LED, HIGH);
     return (httpCode >= 200 && httpCode < 300);
 }
 

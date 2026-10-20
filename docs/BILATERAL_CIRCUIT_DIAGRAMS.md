@@ -50,11 +50,8 @@ Both ESP32 boards use the **exact same hardware pinout** for manufacturing modul
 | **GPIO 22** | `PIN_I2C_SCL` | Hardware default I2C (Internal pull-up) | MPU-6050 I2C Serial Clock line |
 | **GPIO 12** | `PIN_HAPTIC_MOTOR` | 2N2222 Transistor + 1N4148 diode | Haptic feedback pulse on fall / step alert |
 | **GPIO 14** | `PIN_SOS_BUTTON` | Push button to GND | Emergency SOS / 15s Fall Cancel (Active LOW) |
-| **GPIO 25** | `PIN_LED_RED` | 220 Ω resistor to GND | Fall Emergency / Shock Alert LED |
-| **GPIO 18** | `PIN_LED_GREEN` | 220 Ω resistor to GND | Wi-Fi Connected & System Active LED |
-| **GPIO 19** | `PIN_LED_BLUE` | 220 Ω resistor to GND | Cloud Sync Pulse LED (Supabase transmit) |
+| **GPIO 2** | `PIN_STATUS_LED` | Internal Blue LED (or 1x External via 330Ω) | Multi-Status: Solid ON = Active; Blip = Sync; Fast Strobe = Fall Alert |
 | **GPIO 34 / 33** | `PIN_BATTERY_ADC` | 100 kΩ / 100 kΩ voltage divider | LiPo Battery Voltage Monitor (ADC1 - Safe with Wi-Fi) |
-| **GPIO 2** | `PIN_STATUS_LED` | Internal Blue LED | Bootup & calibration status indicator |
 | **3V3** | 3.3V Regulated Output | From onboard AMS1117 LDO | Clean 3.3V VCC rail for sensors & pullups |
 | **GND** | System Ground Rail | Common Ground Plane | Common reference for all components |
 | **VIN / 5V**| Battery Power Input | From TP4056 `OUT+` (3.7V–4.2V) | Power input to ESP32 onboard regulator |

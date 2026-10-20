@@ -27,11 +27,8 @@
 #define PIN_I2C_SCL           22  // ESP32 SCL -> GPIO 22
 #define MPU6050_I2C_ADDR      0x68
 
-// Indicators & Actuators
-#define PIN_STATUS_LED        2   // Onboard Blue LED
-#define PIN_LED_RED           25  // Fall / Alert Indicator LED
-#define PIN_LED_GREEN         18  // Wi-Fi / Active Status Indicator LED
-#define PIN_LED_BLUE          19  // Cloud Sync Indicator LED
+// Indicators & Actuators (Single LED Setup: Uses Onboard Blue LED on GPIO 2)
+#define PIN_STATUS_LED        2   // Single Multi-Status LED (Onboard ESP32 LED / 1x External LED)
 #define PIN_HAPTIC_MOTOR      12  // Coin Vibration Motor driver (via NPN Transistor)
 #define PIN_SOS_BUTTON        14  // Emergency / Fall Cancel Button (Active LOW with internal pullup)
 

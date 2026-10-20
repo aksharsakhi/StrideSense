@@ -8,9 +8,7 @@
     { "type": "wokwi-potentiometer", "id": "fsr_heel", "top": 180, "left": -140, "attrs": { "label": "FSR 1: Heel (Calcaneus)" } },
     { "type": "wokwi-potentiometer", "id": "fsr_forefoot", "top": 180, "left": 140, "attrs": { "label": "FSR 2: Forefoot (Ball)" } },
     { "type": "wokwi-pushbutton", "id": "btn_sos", "top": 80, "left": -180, "attrs": { "color": "red", "label": "SOS / Cancel" } },
-    { "type": "wokwi-led", "id": "led_red", "top": -90, "left": 120, "attrs": { "color": "red", "label": "Fall Alert" } },
-    { "type": "wokwi-led", "id": "led_green", "top": -90, "left": 160, "attrs": { "color": "green", "label": "Wi-Fi Active" } },
-    { "type": "wokwi-led", "id": "led_blue", "top": -90, "left": 200, "attrs": { "color": "blue", "label": "Cloud Sync" } }
+    { "type": "wokwi-led", "id": "led_status", "top": -90, "left": 150, "attrs": { "color": "blue", "label": "Multi-Status (GPIO 2)" } }
   ],
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
@@ -32,14 +30,8 @@
     [ "esp:GND.1", "btn_sos:1.l", "black", [ "v0" ] ],
     [ "esp:14", "btn_sos:2.l", "blue", [ "v0" ] ],
 
-    [ "esp:25", "led_red:A", "red", [ "v0" ] ],
-    [ "esp:GND.1", "led_red:C", "black", [ "v0" ] ],
-
-    [ "esp:26", "led_green:A", "green", [ "v0" ] ],
-    [ "esp:GND.1", "led_green:C", "black", [ "v0" ] ],
-
-    [ "esp:27", "led_blue:A", "blue", [ "v0" ] ],
-    [ "esp:GND.1", "led_blue:C", "black", [ "v0" ] ]
+    [ "esp:2", "led_status:A", "blue", [ "v0" ] ],
+    [ "esp:GND.1", "led_status:C", "black", [ "v0" ] ]
   ],
   "dependencies": {}
 }
