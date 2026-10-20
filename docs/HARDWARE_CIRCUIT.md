@@ -1,6 +1,9 @@
 # StrideSense - Hardware Circuit & Wiring Guide 🔌
 
-This document provides complete schematics, pinout connections, component specifications, and assembly instructions for building the StrideSense smart insole hardware prototype.
+> [!TIP]
+> For the complete **Dual-Leg (Bilateral) Smart Insole Wiring Schematics for both Left and Right ESP32s**, see [BILATERAL_CIRCUIT_DIAGRAMS.md](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/docs/BILATERAL_CIRCUIT_DIAGRAMS.md).
+
+This document provides schematics, pinout connections, component specifications, and assembly instructions for building StrideSense smart insole hardware.
 
 ---
 

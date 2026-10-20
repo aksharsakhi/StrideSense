@@ -14,7 +14,9 @@ import {
   Monitor,
   Brain,
   Cpu,
-  ChevronDown
+  ChevronDown,
+  Award,
+  ExternalLink
 } from 'lucide-react';
 
 import HomePage from './components/HomePage.jsx';
@@ -28,6 +30,7 @@ import HistoricalTrends from './components/HistoricalTrends.jsx';
 import FallGuardMobile from './components/FallGuardMobile.jsx';
 import SettingsPage from './components/SettingsPage.jsx';
 import DeviceSelectorModal from './components/DeviceSelectorModal.jsx';
+import WalkingProfileAnalysis from './components/WalkingProfileAnalysis.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 
 import { supabaseService } from './services/supabase.js';
@@ -38,8 +41,9 @@ import { notificationService } from './services/notifications.js';
 /* ─── NAV TABS ───────────────────────────────────────── */
 const TABS = [
   { id: 'home',     label: 'Home',     icon: Home },
-  { id: 'health',   label: 'Health',   icon: HeartPulse },
+  { id: 'profile',  label: 'Profile',  icon: Award },
   { id: 'pressure', label: 'Pressure', icon: Footprints },
+  { id: 'health',   label: 'Health',   icon: HeartPulse },
   { id: 'motion',   label: 'Motion',   icon: Brain },
   { id: 'safety',   label: 'Guard',    icon: ShieldAlert },
   { id: 'settings', label: 'Settings', icon: Settings }
@@ -50,14 +54,28 @@ const TopHeader = React.memo(function TopHeader({
   activeTab,
   pageTitle,
   theme,
-  batteryPct,
+  telemetry = {},
   isConnected,
   selectedDeviceId,
   onOpenDeviceSelector,
   onNavigate,
   onCycleTheme
 }) {
-  const isHardware = selectedDeviceId === 'insole_left_01';
+  const isHardware = selectedDeviceId?.includes('hw') || selectedDeviceId?.includes('01');
+  const isBilateral = selectedDeviceId?.startsWith('bilateral');
+  const leftBattery = telemetry.left?.batteryPct ?? telemetry.batteryPct ?? 90;
+  const rightBattery = telemetry.right?.batteryPct ?? telemetry.batteryPct ?? 90;
+  const overallBattery = telemetry.batteryPct ?? 90;
+
+  const getDeviceBadge = () => {
+    if (selectedDeviceId === 'bilateral_hw') return 'DUAL HW';
+    if (selectedDeviceId === 'bilateral_sim') return 'DUAL SIM';
+    if (selectedDeviceId === 'insole_left_01') return 'HW LEFT';
+    if (selectedDeviceId === 'insole_right_01') return 'HW RIGHT';
+    if (selectedDeviceId === 'insole_left_02') return 'SIM LEFT';
+    if (selectedDeviceId === 'insole_right_02') return 'SIM RIGHT';
+    return isHardware ? 'ESP32 HW' : '3D SIM';
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
@@ -110,12 +128,24 @@ const TopHeader = React.memo(function TopHeader({
 
       {/* Right Controls */}
       <div className="flex items-center gap-2">
+        {/* Direct Link to 3D Virtual Studio */}
+        <a
+          href="http://localhost:5174"
+          target="_blank"
+          rel="noreferrer"
+          title="Open 3D Virtual Simulation Studio (Port 5174)"
+          className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/25 text-[11px] font-bold text-violet-600 dark:text-violet-400 active-press transition-all"
+        >
+          <ExternalLink className="w-3 h-3" />
+          <span>3D Studio</span>
+        </a>
+
         {/* Device Switcher Button */}
         <button
           type="button"
           onClick={onOpenDeviceSelector}
           title="Switch Active Insole Device"
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] hover:border-cyan-500/40 text-xs font-semibold text-slate-800 dark:text-white active-press touch-manipulation select-none transition-all"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] hover:border-cyan-500/40 text-xs font-semibold text-slate-800 dark:text-white active-press touch-manipulation select-none transition-all shadow-sm"
         >
           {isHardware ? (
             <Cpu className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -123,7 +153,7 @@ const TopHeader = React.memo(function TopHeader({
             <Monitor className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
           )}
           <span className="font-mono text-[11px] font-bold">
-            {isHardware ? 'ESP32 HW' : '3D SIM'}
+            {getDeviceBadge()}
           </span>
           <ChevronDown className="w-3 h-3 text-slate-400" />
         </button>
@@ -147,29 +177,38 @@ const TopHeader = React.memo(function TopHeader({
           </span>
         </button>
 
-        {/* Battery Indicator */}
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] px-2.5 py-1 rounded-xl">
-          <Battery className={`w-3.5 h-3.5 ${batteryPct > 20 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`} />
-          <span className="text-[11px] font-mono font-bold text-slate-800 dark:text-white">{batteryPct}%</span>
+        {/* Dual Insole Battery Pill */}
+        <div
+          title={`Battery Level: ${isBilateral ? `Left: ${leftBattery}%, Right: ${rightBattery}%` : `${overallBattery}%`}`}
+          className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] px-2.5 py-1 rounded-xl"
+        >
+          <Battery className={`w-3.5 h-3.5 ${overallBattery > 20 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`} />
+          {isBilateral ? (
+            <span className="text-[10px] font-mono font-bold text-slate-800 dark:text-white tabular-nums">
+              L:{leftBattery}% R:{rightBattery}%
+            </span>
+          ) : (
+            <span className="text-[11px] font-mono font-bold text-slate-800 dark:text-white tabular-nums">{overallBattery}%</span>
+          )}
         </div>
 
         {/* Live Cloud Status Badge */}
         <div
-          className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border flex items-center gap-1 ${
+          className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border flex items-center gap-1.5 ${
             isConnected
-              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400'
+              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 shadow-sm shadow-emerald-500/10'
               : 'bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400'
           }`}
         >
           {isConnected ? (
             <>
-              <Wifi className="w-3 h-3 text-emerald-500" />
-              <span className="font-mono">LIVE</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-mono tracking-tight">{isBilateral ? 'LIVE DUAL' : 'LIVE'}</span>
             </>
           ) : (
             <>
               <WifiOff className="w-3 h-3 text-amber-500" />
-              <span className="font-mono">OFFLINE</span>
+              <span className="font-mono tracking-tight">STANDBY</span>
             </>
           )}
         </div>
@@ -179,11 +218,19 @@ const TopHeader = React.memo(function TopHeader({
 });
 
 /* ─── MEMOIZED MOBILE BOTTOM NAVIGATION BAR ─────────── */
+const MOBILE_TABS = [
+  { id: 'home',     label: 'Home',     icon: Home },
+  { id: 'pressure', label: 'Pressure', icon: Footprints },
+  { id: 'profile',  label: 'Gait Lab', icon: Award },
+  { id: 'health',   label: 'Mobility', icon: HeartPulse },
+  { id: 'safety',   label: 'Guard',    icon: ShieldAlert },
+];
+
 const MobileBottomNav = React.memo(function MobileBottomNav({ activeTab, onNavigate }) {
   return (
     <nav className="md:hidden mobile-bottom-nav mobile-bottom-safe">
-      <div className="flex items-stretch justify-around px-1 py-1">
-        {TABS.map((item) => {
+      <div className="flex items-stretch justify-around px-2 py-1.5">
+        {MOBILE_TABS.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
@@ -191,20 +238,20 @@ const MobileBottomNav = React.memo(function MobileBottomNav({ activeTab, onNavig
               key={item.id}
               type="button"
               onClick={() => onNavigate(item.id)}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 active-press touch-manipulation select-none transition-all duration-75 ${
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-1 active-press touch-manipulation select-none transition-all duration-150 ${
                 isActive
                   ? 'text-cyan-600 dark:text-cyan-400'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }`}
             >
-              <div className={`p-1.5 rounded-xl transition-all duration-100 ${
+              <div className={`p-1.5 rounded-xl transition-all duration-150 ${
                 isActive
-                  ? 'bg-cyan-500/15 dark:bg-cyan-500/20 shadow-glow-cyan'
+                  ? 'bg-cyan-500/15 dark:bg-cyan-500/20 shadow-glow-cyan transform -translate-y-0.5'
                   : ''
               }`}>
-                <Icon className="w-[19px] h-[19px]" strokeWidth={isActive ? 2.4 : 1.7} />
+                <Icon className="w-5 h-5" strokeWidth={isActive ? 2.4 : 1.7} />
               </div>
-              <span className={`text-[10px] font-semibold leading-none ${
+              <span className={`text-[10px] font-bold leading-none tracking-tight truncate max-w-full px-0.5 ${
                 isActive
                   ? 'text-cyan-600 dark:text-cyan-400'
                   : 'text-slate-500 dark:text-slate-400'
@@ -212,7 +259,7 @@ const MobileBottomNav = React.memo(function MobileBottomNav({ activeTab, onNavig
                 {item.label}
               </span>
               {isActive && (
-                <div className="w-1.5 h-1.5 rounded-full bg-cyan-600 dark:bg-cyan-400 shadow-glow-cyan mt-0.5" />
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-600 dark:bg-cyan-400 shadow-glow-cyan" />
               )}
             </button>
           );
@@ -225,17 +272,21 @@ const MobileBottomNav = React.memo(function MobileBottomNav({ activeTab, onNavig
 /* ─── Default empty telemetry ─── */
 const EMPTY_TELEMETRY = {
   timestamp: Date.now(),
-  activity: '—',
+  activity: 'Offline',
   confidence: 0,
   steps: 0,
   cadence: 0,
-  symmetry: 0,
+  symmetry: 100,
   fallAlert: false,
   fallEmergency: false,
-  batteryPct: 0,
-  batteryVoltage: 0,
-  sensors: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0 },
-  imu: { ax: 0, ay: 0, az: 0, gx: 0, gy: 0, gz: 0, pitch: 0, roll: 0, svmA: 0 }
+  batteryPct: 95,
+  batteryVoltage: 4.10,
+  isOnline: false,
+  sensors: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0, left: { p1: 0, p2: 0 }, right: { p1: 0, p2: 0 } },
+  left: { isOnline: false, side: 'left', sensors: { p1: 0, p2: 0 }, imu: { pitch: 0, roll: 0, svmA: 1.0 } },
+  right: { isOnline: false, side: 'right', sensors: { p1: 0, p2: 0 }, imu: { pitch: 0, roll: 0, svmA: 1.0 } },
+  bilateral: { leftForce: 0, rightForce: 0, totalForce: 0, estNewtons: 0, estLeftNewtons: 0, estRightNewtons: 0, leftPct: 50, rightPct: 50, symmetry: 100, cop: { x: 0, y: 0 } },
+  imu: { ax: 0, ay: 0, az: 1.0, gx: 0, gy: 0, gz: 0, pitch: 0, roll: 0, svmA: 1.0 }
 };
 
 export default function App() {
@@ -247,6 +298,9 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('stridesense_theme') || 'system');
 
   const lastPacketTimeRef = useRef(0);
+  // Use refs for fall alert state so the subscriber closure always sees the current value
+  const fallModalOpenRef = useRef(false);
+  const lastFallAlertTimeRef = useRef(0); // Dedup: prevent re-firing during the same fall event (1 Hz packets)
 
   // Device Selection State
   const [selectedDeviceId, setSelectedDeviceId] = useState(() => supabaseService.getDeviceId());
@@ -265,24 +319,26 @@ export default function App() {
     const timer = setInterval(() => {
       const now = Date.now();
       const lastTime = lastPacketTimeRef.current;
-      // If hardware device hasn't sent a packet in > 6 seconds, transition to Offline
-      if (lastTime > 0 && (now - lastTime) > 6000) {
+      // If hardware or simulation device hasn't sent a packet in > 4.5 seconds, transition to Offline
+      if (lastTime > 0 && (now - lastTime) > 4500) {
         setIsDeviceOnline(false);
         setIsConnected(false);
-        setTelemetry((prev) => {
-          if (prev.activity === 'Offline') return prev;
-          return {
-            ...prev,
-            activity: 'Offline',
-            confidence: 0,
-            cadence: 0,
-            fallAlert: false,
-            fallEmergency: false,
-            sensors: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0 }
-          };
-        });
+        lastPacketTimeRef.current = 0;
+        setTelemetry((prev) => ({
+          ...prev,
+          isOnline: false,
+          activity: 'Offline',
+          confidence: 0,
+          cadence: 0,
+          fallAlert: false,
+          fallEmergency: false,
+          sensors: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0, left: { p1: 0, p2: 0 }, right: { p1: 0, p2: 0 } },
+          left: { ...(prev.left || {}), isOnline: false, sensors: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0 } },
+          right: { ...(prev.right || {}), isOnline: false, sensors: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0 } },
+          bilateral: { ...(prev.bilateral || {}), leftForce: 0, rightForce: 0, totalForce: 0, estNewtons: 0, estLeftNewtons: 0, estRightNewtons: 0, leftPct: 50, rightPct: 50, cop: { x: 0, y: 0 } }
+        }));
       }
-    }, 1500);
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -331,55 +387,64 @@ export default function App() {
     supabaseService.connectRealtime();
 
     const unsub = supabaseService.subscribeTelemetry((data) => {
-      lastPacketTimeRef.current = Date.now();
-      setIsDeviceOnline(true);
-      setIsConnected(true);
-      setTelemetry(data);
-      if (data.isOnline) {
+      const isOnline = Boolean(data && data.isOnline);
+      if (isOnline) {
+        lastPacketTimeRef.current = Date.now();
+        setIsDeviceOnline(true);
+        setIsConnected(true);
         healthService.updateLiveTelemetry(data, selectedDeviceId);
+      } else {
+        lastPacketTimeRef.current = 0;
+        // Fall no longer active — reset dedup so next fall re-arms alert
+        lastFallAlertTimeRef.current = 0;
+        setIsDeviceOnline(false);
+        setIsConnected(false);
       }
+      setTelemetry(data);
 
       // Check if fall detected by either TinyML or Fall Guard Engine
       const isFall = Boolean(data.fallAlert) ||
         Boolean(data.fallEmergency) ||
         (data.activity && String(data.activity).toLowerCase() === 'fall');
 
-      if (isFall && !fallModalOpen) {
-        console.log('[FallGuard] Triggering fall alert modal & notification:', data);
+      const now = Date.now();
+      // Fire alert if:
+      //  1. A fall is detected and we are online
+      //  2. The modal is not already showing (ref-based, no stale closure)
+      //  3. At least 15s has passed since last fall alert fire (covers same multi-packet fall event)
+      if (isFall && isOnline && !fallModalOpenRef.current && (now - lastFallAlertTimeRef.current > 15000)) {
+        console.log('[FallGuard] 🚨 Triggering fall alert modal & notification:', data);
+        lastFallAlertTimeRef.current = now;
+        fallModalOpenRef.current = true;
         nativeBridge.triggerEmergencyVibration();
         notificationService.notifyFallDetected(data);
         setFallModalOpen(true);
+      }
+
+      // Reset dedup after fall clears (no fallAlert and not emergency)
+      if (!isFall && lastFallAlertTimeRef.current > 0 && (now - lastFallAlertTimeRef.current > 20000)) {
+        lastFallAlertTimeRef.current = 0;
       }
     });
 
     // Load latest telemetry for active device
     supabaseService.fetchLatestTelemetry().then((latest) => {
-      if (latest) {
-        const isFresh = latest.isOnline;
-        setIsDeviceOnline(isFresh);
-        setIsConnected(isFresh);
-
-        if (isFresh) {
-          lastPacketTimeRef.current = Date.now();
-          setTelemetry(latest);
-          healthService.updateLiveTelemetry(latest, selectedDeviceId);
-        } else {
-          // Device is offline: retain cumulative steps, but reset live motion
-          setTelemetry((prev) => ({
-            ...prev,
-            timestamp: latest.timestamp,
-            steps: latest.steps || prev.steps,
-            activity: 'Offline',
-            confidence: 0,
-            cadence: 0,
-            fallAlert: false,
-            fallEmergency: false,
-            sensors: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0 }
-          }));
-        }
+      if (latest && latest.isOnline) {
+        lastPacketTimeRef.current = Date.now();
+        setIsDeviceOnline(true);
+        setIsConnected(true);
+        setTelemetry(latest);
+        healthService.updateLiveTelemetry(latest, selectedDeviceId);
       } else {
+        lastPacketTimeRef.current = 0;
         setIsDeviceOnline(false);
         setIsConnected(false);
+        const emptyState = supabaseService.getEmptyTelemetryForDevice(selectedDeviceId);
+        if (latest) {
+          emptyState.steps = latest.steps || 0;
+          emptyState.timestamp = latest.timestamp || Date.now();
+        }
+        setTelemetry(emptyState);
       }
     });
 
@@ -409,7 +474,10 @@ export default function App() {
 
   const cancelFall = useCallback(() => {
     nativeBridge.impactMedium();
+    fallModalOpenRef.current = false;
     setFallModalOpen(false);
+    // After cancel, allow re-alerting for the next independent fall event (reset dedup)
+    lastFallAlertTimeRef.current = 0;
   }, []);
 
   const triggerTestFall = useCallback(() => {
@@ -426,14 +494,18 @@ export default function App() {
     setSelectedDeviceId(newId);
     supabaseService.setDeviceId(newId);
     healthService.setDeviceId(newId);
+    lastPacketTimeRef.current = 0;
+    setIsDeviceOnline(false);
+    setIsConnected(false);
     setTelemetry(supabaseService.getEmptyTelemetryForDevice(newId));
   }, []);
 
   /* ─── Page title ──────────────────────── */
   const PAGE_TITLES = {
     home: null,
+    profile: 'Walking Profile & Pattern Lab',
     health: 'Mobility & Health',
-    pressure: 'Pressure Map',
+    pressure: 'Bilateral Pressure Map',
     gait: 'Mobility & Health',
     motion: 'IMU Kinematics',
     safety: 'Fall Guard',
@@ -462,7 +534,7 @@ export default function App() {
           activeTab={activeTab}
           pageTitle={pageTitle}
           theme={theme}
-          batteryPct={telemetry.batteryPct}
+          telemetry={telemetry}
           isConnected={isDeviceOnline}
           selectedDeviceId={selectedDeviceId}
           onOpenDeviceSelector={() => setIsDeviceModalOpen(true)}
@@ -484,6 +556,13 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'profile' && (
+            <WalkingProfileAnalysis
+              telemetry={telemetry}
+              onNavigate={navigate}
+            />
+          )}
+
           {activeTab === 'pressure' && (
             <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 animate-fade-in stagger-children">
               <div className="lg:col-span-4 flex flex-col gap-4">
@@ -491,7 +570,11 @@ export default function App() {
                 <MotionVisualizer imu={telemetry.imu} />
               </div>
               <div className="lg:col-span-8">
-                <FootHeatmap sensors={telemetry.sensors} />
+                <FootHeatmap
+                  sensors={telemetry.sensors}
+                  bilateral={telemetry.bilateral}
+                  telemetry={telemetry}
+                />
               </div>
             </div>
           )}

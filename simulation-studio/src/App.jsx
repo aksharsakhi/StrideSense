@@ -50,7 +50,8 @@ export default function App() {
 
   // Accurate refs to prevent stale closure inside 50 Hz interval
   const stepsRef = useRef(0);
-  const prevPhaseRef = useRef('');
+  const prevPhaseLeftRef = useRef('');
+  const prevPhaseRightRef = useRef('');
   const manualModeRef = useRef(manualMode);
   const manualSensorsRef = useRef(manualSensors);
   const supabaseEnabledRef = useRef(supabaseEnabled);
@@ -111,17 +112,44 @@ export default function App() {
       const inference = runTinyMLInference(features, engine.fallState);
       setCurrentInference(inference);
 
-      // Detect step count transitions (Strike phase entry)
-      const isStrike = sample.phase && sample.phase.includes('Strike');
-      const wasStrike = prevPhaseRef.current && prevPhaseRef.current.includes('Strike');
-      if (isStrike && !wasStrike && engine.isRunning) {
-        stepsRef.current += 1;
-        setStats((prev) => ({
-          ...prev,
-          steps: stepsRef.current
-        }));
+      // Bilateral step detection (Left Foot and Right Foot contacts)
+      // Handles all scenarios: Normal (Strike), Running (Strike), Elderly Shuffle (Contact), Post-Op Limp (Impact/Touchdown)
+      const isContactPhase = (phase) => Boolean(
+        phase && (
+          phase.includes('Strike') ||
+          phase.includes('Contact') ||
+          phase.includes('Impact') ||
+          phase.includes('Touchdown')
+        )
+      );
+
+      const leftPhase = sample.left?.phase || '';
+      const rightPhase = sample.right?.phase || '';
+
+      const isContactLeft = isContactPhase(leftPhase);
+      const wasContactLeft = isContactPhase(prevPhaseLeftRef.current);
+
+      const isContactRight = isContactPhase(rightPhase);
+      const wasContactRight = isContactPhase(prevPhaseRightRef.current);
+
+      const isLocomotion = ['walking', 'running', 'elderly_shuffle', 'post_op_limp', 'pronation', 'stumble'].includes(engine.scenario);
+
+      if (engine.isRunning && isLocomotion) {
+        let newSteps = 0;
+        if (isContactLeft && !wasContactLeft) newSteps += 1;
+        if (isContactRight && !wasContactRight) newSteps += 1;
+
+        if (newSteps > 0) {
+          stepsRef.current += newSteps;
+          setStats((prev) => ({
+            ...prev,
+            steps: stepsRef.current
+          }));
+        }
       }
-      prevPhaseRef.current = sample.phase || '';
+
+      prevPhaseLeftRef.current = leftPhase;
+      prevPhaseRightRef.current = rightPhase;
 
       // Dynamic cadence & symmetry based on active scenario
       let currentCadence = 0;
@@ -133,6 +161,12 @@ export default function App() {
       } else if (engine.scenario === 'running') {
         currentCadence = 165.0;
         currentSymmetry = 96.8;
+      } else if (engine.scenario === 'elderly_shuffle') {
+        currentCadence = 70.0;
+        currentSymmetry = 94.5;
+      } else if (engine.scenario === 'post_op_limp') {
+        currentCadence = 84.0;
+        currentSymmetry = 54.5;
       } else if (engine.scenario === 'stumble') {
         currentCadence = 92.0;
         currentSymmetry = 84.5; // Stumble temporary asymmetry
@@ -154,14 +188,19 @@ export default function App() {
         fallAlert: isCatastrophicFallAlert
       }));
 
-      // Broadcast to Supabase cloud if enabled
+      // Broadcast to Supabase cloud if enabled and simulation is actively running
       bridge.setEnabled(supabaseEnabledRef.current);
-      bridge.sendTelemetry(sample, inference, {
-        steps: stepsRef.current,
-        cadence: currentCadence,
-        symmetry: currentSymmetry,
-        fallAlert: isCatastrophicFallAlert
-      });
+      bridge.sendTelemetry(
+        sample,
+        inference,
+        {
+          steps: stepsRef.current,
+          cadence: currentCadence,
+          symmetry: currentSymmetry,
+          fallAlert: isCatastrophicFallAlert
+        },
+        engine.isRunning
+      );
     }, 20);
 
     return () => clearInterval(interval);
@@ -171,6 +210,9 @@ export default function App() {
     setIsRunning((prev) => {
       const next = !prev;
       if (engineRef.current) engineRef.current.setRunning(next);
+      if (!next && bridgeRef.current) {
+        bridgeRef.current.sendOfflineNotification();
+      }
       return next;
     });
   };

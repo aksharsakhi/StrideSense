@@ -11,32 +11,49 @@ SensorsManager Sensors;
 
 SensorsManager::SensorsManager()
     : ax_offset(0), ay_offset(0), az_offset(0),
-      gx_offset(0), gy_offset(0), gz_offset(0) {
+      gx_offset(0), gy_offset(0), gz_offset(0),
+      mpu_i2c_addr(MPU6050_I2C_ADDR) {
     for (int i = 0; i < 2; i++) {
         fsr_baseline[i] = 0;
     }
 }
 
 bool SensorsManager::begin() {
-    // Configure dual square FSR ADC pins as inputs
+    // Configure dual square FSR ADC pins (ADC1 channels are safe with active Wi-Fi)
     pinMode(PIN_FSR_S1_HEEL, INPUT);
     pinMode(PIN_FSR_S2_FOREFOOT, INPUT);
+    pinMode(PIN_FSR_S1_ALT, INPUT);
+    pinMode(PIN_FSR_S2_ALT, INPUT);
     pinMode(PIN_BATTERY_ADC, INPUT);
 
-    // Set 12-bit ADC resolution (0 - 4095) with full 0-3.3V attenuation
+    // Set 12-bit ADC resolution (0 - 4095) with full 0-3.3V attenuation (ADC_11db)
     analogReadResolution(12);
     analogSetPinAttenuation(PIN_FSR_S1_HEEL, ADC_11db);
     analogSetPinAttenuation(PIN_FSR_S2_FOREFOOT, ADC_11db);
+    analogSetPinAttenuation(PIN_FSR_S1_ALT, ADC_11db);
+    analogSetPinAttenuation(PIN_FSR_S2_ALT, ADC_11db);
+    analogSetPinAttenuation(PIN_BATTERY_ADC, ADC_11db);
 
-    // Initialize I2C for MPU-6050
+    // Initialize Hardware I2C for MPU-6050 (GPIO 21 = SDA, GPIO 22 = SCL)
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL, 400000); // 400 kHz Fast-Mode I2C
 
-    // Verify MPU-6050 connection
-    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    // Probe primary MPU-6050 address 0x68 (AD0 connected to GND)
+    Wire.beginTransmission(0x68);
     Wire.write(0x75); // WHO_AM_I register
-    if (Wire.endTransmission() != 0) {
-        Serial.println(F("[Sensors] WARNING: MPU-6050 not detected on I2C bus! Check wiring."));
-        return false;
+    if (Wire.endTransmission() == 0) {
+        mpu_i2c_addr = 0x68;
+        Serial.println(F("[Sensors] MPU-6050 detected at I2C address 0x68."));
+    } else {
+        // Probe secondary address 0x69 (AD0 pulled to 3.3V or floating)
+        Wire.beginTransmission(0x69);
+        Wire.write(0x75);
+        if (Wire.endTransmission() == 0) {
+            mpu_i2c_addr = 0x69;
+            Serial.println(F("[Sensors] MPU-6050 detected at alternate I2C address 0x69."));
+        } else {
+            Serial.println(F("[Sensors] WARNING: MPU-6050 not detected on I2C bus (checked 0x68 & 0x69)! Check SDA (GPIO 21) and SCL (GPIO 22)."));
+            return false;
+        }
     }
 
     initMPU6050();
@@ -46,25 +63,25 @@ bool SensorsManager::begin() {
 
 void SensorsManager::initMPU6050() {
     // 1. Wake up MPU6050 (clear SLEEP bit in PWR_MGMT_1)
-    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    Wire.beginTransmission(mpu_i2c_addr);
     Wire.write(0x6B); // PWR_MGMT_1
     Wire.write(0x00); // Internal 8MHz oscillator
     Wire.endTransmission();
 
     // 2. Configure Accelerometer Full-Scale Range (±8g)
-    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    Wire.beginTransmission(mpu_i2c_addr);
     Wire.write(0x1C); // ACCEL_CONFIG
     Wire.write(0x10); // ±8g range (4096 LSB/g)
     Wire.endTransmission();
 
     // 3. Configure Gyroscope Full-Scale Range (±1000 deg/s)
-    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    Wire.beginTransmission(mpu_i2c_addr);
     Wire.write(0x1B); // GYRO_CONFIG
     Wire.write(0x10); // ±1000 deg/s (32.8 LSB/(deg/s))
     Wire.endTransmission();
 
     // 4. Low-pass filter (DLPF_CFG = 2 -> ~44 Hz bandwidth)
-    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    Wire.beginTransmission(mpu_i2c_addr);
     Wire.write(0x1A); // CONFIG
     Wire.write(0x02);
     Wire.endTransmission();
@@ -79,10 +96,10 @@ uint16_t SensorsManager::readAveragedADC(uint8_t pin, uint8_t count) {
 }
 
 void SensorsManager::readMPU6050(float &ax, float &ay, float &az, float &gx, float &gy, float &gz) {
-    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    Wire.beginTransmission(mpu_i2c_addr);
     Wire.write(0x3B); // ACCEL_XOUT_H
     Wire.endTransmission(false);
-    Wire.requestFrom((uint8_t)MPU6050_I2C_ADDR, (uint8_t)14, (uint8_t)true);
+    Wire.requestFrom((uint8_t)mpu_i2c_addr, (uint8_t)14, (uint8_t)true);
 
     if (Wire.available() >= 14) {
         int16_t raw_ax = (Wire.read() << 8) | Wire.read();
@@ -111,24 +128,14 @@ void SensorsManager::readMPU6050(float &ax, float &ay, float &az, float &gx, flo
 bool SensorsManager::readSample(SensorSample &sample) {
     sample.timestamp_ms = millis();
 
-    // Read dual square FSR ADC values with multi-pin auto-detection
+    // Read dual square FSR ADC values with multi-pin auto-detection (GPIO 36 / 34 and GPIO 39 / 35)
     uint16_t raw_heel = readAveragedADC(PIN_FSR_S1_HEEL);
-    if (raw_heel < 40) {
-        // Fallback check on GPIO 36 (VP) or GPIO 32
-        uint16_t alt36 = readAveragedADC(36, 2);
-        if (alt36 > raw_heel) raw_heel = alt36;
-        uint16_t alt32 = readAveragedADC(32, 2);
-        if (alt32 > raw_heel) raw_heel = alt32;
-    }
+    uint16_t alt_heel = readAveragedADC(PIN_FSR_S1_ALT);
+    if (alt_heel > raw_heel) raw_heel = alt_heel;
 
     uint16_t raw_forefoot = readAveragedADC(PIN_FSR_S2_FOREFOOT);
-    if (raw_forefoot < 40) {
-        // Fallback check on GPIO 39 (VN) or GPIO 33
-        uint16_t alt39 = readAveragedADC(39, 2);
-        if (alt39 > raw_forefoot) raw_forefoot = alt39;
-        uint16_t alt33 = readAveragedADC(33, 2);
-        if (alt33 > raw_forefoot) raw_forefoot = alt33;
-    }
+    uint16_t alt_forefoot = readAveragedADC(PIN_FSR_S2_ALT);
+    if (alt_forefoot > raw_forefoot) raw_forefoot = alt_forefoot;
 
     // Apply baseline subtraction (zero-tare) with safe floor
     sample.p1 = (raw_heel > fsr_baseline[0]) ? (raw_heel - fsr_baseline[0]) : 0;
@@ -155,8 +162,13 @@ void SensorsManager::calibrateZeroBaseline(int samples) {
     float gx_sum = 0, gy_sum = 0, gz_sum = 0;
 
     for (int i = 0; i < samples; i++) {
-        p_sums[0] += analogRead(PIN_FSR_S1_HEEL);
-        p_sums[1] += analogRead(PIN_FSR_S2_FOREFOOT);
+        uint16_t h1 = analogRead(PIN_FSR_S1_HEEL);
+        uint16_t h2 = analogRead(PIN_FSR_S1_ALT);
+        p_sums[0] += (h2 > h1) ? h2 : h1;
+
+        uint16_t f1 = analogRead(PIN_FSR_S2_FOREFOOT);
+        uint16_t f2 = analogRead(PIN_FSR_S2_ALT);
+        p_sums[1] += (f2 > f1) ? f2 : f1;
 
         float a_x, a_y, a_z, g_x, g_y, g_z;
         readMPU6050(a_x, a_y, a_z, g_x, g_y, g_z);

@@ -121,6 +121,10 @@ bool SupabaseClient::sendTelemetry(const SupabaseTelemetryPayload &payload) {
     int httpCode = http.POST(json);
     if (httpCode >= 200 && httpCode < 300) {
         Serial.printf("[Supabase] Telemetry sent successfully (HTTP %d)\n", httpCode);
+        // Pulse Cloud Sync Blue LED
+        digitalWrite(PIN_LED_BLUE, HIGH);
+        delay(10);
+        digitalWrite(PIN_LED_BLUE, LOW);
     } else {
         Serial.printf("[Supabase] Telemetry upload failed: HTTP %d\n", httpCode);
     }

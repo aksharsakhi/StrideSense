@@ -1,16 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Compass, Move3d, Gauge } from 'lucide-react';
 
 export default function MotionVisualizer({ imu = {} }) {
-  const ax = imu.ax || 0;
-  const ay = imu.ay || 0;
-  const az = imu.az || 1.0;
-  const gx = imu.gx || 0;
-  const gy = imu.gy || 0;
-  const gz = imu.gz || 0;
-  const pitch = imu.pitch || 0;
-  const roll = imu.roll || 0;
-  const svmA = imu.svmA || 1.0;
+  const [activeSide, setActiveSide] = useState('left'); // 'left' | 'right'
+
+  // Pick IMU data based on active side if bilateral sub-objects exist
+  const activeImu = (activeSide === 'right' && imu.right) ? imu.right : (imu.left || imu);
+
+  const ax = activeImu.ax || 0;
+  const ay = activeImu.ay || 0;
+  const az = activeImu.az || 1.0;
+  const gx = activeImu.gx || 0;
+  const gy = activeImu.gy || 0;
+  const gz = activeImu.gz || 0;
+  const pitch = activeImu.pitch || 0;
+  const roll = activeImu.roll || 0;
+  const svmA = activeImu.svmA || 1.0;
+
+  const hasBilateralImu = Boolean(imu.left && imu.right);
 
   const isFreeFall = svmA < 0.6;
   const isHighImpact = svmA > 2.8;
@@ -31,16 +38,46 @@ export default function MotionVisualizer({ imu = {} }) {
             <h2 className="text-lg sm:text-xl font-bold font-display text-slate-900 dark:text-white tracking-wide">
               IMU Kinematics
             </h2>
-            <span className="badge badge-cyan text-[9px]">MPU-6050</span>
+            <span className="badge badge-cyan text-[9px]">
+              {hasBilateralImu ? 'Dual 6-DOF' : 'MPU-6050'}
+            </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             6-DOF spatial acceleration & gyroscopic orientation
           </p>
         </div>
-        <span className="badge badge-emerald text-[9px] flex items-center gap-1">
-          <Compass className="w-3 h-3" />
-          ±8g / ±1000°/s
-        </span>
+
+        {hasBilateralImu ? (
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-white/[0.08] text-[11px]">
+            <button
+              type="button"
+              onClick={() => setActiveSide('left')}
+              className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                activeSide === 'left'
+                  ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Left Foot
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSide('right')}
+              className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                activeSide === 'right'
+                  ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Right Foot
+            </button>
+          </div>
+        ) : (
+          <span className="badge badge-emerald text-[9px] flex items-center gap-1">
+            <Compass className="w-3 h-3" />
+            ±8g / ±1000°/s
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

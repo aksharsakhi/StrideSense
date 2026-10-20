@@ -1,5 +1,5 @@
 import React from 'react';
-import { Footprints, Flame, UserCheck, Armchair, AlertOctagon, Zap, Brain } from 'lucide-react';
+import { Footprints, Flame, UserCheck, Armchair, AlertOctagon, Zap, Brain, WifiOff, PowerOff } from 'lucide-react';
 
 const ACTIVITY_CONFIG = {
   Walking: {
@@ -41,11 +41,27 @@ const ACTIVITY_CONFIG = {
     badgeClass: 'badge-rose',
     desc: 'CRITICAL: High-G kinematic impact shock!',
     glow: 'rgba(244, 63, 94, 0.35)'
+  },
+  Offline: {
+    icon: WifiOff,
+    ringColor: '#94a3b8',
+    iconStyle: 'bg-slate-500/15 text-slate-500 dark:text-slate-400',
+    badgeClass: 'badge-slate',
+    desc: 'Device in standby • Waiting for stride telemetry',
+    glow: 'none'
+  },
+  Standby: {
+    icon: PowerOff,
+    ringColor: '#94a3b8',
+    iconStyle: 'bg-slate-500/15 text-slate-500 dark:text-slate-400',
+    badgeClass: 'badge-slate',
+    desc: 'Device in standby • Waiting for stride telemetry',
+    glow: 'none'
   }
 };
 
-export default function ActivityCard({ activity = 'Walking', confidence = 0.98 }) {
-  const conf = ACTIVITY_CONFIG[activity] || ACTIVITY_CONFIG['Walking'];
+export default function ActivityCard({ activity = 'Offline', confidence = 0 }) {
+  const conf = ACTIVITY_CONFIG[activity] || (activity === 'Offline' || !activity ? ACTIVITY_CONFIG.Offline : ACTIVITY_CONFIG.Walking);
   const IconComponent = conf.icon;
   const confPct = Math.round(confidence * 100);
   const isFall = activity === 'Fall';

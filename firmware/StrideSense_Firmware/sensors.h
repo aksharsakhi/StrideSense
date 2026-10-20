@@ -54,6 +54,7 @@ private:
     float gz_offset;
 
     uint16_t fsr_baseline[2];
+    uint8_t mpu_i2c_addr;
 };
 
 extern SensorsManager Sensors;

@@ -2,11 +2,12 @@ import React from 'react';
 import { Footprints, Activity, Scale, Clock, Award } from 'lucide-react';
 
 export default function GaitMetrics({
-  steps = 3842,
-  cadence = 108,
-  symmetry = 96.4,
-  activity = 'Walking'
+  steps = 0,
+  cadence = 0,
+  symmetry = 100,
+  activity = 'Offline'
 }) {
+  const isOffline = activity === 'Offline' || cadence === 0;
   const stepGoal = 10000;
   const stepPct = Math.min(100, Math.round((steps / stepGoal) * 100));
 
@@ -15,8 +16,8 @@ export default function GaitMetrics({
   const isWalking = act.includes('WALK');
   const isStanding = act.includes('STAND');
 
-  const stancePct = isRunning ? 42 : (isWalking ? 62 : (isStanding ? 100 : 60));
-  const swingPct = isRunning ? 58 : (isWalking ? 38 : (isStanding ? 0 : 40));
+  const stancePct = isRunning ? 42 : (isWalking ? 62 : (isStanding ? 100 : 50));
+  const swingPct = isRunning ? 58 : (isWalking ? 38 : (isStanding ? 0 : 50));
 
   const METRICS = [
     {
@@ -33,30 +34,30 @@ export default function GaitMetrics({
       label: 'Cadence',
       value: `${cadence}`,
       unit: 'SPM',
-      sub: cadence > 140 ? 'High Tempo' : (cadence > 90 ? 'Brisk Walk' : 'Stationary'),
+      sub: isOffline ? 'Sensor Standby' : (cadence > 140 ? 'High Tempo' : (cadence > 90 ? 'Brisk Walk' : 'Stationary')),
       icon: Activity,
       iconColor: 'text-emerald-600 dark:text-emerald-400',
-      valueColor: 'text-slate-900 dark:text-white',
+      valueColor: isOffline ? 'text-slate-400' : 'text-slate-900 dark:text-white',
       accent: 'var(--accent-emerald)'
     },
     {
       label: 'Symmetry',
       value: symmetry.toFixed(1),
       unit: '%',
-      sub: symmetry > 90 ? 'Balanced' : 'Review Gait',
+      sub: isOffline ? 'Equilibrium Standby' : (symmetry > 90 ? 'Balanced' : 'Review Gait'),
       icon: Scale,
       iconColor: 'text-amber-600 dark:text-amber-400',
-      valueColor: symmetry > 90 ? 'text-amber-600 dark:text-amber-300' : 'text-rose-600 dark:text-rose-400',
+      valueColor: isOffline ? 'text-slate-400' : (symmetry > 90 ? 'text-amber-600 dark:text-amber-300' : 'text-rose-600 dark:text-rose-400'),
       accent: 'var(--accent-amber)'
     },
     {
       label: 'Stride Cycle',
       value: cadence > 0 ? (60 / (cadence / 2)).toFixed(2) : '0.00',
       unit: 's',
-      sub: 'Full GCT Period',
+      sub: isOffline ? 'Awaiting Stride' : 'Full GCT Period',
       icon: Clock,
       iconColor: 'text-violet-600 dark:text-violet-400',
-      valueColor: 'text-slate-900 dark:text-white',
+      valueColor: isOffline ? 'text-slate-400' : 'text-slate-900 dark:text-white',
       accent: 'var(--accent-purple)'
     }
   ];
@@ -72,9 +73,11 @@ export default function GaitMetrics({
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Continuous kinematic stride telemetry</p>
           </div>
-          <span className="badge badge-emerald text-[10px] flex items-center gap-1">
+          <span className={`badge text-[10px] flex items-center gap-1 ${
+            isOffline ? 'badge-slate' : (symmetry > 90 ? 'badge-emerald' : 'badge-amber')
+          }`}>
             <Award className="w-3 h-3" />
-            Optimal
+            {isOffline ? 'Standby' : (symmetry > 90 ? 'Optimal' : 'Review Gait')}
           </span>
         </div>
 

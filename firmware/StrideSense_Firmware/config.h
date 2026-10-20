@@ -15,25 +15,28 @@
 // Hardware Mode: Standard 2x Square FSR Kit (Heel + Forefoot)
 #define FSR_SENSOR_COUNT      2
 
-// FSR Pressure Sensors (ESP32 ADC1 channels - safe with Wi-Fi active)
-#define PIN_FSR_S1_HEEL       34  // GPIO 34 (ADC1_CH6: Calcaneus / Heel)
-#define PIN_FSR_S2_FOREFOOT   35  // GPIO 35 (ADC1_CH7: Metatarsal / Forefoot Ball)
+// FSR Pressure Sensors (ESP32 ADC1 channels - 100% safe with Wi-Fi active)
+#define PIN_FSR_S1_HEEL       36  // GPIO 36 (ADC1_CH0: SENSOR_VP - Calcaneus / Heel)
+#define PIN_FSR_S2_FOREFOOT   39  // GPIO 39 (ADC1_CH3: SENSOR_VN - Metatarsal / Forefoot Ball)
+// Alternate ADC1 pins (auto-sensed by firmware if wired to D34 / D35)
+#define PIN_FSR_S1_ALT        34  // GPIO 34 (ADC1_CH6)
+#define PIN_FSR_S2_ALT        35  // GPIO 35 (ADC1_CH7)
 
-// MPU-6050 IMU (I2C Bus - Configured to GPIO 26 & 27)
-#define PIN_I2C_SDA           26  // ESP32 SDA -> GPIO 26
-#define PIN_I2C_SCL           27  // ESP32 SCL -> GPIO 27
+// MPU-6050 IMU (Hardware Native I2C Bus on ESP32)
+#define PIN_I2C_SDA           21  // ESP32 SDA -> GPIO 21
+#define PIN_I2C_SCL           22  // ESP32 SCL -> GPIO 22
 #define MPU6050_I2C_ADDR      0x68
 
 // Indicators & Actuators
 #define PIN_STATUS_LED        2   // Onboard Blue LED
 #define PIN_LED_RED           25  // Fall / Alert Indicator LED
-#define PIN_LED_GREEN         18  // Wi-Fi / Active Status Indicator LED (moved to GPIO 18)
-#define PIN_LED_BLUE          19  // Cloud Sync Indicator LED (moved to GPIO 19)
+#define PIN_LED_GREEN         18  // Wi-Fi / Active Status Indicator LED
+#define PIN_LED_BLUE          19  // Cloud Sync Indicator LED
 #define PIN_HAPTIC_MOTOR      12  // Coin Vibration Motor driver (via NPN Transistor)
-#define PIN_SOS_BUTTON        14  // Emergency / Fall Cancel Button (Active LOW)
+#define PIN_SOS_BUTTON        14  // Emergency / Fall Cancel Button (Active LOW with internal pullup)
 
-// Battery Monitoring (Optional 100k/100k voltage divider)
-#define PIN_BATTERY_ADC       4   // Battery voltage divider
+// Battery Monitoring (Optional 100k/100k voltage divider on ADC1 channel)
+#define PIN_BATTERY_ADC       34  // GPIO 34 (ADC1_CH6 - Safe with Wi-Fi)
 
 // ==========================================
 // 2. TIMING & SAMPLING CONSTANTS
@@ -53,11 +56,28 @@
 #define FALL_CANCEL_WINDOW_MS 15000  // 15 seconds to cancel accidental fall alert
 
 // ==========================================
-// 4. WI-FI & CLOUD BACKEND CONFIGURATION
+// 4. BILATERAL ROLE & CLOUD CONFIGURATION
 // ==========================================
+#define INSOLE_SIDE_LEFT      0
+#define INSOLE_SIDE_RIGHT     1
+
+// >>> SELECT INSOLE ROLE FOR THIS PHYSICAL ESP32 BOARD <<<
+// Flash Left Foot ESP32:  Set to INSOLE_SIDE_LEFT
+// Flash Right Foot ESP32: Set to INSOLE_SIDE_RIGHT
+#ifndef INSOLE_SIDE
+#define INSOLE_SIDE           INSOLE_SIDE_LEFT
+#endif
+
+#if (INSOLE_SIDE == INSOLE_SIDE_LEFT)
+  #define DEVICE_ID           "insole_left_01"
+  #define INSOLE_SIDE_NAME    "LEFT INSOLE"
+#else
+  #define DEVICE_ID           "insole_right_01"
+  #define INSOLE_SIDE_NAME    "RIGHT INSOLE"
+#endif
+
 #define WIFI_SSID             "LADDA"
 #define WIFI_PASSWORD         "ladda5555"
-#define DEVICE_ID             "insole_left_01"
 
 // Active Cloud Backend: 1 = Supabase (Recommended), 0 = Firebase
 #define BACKEND_USE_SUPABASE  1

@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Play, Pause, RotateCcw, Flame, AlertTriangle, ShieldAlert,
   XCircle, Sliders, Armchair, UserCheck, FastForward, Clock,
-  Footprints, ShieldCheck, Zap, Activity, Info
+  Footprints, ShieldCheck, Zap, Activity, Info, HeartPulse, Bandage
 } from 'lucide-react';
 
 export default function ScenarioDirector({
@@ -32,11 +32,11 @@ export default function ScenarioDirector({
   showFootModel,
   setShowFootModel
 }) {
-  const scenarios = [
+  // ─── 1. WALKING & LOCOMOTION GAIT PATTERNS ───
+  const walkingScenarios = [
     {
       id: 'walking',
       name: 'Normal Walking',
-      category: 'Locomotion',
       badge: '108 SPM',
       desc: 'Balanced heel-to-toe stride with rhythmic FSR1 & FSR2 transfer',
       specs: 'Cadence: 108 • Peak Accel: ~1.4g • Balanced',
@@ -44,9 +44,26 @@ export default function ScenarioDirector({
       color: 'border-cyan-500/40 text-cyan-400 bg-cyan-950/20 hover:bg-cyan-900/30'
     },
     {
+      id: 'elderly_shuffle',
+      name: 'Elderly Shuffling Walk',
+      badge: '70 SPM • Cautious',
+      desc: 'Senescent gait: low ground clearance (<3.5cm scraping), flat landing, prolonged stance (74%), & micro-tremor',
+      specs: 'Cadence: 70 • Floor Scraping • Flat Strike',
+      icon: HeartPulse,
+      color: 'border-amber-400/40 text-amber-300 bg-amber-950/20 hover:bg-amber-900/30'
+    },
+    {
+      id: 'post_op_limp',
+      name: 'Severe Post-Operative Limp',
+      badge: '84 SPM • 54% Sym',
+      desc: 'Guarded antalgic gait: operated leg carries 20% load with hurried escape; healthy leg absorbs 80% heavy shock',
+      specs: 'Asymmetry: 54.5% • Operated Load: 22%',
+      icon: Bandage,
+      color: 'border-rose-400/40 text-rose-300 bg-rose-950/20 hover:bg-rose-900/30'
+    },
+    {
       id: 'running',
       name: 'Sprint Running',
-      category: 'Locomotion',
       badge: '165 SPM',
       desc: 'Forefoot-dominant dynamic strike with high vertical flight acceleration',
       specs: 'Cadence: 165 • Peak Accel: ~3.3g • Forefoot FSR2',
@@ -54,9 +71,21 @@ export default function ScenarioDirector({
       color: 'border-purple-500/40 text-purple-400 bg-purple-950/20 hover:bg-purple-900/30'
     },
     {
+      id: 'pronation',
+      name: 'Over-Pronation Walk',
+      badge: '-16° Inward Roll',
+      desc: 'Medial arch inward collapse with abnormal lateral-to-medial force bias on right foot',
+      specs: 'Roll: -16° • Asymmetric • Medial Load Bias',
+      icon: Activity,
+      color: 'border-yellow-500/40 text-yellow-400 bg-yellow-950/20 hover:bg-yellow-900/30'
+    },
+  ];
+
+  // ─── 2. FALL & HAZARD SIMULATION VECTORS ───
+  const fallScenarios = [
+    {
       id: 'stumble',
-      name: 'Half Fall (Stumble)',
-      category: 'Safety Edge-Case',
+      name: 'Half Fall (Stumble & Catch)',
       badge: 'Near-Fall Catch',
       desc: 'Sudden trip shock & pitch loss, caught by lunging forefoot step with zero false alarm',
       specs: 'Shock: ~2.8g • Corrective Catch • Auto-Recovery',
@@ -66,19 +95,21 @@ export default function ScenarioDirector({
     },
     {
       id: 'fall',
-      name: 'Catastrophic Fall',
-      category: 'Safety Critical',
-      badge: 'Dual-Trigger',
+      name: 'Catastrophic Fall (Dual-Trigger)',
+      badge: 'Dual-Trigger SOS',
       desc: 'Freefall drop (<0.5g) followed by violent impact (>7g) and motionless tilt',
       specs: 'Drop: <0.5g • Impact: >7.5g • 15s SOS Timer',
       icon: ShieldAlert,
       color: 'border-rose-500/40 text-rose-400 bg-rose-950/20 hover:bg-rose-900/30',
       isFall: true
     },
+  ];
+
+  // ─── 3. STATIC POSTURAL BASELINES ───
+  const posturalScenarios = [
     {
       id: 'standing',
       name: 'Static Standing',
-      category: 'Postural',
       badge: '1.0g Gravity',
       desc: 'Bilateral 50/50 ground reaction force balance, zero pitch/roll tilt',
       specs: 'Cadence: 0 • Static 1.0g • Heel+Ball Loaded',
@@ -88,24 +119,62 @@ export default function ScenarioDirector({
     {
       id: 'sitting',
       name: 'Sitting / Resting',
-      category: 'Postural',
       badge: 'Unloaded',
       desc: 'Minimal ground reaction force (<80 ADC), foot at resting angle',
       specs: 'Cadence: 0 • Force <100 ADC • Sedentary',
       icon: Armchair,
       color: 'border-slate-600/40 text-slate-300 bg-slate-900/40 hover:bg-slate-800/50'
     },
-    {
-      id: 'pronation',
-      name: 'Over-Pronation',
-      category: 'Pathology',
-      badge: '-16° Inward Tilt',
-      desc: 'Medial arch inward collapse with abnormal lateral-to-medial force bias',
-      specs: 'Roll: -16° • Asymmetric • High Medial Load',
-      icon: Activity,
-      color: 'border-yellow-500/40 text-yellow-400 bg-yellow-950/20 hover:bg-yellow-900/30'
-    },
   ];
+
+  // Helper card renderer
+  const renderCard = (sc) => {
+    const Icon = sc.icon;
+    const isCurrent = !manualMode && currentScenario === sc.id && (sc.id !== 'fall' || fallState !== 'idle');
+
+    return (
+      <button
+        key={sc.id}
+        onClick={() => {
+          setManualMode(false);
+          onSelectScenario(sc.id);
+        }}
+        className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between group ${
+          isCurrent
+            ? sc.isFall
+              ? 'border-rose-500 bg-rose-950/40 shadow-glow-rose ring-1 ring-rose-500/50'
+              : sc.isStumble
+              ? 'border-amber-500 bg-amber-950/40 shadow-glow-amber ring-1 ring-amber-500/50'
+              : 'border-cyan-400 bg-cyan-950/40 shadow-glow-cyan ring-1 ring-cyan-400/50'
+            : sc.color
+        }`}
+      >
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-700/60">
+                <Icon className="w-4 h-4" />
+              </div>
+              <span className="font-bold text-xs text-slate-100">{sc.name}</span>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900/80 border border-slate-700/60 text-slate-300 whitespace-nowrap">
+              {sc.badge}
+            </span>
+          </div>
+          <div className="text-[11px] text-slate-300/90 leading-snug">{sc.desc}</div>
+        </div>
+
+        <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono">
+          <span className="text-slate-400 truncate pr-2">{sc.specs}</span>
+          <span className={`font-bold shrink-0 transition-colors ${
+            isCurrent ? 'text-cyan-300' : 'text-slate-500 group-hover:text-cyan-400'
+          }`}>
+            {isCurrent ? '● ACTIVE' : '▶ START'}
+          </span>
+        </div>
+      </button>
+    );
+  };
 
   // Format elapsed time MM:SS
   const mins = Math.floor(elapsedTime / 60).toString().padStart(2, '0');
@@ -195,10 +264,10 @@ export default function ScenarioDirector({
         <div>
           <h2 className="text-xs font-bold text-slate-200 tracking-wider flex items-center gap-2 font-mono">
             <Sliders className="w-4 h-4 text-cyan-400" />
-            GAIT KINEMATICS & FALL SIMULATION VECTORS
+            BIOMECHANICAL GAIT PATTERNS & FALL SIMULATION VECTORS
           </h2>
           <p className="text-[11px] text-slate-400 mt-0.5">
-            Click any scenario to immediately inject biomechanical motion and verify algorithm behavior
+            Click any pattern to immediately inject realistic kinematics and verify edge algorithm behavior
           </p>
         </div>
 
@@ -259,56 +328,52 @@ export default function ScenarioDirector({
         </div>
       )}
 
-      {/* ─── SCENARIO SELECTION GRID ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {scenarios.map((sc) => {
-          const Icon = sc.icon;
-          const isCurrent = !manualMode && currentScenario === sc.id && (sc.id !== 'fall' || fallState !== 'idle');
-          const isStumbleRunning = sc.id === 'stumble' && stumbleState !== 'idle';
+      {/* ─── GROUP 1: WALKING & LOCOMOTION GAIT PATTERNS (SEPARATE SECTION) ─── */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-cyan-400 font-mono text-xs font-bold uppercase tracking-wider">
+            <Footprints className="w-4 h-4" />
+            <span>Walking & Locomotion Gait Patterns</span>
+          </div>
+          <span className="text-[10px] font-mono text-slate-500 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800">
+            5 Scenarios • Normal & Pathological
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {walkingScenarios.map(renderCard)}
+        </div>
+      </div>
 
-          return (
-            <button
-              key={sc.id}
-              onClick={() => {
-                setManualMode(false);
-                onSelectScenario(sc.id);
-              }}
-              className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between group ${
-                isCurrent
-                  ? sc.isFall
-                    ? 'border-rose-500 bg-rose-950/40 shadow-glow-rose'
-                    : sc.isStumble
-                    ? 'border-amber-500 bg-amber-950/40 shadow-glow-amber'
-                    : 'border-cyan-400 bg-cyan-950/40 shadow-glow-cyan'
-                  : sc.color
-              }`}
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-700/60">
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-xs text-slate-100">{sc.name}</span>
-                  </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900/80 border border-slate-700/60 text-slate-300">
-                    {sc.badge}
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-300/90 leading-snug">{sc.desc}</div>
-              </div>
+      {/* ─── GROUP 2: FALL & HAZARD SIMULATION VECTORS (SEPARATE SECTION) ─── */}
+      <div className="space-y-2.5 pt-2 border-t border-slate-800/80">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-rose-400 font-mono text-xs font-bold uppercase tracking-wider">
+            <ShieldAlert className="w-4 h-4 text-rose-400" />
+            <span>Fall & Emergency Hazard Vectors</span>
+          </div>
+          <span className="text-[10px] font-mono text-rose-400/80 bg-rose-950/40 px-2 py-0.5 rounded border border-rose-800/50">
+            2 Safety Vectors • Dual-Trigger & Near-Fall Catch
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {fallScenarios.map(renderCard)}
+        </div>
+      </div>
 
-              <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono">
-                <span className="text-slate-400">{sc.specs}</span>
-                <span className={`font-bold transition-colors ${
-                  isCurrent ? 'text-cyan-300' : 'text-slate-500 group-hover:text-cyan-400'
-                }`}>
-                  {isCurrent ? '● ACTIVE' : '▶ START'}
-                </span>
-              </div>
-            </button>
-          );
-        })}
+      {/* ─── GROUP 3: POSTURAL & REST STATES (SEPARATE SECTION) ─── */}
+      <div className="space-y-2.5 pt-2 border-t border-slate-800/80">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-emerald-400 font-mono text-xs font-bold uppercase tracking-wider">
+            <UserCheck className="w-4 h-4 text-emerald-400" />
+            <span>Postural Baselines & Sedentary States</span>
+          </div>
+          <span className="text-[10px] font-mono text-slate-500 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800">
+            Static Gravity & Unloaded Foot
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {posturalScenarios.map(renderCard)}
+        </div>
       </div>
 
       {/* ─── MANUAL HARDWARE OVERRIDES & GHOST BONES ─── */}

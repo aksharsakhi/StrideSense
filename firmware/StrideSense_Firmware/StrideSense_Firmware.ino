@@ -43,6 +43,7 @@ void setup() {
 
     Serial.println(F("\n=========================================="));
     Serial.println(F("     STRIDESENSE - AI SMART INSOLE       "));
+    Serial.printf( "     ROLE: %s [%s]\n", INSOLE_SIDE_NAME, DEVICE_ID);
     Serial.println(F("=========================================="));
 
     // Initialize Status LED

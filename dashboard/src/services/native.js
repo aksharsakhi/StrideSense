@@ -100,6 +100,54 @@ class NativeMobileBridge {
     });
   }
 
+  notificationSuccess() {
+    queueMicrotask(() => {
+      if (this.haptics) {
+        try {
+          this.haptics.notification({ type: 'SUCCESS' }).catch(() => {});
+          return;
+        } catch (e) {}
+      }
+      try {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate([30, 50, 30]);
+        }
+      } catch (e) {}
+    });
+  }
+
+  notificationWarning() {
+    queueMicrotask(() => {
+      if (this.haptics) {
+        try {
+          this.haptics.notification({ type: 'WARNING' }).catch(() => {});
+          return;
+        } catch (e) {}
+      }
+      try {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate([50, 50, 80]);
+        }
+      } catch (e) {}
+    });
+  }
+
+  notificationError() {
+    queueMicrotask(() => {
+      if (this.haptics) {
+        try {
+          this.haptics.notification({ type: 'ERROR' }).catch(() => {});
+          return;
+        } catch (e) {}
+      }
+      try {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate([100, 50, 100]);
+        }
+      } catch (e) {}
+    });
+  }
+
   async triggerEmergencyVibration() {
     if (this.haptics) {
       try {

@@ -521,20 +521,26 @@ function SettingsPageComponent({
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
-                    {selectedDeviceId === 'insole_left_02' ? '3D Virtual Simulation' : 'ESP32 Physical Insole'}
+                    {selectedDeviceId === 'bilateral_hw'
+                      ? 'Bilateral ESP32 Hardware Kit'
+                      : (selectedDeviceId === 'bilateral_sim'
+                          ? 'Bilateral 3D Simulation'
+                          : (selectedDeviceId.includes('02') ? '3D Virtual Simulation Insole' : 'ESP32 Physical Insole'))}
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                    {selectedDeviceId === 'insole_left_02' ? 'Laptop Studio • insole_left_02' : 'ESP32 DevKit • insole_left_01'}
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5 truncate">
+                    {selectedDeviceId.startsWith('bilateral')
+                      ? 'Dual Foot Setup • Left + Right Sync'
+                      : `Single Insole • ${selectedDeviceId}`}
                   </p>
                   <div className="flex items-center gap-2 mt-1.5">
                     <span className={`badge text-[9px] ${
                       isCloudConnected ? 'badge-emerald' : 'badge-amber'
                     }`}>
                       <CheckCircle2 className="w-3 h-3" />
-                      {isCloudConnected ? (selectedDeviceId === 'insole_left_02' ? 'Sim Streaming' : 'Live Sync') : 'Connecting'}
+                      {isCloudConnected ? 'Active Sync' : 'Standby / Offline'}
                     </span>
                     <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                      {selectedDeviceId === 'insole_left_02' ? 'FW v1.4.2-Sim' : 'FW v1.4.2-TinyML'}
+                      {selectedDeviceId.includes('sim') || selectedDeviceId.includes('02') ? 'v1.4.2-VirtualSim' : 'v1.4.2-TinyML'}
                     </span>
                   </div>
                 </div>

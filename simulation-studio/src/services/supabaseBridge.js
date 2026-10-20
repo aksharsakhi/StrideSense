@@ -13,10 +13,11 @@ export class SupabaseBridge {
     this.host = DEFAULT_SUPABASE_HOST;
     this.apiKey = DEFAULT_SUPABASE_KEY;
     this.endpoint = DEFAULT_ENDPOINT;
-    this.deviceId = "insole_left_02"; // Registered device in Supabase devices table (Simulation Studio)
+    this.deviceIdLeft = "insole_left_02";
+    this.deviceIdRight = "insole_right_02";
     this.lastBroadcast = 0;
     this.broadcastIntervalMs = 1000; // 1 Hz matching ESP32 firmware CLOUD_TELEMETRY_MS
-    this.status = "idle"; // 'idle' | 'broadcasting' | 'success' | 'error'
+    this.status = "idle"; // 'idle' | 'broadcasting' | 'paused' | 'success' | 'error'
     this.lastError = null;
     this.packetsSent = 0;
     this.isLeader = true;
@@ -24,11 +25,11 @@ export class SupabaseBridge {
   }
 
   initLeaderElection() {
+    this.isLeader = true;
     if (typeof navigator !== 'undefined' && navigator.locks) {
-      this.isLeader = false;
       navigator.locks.request('stridesense_sim_leader', () => {
         this.isLeader = true;
-        return new Promise(() => {}); // Keep holding lock as long as this tab is open
+        return new Promise(() => {}); // Hold lock
       }).catch(() => {
         this.isLeader = true;
       });
@@ -37,10 +38,53 @@ export class SupabaseBridge {
 
   setEnabled(val) {
     this.enabled = Boolean(val);
+    if (!this.enabled) {
+      this.status = "disabled";
+      this.sendOfflineNotification();
+    }
   }
 
-  async sendTelemetry(sample, inference, stats = {}) {
-    if (!this.enabled || !this.isLeader) return;
+  async sendOfflineNotification() {
+    if (!this.isLeader) return;
+    try {
+      const headers = {
+        "Content-Type": "application/json",
+        "apikey": this.apiKey,
+        "Authorization": `Bearer ${this.apiKey}`,
+        "Prefer": "return=minimal"
+      };
+      const offlinePayload = (devId) => ({
+        device_id: devId,
+        activity: 'Offline',
+        confidence: 0,
+        steps: 0,
+        cadence: 0,
+        symmetry: 100,
+        fall_alert: false,
+        fall_emergency: false,
+        p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0,
+        pitch: 0, roll: 0, svm_a: 1.0
+      });
+      await Promise.all([
+        fetch(`${this.host}${this.endpoint}`, { method: "POST", headers, body: JSON.stringify(offlinePayload(this.deviceIdLeft)) }),
+        fetch(`${this.host}${this.endpoint}`, { method: "POST", headers, body: JSON.stringify(offlinePayload(this.deviceIdRight)) })
+      ]);
+      this.status = "paused";
+    } catch (e) {}
+  }
+
+  async sendTelemetry(sample, inference, stats = {}, isRunning = true) {
+    if (!this.enabled) {
+      this.status = "disabled";
+      return;
+    }
+
+    if (!isRunning) {
+      this.status = "paused";
+      return;
+    }
+
+    if (!this.isLeader) return;
 
     const now = Date.now();
     if (now - this.lastBroadcast < this.broadcastIntervalMs) {
@@ -48,47 +92,75 @@ export class SupabaseBridge {
     }
     this.lastBroadcast = now;
 
-    const forefootVal = Math.round(sample.p2 || sample.p5 || 0);
+    const leftData = sample.left || sample;
+    const rightData = sample.right || sample;
 
-    const payload = {
-      device_id: this.deviceId,
+    const leftForefoot = Math.round(leftData.p2 || leftData.p5 || 0);
+    const rightForefoot = Math.round(rightData.p2 || rightData.p5 || 0);
+
+    const payloadLeft = {
+      device_id: this.deviceIdLeft,
       activity: inference.activityName || "Walking",
-      confidence: parseFloat((inference.confidence || 0.9).toFixed(2)),
+      confidence: parseFloat((inference.confidence || 0.95).toFixed(2)),
       steps: stats.steps || 0,
-      cadence: parseFloat((stats.cadence || 105.0).toFixed(1)),
-      symmetry: parseFloat((stats.symmetry || 98.0).toFixed(1)),
+      cadence: parseFloat((stats.cadence || 108.0).toFixed(1)),
+      symmetry: parseFloat((stats.symmetry || sample.bilateral?.symmetryIndex || 98.2).toFixed(1)),
       fall_alert: Boolean(stats.fallAlert),
-      p1: Math.round(sample.p1 || 0), // FSR 1: Heel
-      p2: forefootVal,                // FSR 2: Forefoot Ball
+      p1: Math.round(leftData.p1 || 0),
+      p2: leftForefoot,
       p3: 0,
       p4: 0,
-      p5: forefootVal,                // Mapped forefoot for ML parity
+      p5: leftForefoot,
       p6: 0,
-      pitch: parseFloat((sample.pitch || 0).toFixed(1)),
-      roll: parseFloat((sample.roll || 0).toFixed(1)),
-      svm_a: parseFloat((Math.sqrt(sample.ax*sample.ax + sample.ay*sample.ay + sample.az*sample.az) || 1.0).toFixed(2))
+      pitch: parseFloat((leftData.pitch || 0).toFixed(1)),
+      roll: parseFloat((leftData.roll || 0).toFixed(1)),
+      svm_a: parseFloat((Math.sqrt(
+        (leftData.ax || 0) ** 2 + (leftData.ay || 0) ** 2 + (leftData.az || 1) ** 2
+      ) || 1.0).toFixed(2))
+    };
+
+    const payloadRight = {
+      device_id: this.deviceIdRight,
+      activity: inference.activityName || "Walking",
+      confidence: parseFloat((inference.confidence || 0.95).toFixed(2)),
+      steps: stats.steps || 0,
+      cadence: parseFloat((stats.cadence || 108.0).toFixed(1)),
+      symmetry: parseFloat((stats.symmetry || sample.bilateral?.symmetryIndex || 98.2).toFixed(1)),
+      fall_alert: Boolean(stats.fallAlert),
+      p1: Math.round(rightData.p1 || 0),
+      p2: rightForefoot,
+      p3: 0,
+      p4: 0,
+      p5: rightForefoot,
+      p6: 0,
+      pitch: parseFloat((rightData.pitch || 0).toFixed(1)),
+      roll: parseFloat((rightData.roll || 0).toFixed(1)),
+      svm_a: parseFloat((Math.sqrt(
+        (rightData.ax || 0) ** 2 + (rightData.ay || 0) ** 2 + (rightData.az || 1) ** 2
+      ) || 1.0).toFixed(2))
     };
 
     try {
       this.status = "broadcasting";
-      const res = await fetch(`${this.host}${this.endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": this.apiKey,
-          "Authorization": `Bearer ${this.apiKey}`,
-          "Prefer": "return=minimal"
-        },
-        body: JSON.stringify(payload)
-      });
+      const headers = {
+        "Content-Type": "application/json",
+        "apikey": this.apiKey,
+        "Authorization": `Bearer ${this.apiKey}`,
+        "Prefer": "return=minimal"
+      };
 
-      if (res.ok) {
+      const [resLeft, resRight] = await Promise.all([
+        fetch(`${this.host}${this.endpoint}`, { method: "POST", headers, body: JSON.stringify(payloadLeft) }),
+        fetch(`${this.host}${this.endpoint}`, { method: "POST", headers, body: JSON.stringify(payloadRight) })
+      ]);
+
+      if (resLeft.ok && resRight.ok) {
         this.status = "success";
-        this.packetsSent++;
+        this.packetsSent += 2;
         this.lastError = null;
       } else {
         this.status = "error";
-        this.lastError = `HTTP ${res.status}: ${res.statusText}`;
+        this.lastError = `HTTP L:${resLeft.status} R:${resRight.status}`;
       }
     } catch (err) {
       this.status = "error";
