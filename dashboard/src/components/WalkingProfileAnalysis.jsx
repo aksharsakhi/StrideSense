@@ -629,9 +629,6 @@ export default function WalkingProfileAnalysis({ telemetry = {}, onNavigate }) {
                     <span className={`badge ${analysisResult.archetype.badgeColor} text-[10px] font-bold`}>
                       {analysisResult.archetype.badge}
                     </span>
-                    <span className="text-xs text-slate-400 font-mono">
-                      {analysisResult.dateStr}
-                    </span>
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-slate-900 dark:text-white mt-1">
                     {analysisResult.archetype.title}
@@ -849,7 +846,6 @@ export default function WalkingProfileAnalysis({ telemetry = {}, onNavigate }) {
                         <span className="font-bold text-slate-900 dark:text-white block">
                           {item.archetype?.title || 'Neutral Cadencer'}
                         </span>
-                        <span className="text-[10px] text-slate-500 font-mono">{item.dateStr}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-right font-mono">
@@ -941,9 +937,6 @@ export default function WalkingProfileAnalysis({ telemetry = {}, onNavigate }) {
                     Latest Completed Assessment
                   </span>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400">
-                  {history[0].dateStr}
-                </span>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/[0.04]">
@@ -1007,7 +1000,6 @@ export default function WalkingProfileAnalysis({ telemetry = {}, onNavigate }) {
                             <span className="font-bold text-slate-900 dark:text-white block">
                               {item.archetype?.title || 'Neutral Cadencer'}
                             </span>
-                            <span className="text-[10px] text-slate-500 font-mono">{item.dateStr}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 font-mono text-right">

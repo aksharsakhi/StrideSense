@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Compass, Move3d, Gauge } from 'lucide-react';
 
-export default function MotionVisualizer({ imu = {} }) {
+export default function MotionVisualizer({ imu = {}, deviceId = 'stridesense_esp32_01' }) {
+  const isHardware = deviceId === 'stridesense_esp32_01' || deviceId?.includes('hw') || deviceId?.includes('esp32');
   const [activeSide, setActiveSide] = useState('left'); // 'left' | 'right'
 
-  // Pick IMU data based on active side if bilateral sub-objects exist
-  const activeImu = (activeSide === 'right' && imu.right) ? imu.right : (imu.left || imu);
+  // In hardware mode, there is exactly 1 central MPU-6050 6-DOF IMU wired to the ESP32 (GPIO 21/22)
+  const activeImu = isHardware ? imu : ((activeSide === 'right' && imu.right) ? imu.right : (imu.left || imu));
 
   const ax = activeImu.ax || 0;
   const ay = activeImu.ay || 0;
@@ -17,7 +18,7 @@ export default function MotionVisualizer({ imu = {} }) {
   const roll = activeImu.roll || 0;
   const svmA = activeImu.svmA || 1.0;
 
-  const hasBilateralImu = Boolean(imu.left && imu.right);
+  const hasBilateralImu = !isHardware && Boolean(imu.left && imu.right);
 
   const isFreeFall = svmA < 0.6;
   const isHighImpact = svmA > 2.8;
@@ -39,11 +40,11 @@ export default function MotionVisualizer({ imu = {} }) {
               IMU Kinematics
             </h2>
             <span className="badge badge-cyan text-[9px]">
-              {hasBilateralImu ? 'Dual 6-DOF' : 'MPU-6050'}
+              {isHardware ? '1x MPU-6050 (I2C)' : (hasBilateralImu ? 'Dual 6-DOF' : 'MPU-6050')}
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            6-DOF spatial acceleration & gyroscopic orientation
+            {isHardware ? '6-DOF spatial acceleration & gyroscopic orientation on GPIO 21/22' : '6-DOF spatial acceleration & gyroscopic orientation'}
           </p>
         </div>
 
@@ -75,7 +76,7 @@ export default function MotionVisualizer({ imu = {} }) {
         ) : (
           <span className="badge badge-emerald text-[9px] flex items-center gap-1">
             <Compass className="w-3 h-3" />
-            ±8g / ±1000°/s
+            {isHardware ? '1x Central IMU • ±8g' : '±8g / ±1000°/s'}
           </span>
         )}
       </div>

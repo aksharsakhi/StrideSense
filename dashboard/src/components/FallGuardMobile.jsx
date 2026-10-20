@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   PhoneCall, AlertTriangle, Bell, ChevronRight, Clock,
-  Zap, CircleAlert, Plus, Star, MessageSquare, X, Shield, Smartphone
+  Zap, CircleAlert, Plus, Star, MessageSquare, X, Shield, Smartphone, Edit3
 } from 'lucide-react';
 import { nativeBridge } from '../services/native.js';
 import { emergencyContactsService } from '../services/emergencyContacts.js';
@@ -14,6 +14,7 @@ export default function FallGuardMobile({
   const [contacts, setContacts] = useState(() => emergencyContactsService.getContacts());
   const [settings, setSettings] = useState(() => emergencyContactsService.getSettings());
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -37,13 +38,44 @@ export default function FallGuardMobile({
     setGuardActive(!guardActive);
   };
 
-  const handleAddContact = (e) => {
+  const openAddModal = () => {
+    nativeBridge.impactLight();
+    setEditingContact(null);
+    setFormData({
+      name: '',
+      phone: '',
+      role: 'Family Member',
+      isPrimary: contacts.length === 0,
+      notifySms: true
+    });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (contact) => {
+    nativeBridge.impactLight();
+    setEditingContact(contact);
+    setFormData({
+      name: contact.name,
+      phone: contact.phone,
+      role: contact.role,
+      isPrimary: contact.isPrimary,
+      notifySms: contact.notifySms
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSaveContact = (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.phone.trim()) return;
 
     nativeBridge.impactMedium();
-    emergencyContactsService.addContact(formData);
+    if (editingContact) {
+      emergencyContactsService.updateContact(editingContact.id, formData);
+    } else {
+      emergencyContactsService.addContact(formData);
+    }
     setIsModalOpen(false);
+    setEditingContact(null);
     setFormData({ name: '', phone: '', role: '', isPrimary: false, notifySms: true });
   };
 
@@ -201,11 +233,8 @@ export default function FallGuardMobile({
                 </h3>
                 <button
                   type="button"
-                  onClick={() => {
-                    nativeBridge.impactLight();
-                    setIsModalOpen(true);
-                  }}
-                  className="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1 hover:underline"
+                  onClick={openAddModal}
+                  className="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1 hover:underline active-press"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add
@@ -222,58 +251,84 @@ export default function FallGuardMobile({
                         : 'bg-slate-100/80 dark:bg-slate-900/60 border-slate-200/80 dark:border-white/[0.05]'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openEditModal(c)}
+                      className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 pr-2"
+                    >
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                         c.isPrimary ? 'bg-rose-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                       }`}>
                         {c.initials}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">{c.name}</span>
+                          <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{c.name}</span>
                           {c.isPrimary && (
-                            <Star className="w-3 h-3 text-rose-500 fill-current" />
+                            <Star className="w-3 h-3 text-rose-500 fill-current flex-shrink-0" />
                           )}
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                           {c.role} • <span className="font-mono text-cyan-600 dark:text-cyan-400 font-medium">{c.phone}</span>
                         </div>
                       </div>
                     </div>
 
-                    <a
-                      href={`tel:${c.phone.replace(/[^0-9+]/g, '')}`}
-                      onClick={() => nativeBridge.impactMedium()}
-                      className={`p-2 rounded-xl transition-colors active-press ${
-                        c.isPrimary
-                          ? 'bg-rose-500 text-white hover:bg-rose-600'
-                          : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25'
-                      }`}
-                      title={`Call ${c.name}`}
-                    >
-                      <PhoneCall className="w-4 h-4" />
-                    </a>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(c)}
+                        className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/25 flex items-center gap-1 active-press"
+                        title={`Edit ${c.name}`}
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </button>
+
+                      <a
+                        href={`tel:${c.phone.replace(/[^0-9+]/g, '')}`}
+                        onClick={() => nativeBridge.impactMedium()}
+                        className={`p-2 rounded-xl transition-colors active-press ${
+                          c.isPrimary
+                            ? 'bg-rose-500 text-white hover:bg-rose-600'
+                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25'
+                        }`}
+                        title={`Call ${c.name}`}
+                      >
+                        <PhoneCall className="w-4 h-4" />
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="mt-4 pt-3 border-t border-slate-200/70 dark:border-white/[0.05] text-[11px] text-slate-500 dark:text-slate-400 text-center">
-              Auto-dialer triggers directly on uncancelled fall alerts.
+              Auto-dialer triggers directly on uncancelled fall alerts. Tap any contact or Edit to modify details.
             </div>
           </div>
         </div>
 
       </div>
 
-      {/* Quick Add Modal */}
+      {/* Quick Add / Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.1] rounded-3xl p-6 shadow-2xl animate-fade-in-scale">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Plus className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                Add Emergency Contact
+                {editingContact ? (
+                  <>
+                    <Edit3 className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                    Edit Emergency Contact
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                    Add Emergency Contact
+                  </>
+                )}
               </h3>
               <button
                 type="button"
@@ -284,7 +339,7 @@ export default function FallGuardMobile({
               </button>
             </div>
 
-            <form onSubmit={handleAddContact} className="flex flex-col gap-3.5">
+            <form onSubmit={handleSaveContact} className="flex flex-col gap-3.5">
               <div>
                 <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
                   Full Name
@@ -363,7 +418,7 @@ export default function FallGuardMobile({
                   type="submit"
                   className="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-bold shadow-md shadow-cyan-500/20"
                 >
-                  Add Contact
+                  {editingContact ? 'Save Changes' : 'Add Contact'}
                 </button>
               </div>
             </form>

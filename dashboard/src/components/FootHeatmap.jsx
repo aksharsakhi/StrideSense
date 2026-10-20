@@ -118,25 +118,25 @@ export default function FootHeatmap({ sensors = {}, bilateral = null, telemetry 
     phaseText = 'Flight / Minimal Loading';
   }
 
-  // 4 Square FSR Sensors (Bilateral Setup)
+  // 4 Square FSR Sensors (Unified Single ESP32 Bilateral Setup)
   const allFsrs = [
     {
       id: 'L-FSR 1', side: 'left', name: 'Left Heel FSR',
       raw: isOnline ? curLeftP1 : 0, norm: isOnline ? nLHeel : 0,
       newtons: Math.round((curLeftP1 / 2200) * 170),
-      role: 'Left Calcaneus Strike (GPIO 34)'
+      role: 'Left Calcaneus Strike (GPIO 36)'
     },
     {
       id: 'L-FSR 2', side: 'left', name: 'Left Forefoot FSR',
       raw: isOnline ? curLeftP2 : 0, norm: isOnline ? nLForefoot : 0,
       newtons: Math.round((curLeftP2 / 2200) * 170),
-      role: 'Left Metatarsal Toe-Off (GPIO 35)'
+      role: 'Left Metatarsal Toe-Off (GPIO 39)'
     },
     {
       id: 'R-FSR 1', side: 'right', name: 'Right Heel FSR',
       raw: isOnline ? curRightP1 : 0, norm: isOnline ? nRHeel : 0,
       newtons: Math.round((curRightP1 / 2200) * 170),
-      role: 'Right Calcaneus Strike (GPIO 34)'
+      role: 'Right Calcaneus Strike (GPIO 34, Calibrated)'
     },
     {
       id: 'R-FSR 2', side: 'right', name: 'Right Forefoot FSR',
@@ -166,7 +166,7 @@ export default function FootHeatmap({ sensors = {}, bilateral = null, telemetry 
               Bilateral Pedobarography & Pressure Map
             </h2>
             <span className="badge badge-cyan text-[10px] font-mono">
-              4x FSR Dual-Insole
+              1x ESP32 • 4x FSR Bilateral
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -638,7 +638,7 @@ export default function FootHeatmap({ sensors = {}, bilateral = null, telemetry 
         </div>
         <div className="flex items-center gap-1">
           <Sparkles className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-          <span>Bilateral Calcaneus & Metatarsal 10kΩ Voltage Dividers</span>
+          <span>Single ESP32 Bilateral (GPIO 36, 39, 34, 35) • 10kΩ Voltage Dividers</span>
         </div>
       </div>
     </div>

@@ -71,7 +71,6 @@ setInterval(async () => {
 
     // Build Left Foot Payload
     const isFallActive = ['freefall', 'impact', 'alert_pending', 'dispatched'].includes(engine.fallState);
-    const isFallEmergency = engine.fallState === 'dispatched';
     const leftForefoot = Math.round(sample.left?.p2 || 0);
     const payloadLeft = {
       device_id: DEVICE_LEFT,
@@ -81,7 +80,6 @@ setInterval(async () => {
       cadence: dynamicCadence,
       symmetry: parseFloat((sample.bilateral?.symmetryIndex || 98.2).toFixed(1)),
       fall_alert: isFallActive,
-      fall_emergency: isFallEmergency,
       p1: Math.round(sample.left?.p1 || 0),
       p2: leftForefoot,
       p3: 0,
@@ -105,7 +103,6 @@ setInterval(async () => {
       cadence: dynamicCadence,
       symmetry: parseFloat((sample.bilateral?.symmetryIndex || 98.2).toFixed(1)),
       fall_alert: isFallActive,
-      fall_emergency: isFallEmergency,
       p1: Math.round(sample.right?.p1 || 0),
       p2: rightForefoot,
       p3: 0,

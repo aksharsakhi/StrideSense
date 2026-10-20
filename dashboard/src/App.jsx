@@ -61,37 +61,35 @@ const TopHeader = React.memo(function TopHeader({
   onNavigate,
   onCycleTheme
 }) {
-  const isHardware = selectedDeviceId?.includes('hw') || selectedDeviceId?.includes('01');
-  const isBilateral = selectedDeviceId?.startsWith('bilateral');
-  const leftBattery = telemetry.left?.batteryPct ?? telemetry.batteryPct ?? 90;
-  const rightBattery = telemetry.right?.batteryPct ?? telemetry.batteryPct ?? 90;
-  const overallBattery = telemetry.batteryPct ?? 90;
+  const isHardware = selectedDeviceId === 'stridesense_esp32_01' || selectedDeviceId?.includes('hw') || selectedDeviceId?.includes('esp32') || selectedDeviceId?.includes('01');
+  const isBilateral = selectedDeviceId === 'stridesense_esp32_01' || selectedDeviceId?.startsWith('bilateral');
+  const leftBattery = telemetry.left?.batteryPct ?? telemetry.batteryPct ?? 95;
+  const rightBattery = telemetry.right?.batteryPct ?? telemetry.batteryPct ?? 95;
+  const overallBattery = telemetry.batteryPct ?? 95;
 
   const getDeviceBadge = () => {
-    if (selectedDeviceId === 'bilateral_hw') return 'DUAL HW';
-    if (selectedDeviceId === 'bilateral_sim') return 'DUAL SIM';
-    if (selectedDeviceId === 'insole_left_01') return 'HW LEFT';
-    if (selectedDeviceId === 'insole_right_01') return 'HW RIGHT';
-    if (selectedDeviceId === 'insole_left_02') return 'SIM LEFT';
-    if (selectedDeviceId === 'insole_right_02') return 'SIM RIGHT';
-    return isHardware ? 'ESP32 HW' : '3D SIM';
+    if (selectedDeviceId === 'stridesense_esp32_01' || selectedDeviceId === 'bilateral_hw') return '1x ESP32';
+    if (selectedDeviceId === 'bilateral_sim') return '3D SIM';
+    if (selectedDeviceId === 'insole_left_02') return 'SIM L';
+    if (selectedDeviceId === 'insole_right_02') return 'SIM R';
+    return isHardware ? '1x ESP32' : '3D SIM';
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
+    <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between h-14">
       {/* Brand or Page Title */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
         <button
           type="button"
           onClick={() => onNavigate('home')}
-          className="flex items-center gap-2.5 active-press touch-manipulation select-none text-left"
+          className="flex items-center gap-2 active-press touch-manipulation select-none text-left"
         >
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-emerald-400 p-[2px] shadow-md shadow-cyan-500/15">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-emerald-400 p-[2px] shadow-md shadow-cyan-500/15 flex-shrink-0">
             <div className="w-full h-full bg-white dark:bg-slate-950 rounded-[9px] flex items-center justify-center">
-              <Footprints className="w-[15px] h-[15px] text-cyan-600 dark:text-cyan-400" />
+              <Footprints className="w-3.5 h-3.5 sm:w-[15px] sm:h-[15px] text-cyan-600 dark:text-cyan-400" />
             </div>
           </div>
-          <span className="text-[16px] font-extrabold font-display tracking-tight text-slate-900 dark:text-white">
+          <span className="text-sm sm:text-base font-extrabold font-display tracking-tight text-slate-900 dark:text-white">
             Stride<span className="gradient-text">Sense</span>
           </span>
         </button>
@@ -127,14 +125,14 @@ const TopHeader = React.memo(function TopHeader({
       </nav>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
         {/* Direct Link to 3D Virtual Studio */}
         <a
           href="http://localhost:5174"
           target="_blank"
           rel="noreferrer"
           title="Open 3D Virtual Simulation Studio (Port 5174)"
-          className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/25 text-[11px] font-bold text-violet-600 dark:text-violet-400 active-press transition-all"
+          className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/25 text-[11px] font-bold text-violet-600 dark:text-violet-400 active-press transition-all"
         >
           <ExternalLink className="w-3 h-3" />
           <span>3D Studio</span>
@@ -145,25 +143,32 @@ const TopHeader = React.memo(function TopHeader({
           type="button"
           onClick={onOpenDeviceSelector}
           title="Switch Active Insole Device"
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] hover:border-cyan-500/40 text-xs font-semibold text-slate-800 dark:text-white active-press touch-manipulation select-none transition-all shadow-sm"
+          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] hover:border-cyan-500/40 text-xs font-semibold text-slate-800 dark:text-white active-press touch-manipulation select-none transition-all shadow-sm"
         >
-          {isHardware ? (
-            <Cpu className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          ) : (
-            <Monitor className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
-          )}
-          <span className="font-mono text-[11px] font-bold">
+          <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+          <span className="font-mono text-[10px] sm:text-[11px] font-bold">
             {getDeviceBadge()}
           </span>
-          <ChevronDown className="w-3 h-3 text-slate-400" />
+          <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-400" />
         </button>
+
+        {/* Battery Pill */}
+        <div
+          title={isHardware ? `1x ESP32 Battery: ${overallBattery}% (${(telemetry.batteryVoltage ?? 4.08).toFixed(2)}V)` : `Virtual Insole Battery: L:${leftBattery}% R:${rightBattery}%`}
+          className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] px-2 py-1 rounded-xl"
+        >
+          <Battery className={`w-3.5 h-3.5 ${overallBattery > 20 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`} />
+          <span className="text-[10px] font-mono font-bold text-slate-800 dark:text-white tabular-nums">
+            {overallBattery}%
+          </span>
+        </div>
 
         {/* Quick Theme Toggle */}
         <button
           type="button"
           onClick={onCycleTheme}
-          title={`Theme: ${theme} (Click to toggle)`}
-          className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 active-press touch-manipulation select-none transition-all flex items-center gap-1 text-xs"
+          title={`Theme: ${theme}`}
+          className="p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 active-press touch-manipulation select-none transition-all flex items-center justify-center text-xs"
         >
           {theme === 'system' ? (
             <Monitor className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
@@ -172,29 +177,25 @@ const TopHeader = React.memo(function TopHeader({
           ) : (
             <Moon className="w-3.5 h-3.5 text-cyan-400" />
           )}
-          <span className="hidden xl:inline text-[10px] uppercase font-bold tracking-wider opacity-80">
-            {theme}
-          </span>
         </button>
 
-        {/* Dual Insole Battery Pill */}
-        <div
-          title={`Battery Level: ${isBilateral ? `Left: ${leftBattery}%, Right: ${rightBattery}%` : `${overallBattery}%`}`}
-          className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] px-2.5 py-1 rounded-xl"
+        {/* Settings & Profile Button */}
+        <button
+          type="button"
+          onClick={() => onNavigate('settings')}
+          title="Patient Profile & Settings"
+          className={`p-1.5 sm:p-2 rounded-xl border transition-all active-press flex items-center justify-center ${
+            activeTab === 'settings'
+              ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-600 dark:text-cyan-400 shadow-glow-cyan'
+              : 'bg-slate-100 dark:bg-slate-900/60 border-slate-200/80 dark:border-white/[0.06] text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400'
+          }`}
         >
-          <Battery className={`w-3.5 h-3.5 ${overallBattery > 20 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`} />
-          {isBilateral ? (
-            <span className="text-[10px] font-mono font-bold text-slate-800 dark:text-white tabular-nums">
-              L:{leftBattery}% R:{rightBattery}%
-            </span>
-          ) : (
-            <span className="text-[11px] font-mono font-bold text-slate-800 dark:text-white tabular-nums">{overallBattery}%</span>
-          )}
-        </div>
+          <Settings className="w-3.5 h-3.5" />
+        </button>
 
-        {/* Live Cloud Status Badge */}
+        {/* Live Cloud Status Badge (Visible on Desktop md+) */}
         <div
-          className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border flex items-center gap-1.5 ${
+          className={`hidden md:flex px-2.5 py-1 rounded-xl text-[10px] font-bold border items-center gap-1.5 ${
             isConnected
               ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 shadow-sm shadow-emerald-500/10'
               : 'bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400'
@@ -203,7 +204,7 @@ const TopHeader = React.memo(function TopHeader({
           {isConnected ? (
             <>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-mono tracking-tight">{isBilateral ? 'LIVE DUAL' : 'LIVE'}</span>
+              <span className="font-mono tracking-tight">{isHardware ? 'LIVE ESP32' : 'LIVE SIM'}</span>
             </>
           ) : (
             <>
@@ -443,6 +444,7 @@ export default function App() {
         if (latest) {
           emptyState.steps = latest.steps || 0;
           emptyState.timestamp = latest.timestamp || Date.now();
+          healthService.updateLiveTelemetry(latest, selectedDeviceId);
         }
         setTelemetry(emptyState);
       }
@@ -529,7 +531,7 @@ export default function App() {
       <FallAlertModal isOpen={fallModalOpen} onCancel={cancelFall} initialSeconds={15} />
 
       {/* ═══ TOP FIXED APP CHROME (Header) ═══ */}
-      <header className="mobile-top-header mobile-header-safe">
+      <header className="mobile-top-header mobile-header-safe overflow-x-hidden">
         <TopHeader
           activeTab={activeTab}
           pageTitle={pageTitle}
@@ -567,7 +569,7 @@ export default function App() {
             <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 animate-fade-in stagger-children">
               <div className="lg:col-span-4 flex flex-col gap-4">
                 <ActivityCard activity={telemetry.activity} confidence={telemetry.confidence} />
-                <MotionVisualizer imu={telemetry.imu} />
+                <MotionVisualizer imu={telemetry.imu} deviceId={selectedDeviceId} />
               </div>
               <div className="lg:col-span-8">
                 <FootHeatmap
@@ -590,7 +592,7 @@ export default function App() {
           {activeTab === 'motion' && (
             <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 animate-fade-in stagger-children">
               <div className="lg:col-span-7">
-                <MotionVisualizer imu={telemetry.imu} />
+                <MotionVisualizer imu={telemetry.imu} deviceId={selectedDeviceId} />
               </div>
               <div className="lg:col-span-5 flex flex-col gap-4">
                 <ActivityCard activity={telemetry.activity} confidence={telemetry.confidence} />

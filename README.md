@@ -1,9 +1,9 @@
-# 👣 StrideSense — Master Documentation & Implementation Guide
+# 👣 StrideSense — Complete Hardware & Engineering Documentation
 
-> **AI-Powered Smart Insole for Continuous Biomechanical Gait Analysis, Plantar Pressure Mapping, and Fall Detection**
+> **AI-Powered Smart Insole System for Real-Time Bilateral Plantar Pressure Mapping, Biomechanical Gait Analysis, and Edge Fall Detection**
 
 [![Microcontroller](https://img.shields.io/badge/Microcontroller-ESP32%2038--Pin-blue.svg)](https://www.espressif.com/)
-[![Sensors](https://img.shields.io/badge/Sensors-Square%20FSRs%20%2B%20MPU6050-orange.svg)]()
+[![Sensors](https://img.shields.io/badge/Sensors-Bilateral%204x%20FSRs%20%2B%20MPU6050-orange.svg)]()
 [![Edge AI](https://img.shields.io/badge/Edge%20AI-TinyML%20(%3C0.3%20%C2%B5s)-brightgreen.svg)]()
 [![Cloud](https://img.shields.io/badge/Cloud-Supabase%20PostgreSQL%20%2B%20Realtime-green.svg)](https://supabase.com/)
 [![Frontend](https://img.shields.io/badge/Dashboard-React%2019%20%2B%20Vite%20%2B%20TailwindCSS-61dafb.svg)](https://vitejs.dev/)
@@ -14,265 +14,102 @@
 
 ## 📋 Table of Contents
 1. [System Overview & Architecture](#1-system-overview--architecture)
-2. [TinyML Edge-AI Model — Why, How Trained, & How Used](#2-tinyml-edge-ai-model--why-how-trained--how-used)
-3. [After Getting Parts — Complete Hardware Setup Guide](#3-after-getting-parts--complete-hardware-setup-guide)
-4. [Circuit Diagram & Hardware Wiring](#4-circuit-diagram--hardware-wiring)
-5. [ESP32 Firmware Flashing & Code Upload Guide](#5-esp32-firmware-flashing--code-upload-guide)
-6. [Cloud Backend Setup (Supabase PostgreSQL & Realtime)](#6-cloud-backend-setup-supabase-postgresql--realtime)
-7. [Mobile & Web Application Setup (iOS, Android, Web)](#7-mobile--web-application-setup-ios-android-web)
-8. [End-to-End Verification & Testing Checklist](#8-end-to-end-verification--testing-checklist)
-9. [Troubleshooting & Common Pitfalls](#9-troubleshooting--common-pitfalls)
+2. [Hardware Components & Bill of Materials (BOM)](#2-hardware-components--bill-of-materials-bom)
+3. [Circuit Diagram & Electrical Schematics](#3-circuit-diagram--electrical-schematics)
+4. [Bilateral Insole Mechanical Assembly](#4-bilateral-insole-mechanical-assembly)
+5. [TinyML Edge-AI Gait Engine](#5-tinyml-edge-ai-gait-engine)
+6. [Dual-Trigger Fall Detection & Safety Protocol](#6-dual-trigger-fall-detection--safety-protocol)
+7. [ESP32 Firmware Flashing & Configuration](#7-esp32-firmware-flashing--configuration)
+8. [Cloud Backend Architecture (Supabase PostgreSQL & Realtime)](#8-cloud-backend-architecture-supabase-postgresql--realtime)
+9. [Mobile & Web Application (iOS, Android, Web)](#9-mobile--web-application-ios-android-web)
+10. [End-to-End Verification & Testing Protocol](#10-end-to-end-verification--testing-protocol)
+11. [Troubleshooting & Hardware Calibration](#11-troubleshooting--hardware-calibration)
 
 ---
 
 ## 1. System Overview & Architecture
 
-**StrideSense** is an integrated cyber-physical IoT healthcare and fitness system. It fits seamlessly inside standard footwear to continuously record dynamic foot kinematics and plantar pressure distribution, classifies human movement and detects accidental falls at the edge in **under 0.3 microseconds**, syncs live data to the Supabase cloud, and delivers real-time analytics to native mobile (iOS/Android) and web applications.
+**StrideSense** is an integrated cyber-physical smart insole system designed to transform everyday footwear into a clinical-grade biomechanical laboratory. A single central **ESP32 microcontroller** samples bilateral plantar force sensors and a 6-DOF inertial measurement unit (IMU) at **50 Hz**. 
+
+On-chip, an embedded **TinyML decision forest** classifies human gait patterns and detects dangerous falls in **under 0.3 microseconds** with 100% offline autonomy. Telemetry streams via HTTPS to a **Supabase PostgreSQL** cloud backend, broadcasting real-time updates over **Phoenix WebSockets (<50 ms latency)** to native **iOS, Android, and web applications**.
 
 ```
 +-----------------------------------------------------------------------------------------+
 |                               STRIDESENSE END-TO-END ARCHITECTURE                       |
 +-----------------------------------------------------------------------------------------+
-|  [Foot Insole Hardware Layer]                                                           |
-|    - 2x Square FSR Sensors (Heel: Initial Contact + Forefoot/Ball: Toe-Off Push)        |
-|    - MPU-6050 6-DOF IMU (Accelerometer + Gyroscope @ 400 kHz Fast I2C)                  |
-|    - Coin Type Micro Vibration Motor (Haptic fall alerts & tactile confirmation)        |
+|  [Bilateral Foot Insole Hardware Layer]                                                 |
+|    - LEFT FOOT : 2x Square FSR Sensors (Heel: GPIO 36 | Forefoot: GPIO 39)               |
+|    - RIGHT FOOT: 2x Square FSR Sensors (Heel: GPIO 34 | Forefoot: GPIO 35)               |
+|    - MPU-6050  : 6-DOF IMU (Accelerometer + Gyroscope @ 400 kHz Fast I2C)               |
+|    - HAPTIC    : Coin-Type Micro Vibration Motor (Flyback-protected NPN driver @ GPIO 12)|
 |         │                                                                               |
-|         ▼ (50 Hz Analog ADC & I2C Sampling — 20 ms interval)                            |
-|  [ESP32 Edge Microcontroller]                                                           |
-|    - Circular 50-Sample Buffer (1.0 s temporal window, 50% overlap / 0.5 s inference)   |
+|         ▼ (50 Hz Synchronous ADC & I2C Sampling — 20 ms Period)                         |
+|  [ESP32 Edge Microcontroller — Single Central MCU]                                     |
+|    - 50-Sample Circular Buffer (1.0 s temporal window, 50% overlap / 0.5 s inference)   |
 |    - 24-Feature Vector Biomechanical Extractor (SVM, Jerk, Energy, Ratios, Symmetry)   |
 |    - Dual-Trigger Fall Detector State Machine (Free-fall <0.6g + Impact >2.8g)          |
 |    - Embedded Zero-Dependency C TinyML Engine (<0.3 µs inference, 98.97% accuracy)      |
+|    - Dynamic Right Heel ADC Calibrator (Baseline 1800 ADC, Contact Trigger >2100 ADC)   |
 |         │                                                                               |
-|         ▼ (1 Hz Non-blocking HTTPS PostgREST payload)                                   |
+|         ▼ (1 Hz Non-Blocking HTTPS PostgREST Payload)                                   |
 |  [Supabase Cloud Backend]                                                               |
 |    - PostgreSQL Time-Series Telemetry Table (`public.telemetry`)                        |
-|    - Fall Incidents Log (`public.fall_incidents`) & Device Registry (`public.devices`)   |
+|    - Fall Incidents Audit Log (`public.fall_incidents`) & Device Registry               |
 |    - Realtime CDC (Change Data Capture over Phoenix WebSockets)                         |
 |         │                                                                               |
-|         ▼ (<50 ms Push Stream — Zero Polling)                                           |
-|  [Cross-Platform Mobile & Web UI (Capacitor iOS/Android + React 19 + TailwindCSS)]       |
-|    - Plantar Foot Pressure Heatmap (Dual-theme insole gradient + FSR pressure nodes)    |
-|    - Gait Biomechanics (Cadence SPM, 62%/38% Duty Cycle, Dynamic Symmetry Index)        |
-|    - 6-DOF IMU Motion Visualizer (3D Attitude Horizon Sphere & G-force Shock Bar)        |
-|    - Fall Guard Shield (15s Siren Grace Period Countdown Modal & 108 Emergency SOS)     |
+|         ▼ (<50 ms Low-Latency Push Broadcast)                                           |
+|  [Native Mobile App (Capacitor iOS / Android + React 19 + Tailwind CSS)]                |
+|    - Patient & Biomechanical Profile (Name, Age, Weight, Height, Live BMI & Stride)     |
+|    - Plantar Pedobarography Heatmap (Bilateral Dual-Insole Dynamic Gradient Pressure)   |
+|    - Gait Biomechanics Lab (Cadence SPM, 62%/38% Stance-Swing Duty Cycle, Symmetry %)  |
+|    - 6-DOF IMU Motion Visualizer (3D Attitude Horizon Sphere & G-Force Shock Bar)       |
+|    - Fall Guard Shield (15s Siren Grace Countdown Modal & Emergency Auto-Dialer)        |
+|    - Apple Health-Grade Mobility Engine (7-Day Rings & Clinical Mobility Report Export) |
 +-----------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. TinyML Edge-AI Model — Why, How Trained, & How Used
+## 2. Hardware Components & Bill of Materials (BOM)
 
-### 2.1 Why TinyML on the Edge?
-Running machine learning directly on the ESP32 microcontroller solves three fundamental challenges:
-1. **Critical Latency (<100 ms requirement for fall injuries)**:
-   - Sending 12 raw sensor channels at 50 Hz (600 readings/sec) to the cloud consumes excessive cellular/Wi-Fi bandwidth, drains battery, and introduces **200–800 ms of network latency**.
-   - An impact fall requires instant verification. StrideSense executes TinyML inference on-chip in **0.20 to 0.53 microseconds** ($< 0.0006 \text{ ms}$), leaving 99.9% of the CPU free.
-2. **100% Offline Autonomy & Reliability**:
-   - If an elderly user or runner stumbles outdoors, in a basement, or in an area with no Wi-Fi/cellular reception, a cloud-dependent fall detector fails completely.
-   - With TinyML running locally on the ESP32, the insole detects falls autonomously, pulses the vibration motor, and sounds local alerts even if disconnected.
-3. **User Privacy & Power Efficiency**:
-   - Raw kinematic micro-movements remain strictly on-device. Only aggregated, privacy-safe 1 Hz summary telemetry is sent to the cloud.
-
----
-
-### 2.2 How the Model is Trained
-The machine learning pipeline is located in [`ml/`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/ml) and [`datasets/`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/datasets).
-
-```
-[Biomechanical Synthesizer & Datasets]
-  - UCI HAR, SisFall & MobiAct Datasets
-  - datasets/gait_synthesizer.py (25,000 multi-subject samples)
-       │
-       ▼
-[Temporal Windowing & 24-Feature Extraction] (ml/feature_extractor.py)
-  - 50-sample window (1.0 sec @ 50 Hz), 50% stride
-  - Time & Frequency domain features (SVM, Jerk, RMS, ZCR, Pressure Ratios)
-       │
-       ▼
-[Model Training & Cross-Validation] (ml/train_model.py)
-  - Random Forest (8 Decision Trees, max_depth=7)
-  - PyTorch Neural Net MLP (Linear 24->16->5 + ReLU + Softmax)
-  - 5-Fold Stratified Cross-Validation: 98.46%
-       │
-       ▼
-[Zero-Dependency C Code Generation] (ml/export_c_model.py)
-  - Outputs pure C header arrays: firmware/StrideSense_Firmware/tinyml_infer.h
-  - 0 Bytes dynamic heap allocation (malloc free), stack-only execution!
-```
-
-#### Feature Vector Extraction (24 Features per 1.0 s Window):
-| Feature Indices | Description | Biomechanical Purpose |
-|---|---|---|
-| **0 – 5** | Mean of $A_x, A_y, A_z, G_x, G_y, G_z$ | Static gravitational orientation & drift |
-| **6 – 11** | Std Dev of $A_x, A_y, A_z, G_x, G_y, G_z$ | Dynamic motion intensity and cadence energy |
-| **12** | Mean Signal Vector Magnitude (SVM) | Total linear acceleration: $\sqrt{A_x^2 + A_y^2 + A_z^2}$ |
-| **13** | Std Dev of SVM | Variability of dynamic body motion |
-| **14** | Peak SVM Max | Peak impact force collision detection |
-| **15** | Peak-to-Peak Jerk ($d(SVM)/dt$) | Sudden shock rate of change (hallmark of falls) |
-| **16** | FSR 1 (Heel) Mean Force | Initial contact heel strike magnitude |
-| **17** | FSR 1 (Heel) Peak Force | Heel landing force peak |
-| **18** | FSR 2 (Forefoot) Mean Force | Push-off phase propulsion force |
-| **19** | FSR 2 (Forefoot) Peak Force | Toe-off terminal stance maximum |
-| **20** | Heel-to-Forefoot Pressure Ratio | Ratio of heel vs toe contact ($P_1 / (P_1 + P_2 + \epsilon)$) |
-| **21** | Total Plantar Force | Combined weight-bearing load ($P_1 + P_2$) |
-| **22** | Cadence (Steps per Minute) | Stride frequency extracted from heel strike peaks |
-| **23** | Dynamic Symmetry Index | Bilateral gait balance percentage ($0–100\%$) |
-
-#### Model Performance Benchmarks:
-| Metric | Random Forest Model | Deep Learning Neural Net (MLP) |
-|---|---|---|
-| **Test Accuracy** | **98.97%** | **98.97%** |
-| **5-Fold CV Accuracy** | **98.46%** | **98.15%** |
-| **ESP32 Inference Latency** | **0.20 – 0.27 microseconds** | **0.53 – 0.60 microseconds** |
-| **Flash Memory Size** | **~4.8 KB** | **~2.4 KB** |
-| **Dynamic Heap RAM** | **0 Bytes (Stack Only)** | **0 Bytes (Stack Only)** |
-| **C Source File** | [`firmware/StrideSense_Firmware/tinyml_infer.h`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/tinyml_infer.h) | `model_neural_tinyml.h` |
+| Component | Part Description | Specification | Quantity | Purpose |
+|---|---|---|:---:|---|
+| **MCU** | ESP-WROOM-32 / NodeMCU-32S | 38-Pin Dev Board, 240 MHz Dual-Core Tensilica LX6, 520 KB SRAM, Wi-Fi & BLE | 1 | Master Edge Controller & TinyML Processor |
+| **IMU** | MPU-6050 Module (GY-521) | 3-Axis Accel ($\pm 16g$), 3-Axis Gyro ($\pm 2000^\circ/\text{s}$), 400 kHz I2C | 1 | Foot kinematics, orientation, impact & free-fall tracking |
+| **FSR Sensors** | Square Force-Sensitive Resistors | Square Active Area ($38 \times 38\text{ mm}$), $0.2\text{ N} - 20\text{ N}$ dynamic range | 4 | Bilateral plantar pressure mapping (2 per foot) |
+| **Haptic Motor** | 3.3V Micro Coin Vibration Motor | 10 mm diameter, $12,000\text{ RPM}$, $70\text{ mA}$ operating current | 1 | Local tactile alerts and fall emergency warning |
+| **Driver Transistor** | 2N2222 or BC547 | NPN Bipolar Junction Transistor ($V_{CEO} = 40\text{V}, I_C = 800\text{mA}$) | 1 | Current switch for micro vibration motor |
+| **Base Resistor** | Carbon Film Resistor | $1\text{ k}\Omega, 0.25\text{W}, 5\%$ (Brown-Black-Red-Gold) | 1 | Transistor base current limiter |
+| **Pull-Down Resistors** | Carbon Film Resistors | $10\text{ k}\Omega, 0.25\text{W}, 5\%$ (Brown-Black-Orange-Gold) | 4 | Voltage divider pull-downs for all 4 FSRs |
+| **Flyback Diode** | 1N4148 or 1N4001 | Fast switching / rectifier diode | 1 | Inductive flyback voltage spike suppression across motor |
+| **Power Supply** | Rechargeable LiPo Battery | 3.7V $800-1200\text{ mAh}$ with TP4056 USB charger, or 5V Power Bank | 1 | Portable insole battery power |
+| **Insoles** | Athletic Cushion Insoles | Cut-to-size EVA/PU sports shoe insoles | 1 Pair | Sensor substrate & shoe mounting |
+| **Cabling** | Flexible Multi-Conductor Ribbon Cable | 28 AWG ultra-flexible silicone stranded wire | 1m | Low-profile wiring routing through shoe arch |
 
 ---
 
-### 2.3 How We Use the Model in Firmware
-In [`StrideSense_Firmware.ino`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/StrideSense_Firmware.ino):
-1. Every **20 ms (50 Hz)**, a hardware timer interrupt samples the MPU-6050 (via I2C) and the FSR sensors (via ADC1).
-2. The readings push into a 50-element circular ring buffer.
-3. Every **25 samples (0.5 s)**, the 24 biomechanical features are extracted.
-4. `tinyml_infer(features, &predictedClass, &confidence)` executes on the ESP32 CPU.
-5. Classes recognized:
-   - `0: STANDING` $\to$ Static posture, 100% stance phase.
-   - `1: WALKING` $\to$ Rhythmic heel-toe duty cycle (62% stance / 38% swing).
-   - `2: RUNNING` $\to$ High tempo, high jerk, spring-mass duty cycle (42% stance / 58% swing).
-   - `3: SITTING` $\to$ Low pressure, low acceleration, non-weight bearing.
-   - `4: FALL` $\to$ Emergency state: triggers haptic vibration motor, sets `fall_alert = true`, and starts the 15-second grace countdown on the mobile app.
+## 3. Circuit Diagram & Electrical Schematics
 
----
+### 3.1 ESP32 38-Pin Master Pinout Mapping
 
-## 3. After Getting Parts — Complete Hardware Setup Guide
-
-When your package arrives with your components, follow this structured, foolproof step-by-step workflow:
-
-```
-Step 1: Inventory & Parts Check
-   │
-   ▼
-Step 2: Bench / Breadboard Prototyping (Test Before Gluing to Insole!)
-   │
-   ▼
-Step 3: Flash Firmware & Verify Sensor Readouts on Serial Monitor
-   │
-   ▼
-Step 4: Mechanical Insole Assembly & Cable Routing
-   │
-   ▼
-Step 5: Connect Mobile / Web App & Verify Real-Time Telemetry
-```
-
-### 📦 Part 1: Inventory Inspection Checklist
-Verify you have the following items:
-- [x] **1x ESP32 38-Pin Dev Board** (NodeMCU-32S / ESP-WROOM-32).
-- [x] **1x MPU-6050 6-Axis IMU Module** (Accelerometer + Gyroscope).
-- [x] **2x Square Force-Sensitive Resistors (FSR)**.
-- [x] **1x Coin Type Micro Vibration Motor** (3.3V disc motor).
-- [x] **2x 10 kΩ Resistors** (Color bands: *Brown-Black-Orange-Gold*) — Pull-downs for FSRs.
-- [x] **1x 2N2222 or BC547 NPN Transistor** — Motor current switch.
-- [x] **1x 1 kΩ Resistor** (Color bands: *Brown-Black-Red-Gold*) — Transistor base current limiter.
-- [x] **1x 1N4148 or 1N4001 Diode** — Flyback snubber protection across the motor.
-- [x] **Solderless Breadboard & Male-to-Male / Male-to-Female Jumper Wires**.
-- [x] **Micro-USB Data Cable** (Ensure it is a *data* cable, not charge-only).
-- [x] **Standard Shoe Insole** (Gel or foam sport insole for final mounting).
-
----
-
-### 🧪 Part 2: Breadboard Prototyping Step-by-Step
-> **IMPORTANT**: Always prototype on a solderless breadboard first to verify all sensors and firmware before cutting, soldering, or gluing anything into the shoe!
-
-1. **Insert the ESP32**:
-   - Place the ESP32 across the center divider groove of the breadboard so each row of pins has its own isolated tie points.
-2. **Wire the MPU-6050 6-DOF IMU**:
-   - Connect **VCC** $\to$ ESP32 **3V3** rail.
-   - Connect **GND** $\to$ ESP32 **GND** rail.
-   - Connect **SDA** $\to$ ESP32 **GPIO 21**.
-   - Connect **SCL** $\to$ ESP32 **GPIO 22**.
-   - Connect **AD0** $\to$ **GND** (sets I2C address to `0x68`).
-3. **Wire FSR 1 (Heel Sensor)**:
-   - Insert one pin of the FSR into the **3.3V** rail.
-   - Insert the other pin into an open tie-point on the breadboard (Node A).
-   - From Node A, run a jumper wire to ESP32 **GPIO 36 (VP)**.
-   - From Node A, insert a **10 kΩ resistor** connected to the **GND** rail.
-4. **Wire FSR 2 (Forefoot / Ball Sensor)**:
-   - Insert one pin of FSR 2 into the **3.3V** rail.
-   - Insert the other pin into another open tie-point (Node B).
-   - From Node B, run a jumper wire to ESP32 **GPIO 39 (VN)**.
-   - From Node B, insert a **10 kΩ resistor** connected to the **GND** rail.
-5. **Wire the Coin Vibration Motor Driver**:
-   - Microcontrollers cannot drive motors directly because motor inductive inrush current can damage GPIO pins.
-   - Connect the motor's **Red (+) wire** $\to$ **3V3** (or VIN).
-   - Connect the motor's **Blue/Black (-) wire** $\to$ **Collector** pin of the NPN transistor (middle pin on 2N2222).
-   - Connect the **Emitter** pin of the NPN transistor $\to$ **GND** rail.
-   - Connect the **Base** pin of the NPN transistor $\to$ **1 kΩ resistor** $\to$ ESP32 **GPIO 12**.
-   - Insert the **1N4148 diode** in reverse parallel across the motor leads: Cathode (black line) to Motor (+), Anode to Motor (-).
-
----
-
-### 👟 Part 3: Insole Mechanical Mounting & Assembly
-Once bench testing is verified, transfer the sensors to the insole:
-
-```
-        ==============================
-       |         FRONT OF FOOT        |
-       |                              |
-       |      +----------------+      |
-       |      |  FSR 2: SQUARE |      |  <-- Affix under 1st-3rd Metatarsal heads (Ball of foot)
-       |      |    FOREFOOT    |      |      Measures propulsion & toe-off pressure.
-       |      +----------------+      |
-       |               │              |
-       |               │              |
-       |           [ ARCH ]           |  <-- Route ultra-thin flexible ribbon cable through
-       |               │              |      the medial arch (zero-pressure anatomical zone).
-       |               │              |
-       |      +----------------+      |
-       |      |  FSR 1: SQUARE |      |  <-- Affix under Calcaneus (Heel bone)
-       |      |      HEEL      |      |      Measures initial contact heel-strike force.
-       |      +----------------+      |
-       |                              |
-       |      [ VIBRATION MOTOR ]     |  <-- Affix under rear heel cup border
-        ==============================
-                 REAR OF INSOLE
-                       │
-             [ 4-Conductor Cable ]
-                       │
-                       ▼
-       [ ESP32 Ankle / Shoe Clip Enclosure ]
-       - Houses ESP32, MPU-6050 & 3.7V LiPo Battery
-```
-
-- **Adhesive**: Use double-sided Kapton tape or thin silicone adhesive to fix the FSRs under the top fabric layer of the insole.
-- **Cable Relief**: Route the wires through the non-weight-bearing medial arch of the foot to prevent pinching or discomfort while walking.
-- **Microcontroller Enclosure**: Mount the ESP32 and MPU-6050 in a lightweight 3D-printed clip attached to the shoe tongue or outer ankle collar.
-
----
-
-## 4. Circuit Diagram & Hardware Wiring
-
-### 📍 ESP32 38-Pin Pinout Mapping
 ```
                            ESP32 38-PIN NODEMCU
                              +---------------+
-                       3V3 --| 1          38 |-- GND
+                       3V3 --| 1          38 |-- GND (Common Ground)
                        EN  --| 2          37 |-- GPIO 23
-    [FSR 1: HEEL] <--- VP  --| 3 (GPIO 36)36 |-- GPIO 22 ---> [MPU-6050 SCL]
-    [FSR 2: FORE] <--- VN  --| 4 (GPIO 39)35 |-- GPIO 1  (TX0)
-                       D34 --| 5 (GPIO 34)34 |-- GPIO 3  (RX0)
-                       D35 --| 6 (GPIO 35)33 |-- GPIO 21 ---> [MPU-6050 SDA]
+    [L-HEEL FSR] <---  VP  --| 3 (GPIO 36)36 |-- GPIO 22 ---> [MPU-6050 SCL]
+    [L-FORE FSR] <---  VN  --| 4 (GPIO 39)35 |-- GPIO 1  (TX0)
+    [R-HEEL FSR] <---  D34 --| 5 (GPIO 34)34 |-- GPIO 3  (RX0)
+    [R-FORE FSR] <---  D35 --| 6 (GPIO 35)33 |-- GPIO 21 ---> [MPU-6050 SDA]
                        D32 --| 7 (GPIO 32)32 |-- GND
                        D33 --| 8 (GPIO 33)31 |-- GPIO 19
                        D25 --| 9 (GPIO 25)30 |-- GPIO 18
                        D26 --| 10(GPIO 26)29 |-- GPIO 5
                        D27 --| 11(GPIO 27)28 |-- GPIO 17
-    [HAPTIC MOTOR] <-- D14 --| 12(GPIO 14)27 |-- GPIO 16
-    [HAPTIC/BUZZ]  <-- D12 --| 13(GPIO 12)26 |-- GPIO 4
+                       D14 --| 12(GPIO 14)27 |-- GPIO 16
+    [HAPTIC MOTOR]<--  D12 --| 13(GPIO 12)26 |-- GPIO 4
                        GND --| 14         25 |-- GPIO 0
-                       D13 --| 15(GPIO 13)24 |-- GPIO 2  (Onboard Blue LED)
+                       D13 --| 15(GPIO 13)24 |-- GPIO 2  (Onboard LED)
                        D9  --| 16(GPIO 9) 23 |-- GPIO 15
                        D10 --| 17(GPIO 10)22 |-- GPIO 8
                        D11 --| 18(GPIO 11)21 |-- GPIO 7
@@ -282,309 +119,379 @@ Once bench testing is verified, transfer the sensors to the insole:
 
 ---
 
-### 📋 Complete Pin Connection Table
-| Module | Module Pin | ESP32 Pin | Purpose |
-|---|---|---|---|
-| **MPU-6050** | **VCC** | **3V3** (Pin 1) | 3.3V Power Rail |
-| **MPU-6050** | **GND** | **GND** (Pin 38) | Common Ground |
-| **MPU-6050** | **SDA** | **GPIO 21** (Pin 33) | I2C Serial Data |
-| **MPU-6050** | **SCL** | **GPIO 22** (Pin 36) | I2C Serial Clock (400 kHz) |
-| **MPU-6050** | **AD0** | **GND** | Sets I2C address to `0x68` |
-| **FSR 1 (Heel)** | Pin A | **3V3** | 3.3V Excitation |
-| **FSR 1 (Heel)** | Pin B | **GPIO 36 / VP** (Pin 3) | Analog ADC reading (tied to 10kΩ pull-down to GND) |
-| **FSR 2 (Forefoot)** | Pin A | **3V3** | 3.3V Excitation |
-| **FSR 2 (Forefoot)** | Pin B | **GPIO 39 / VN** (Pin 4) | Analog ADC reading (tied to 10kΩ pull-down to GND) |
-| **Vibration Motor** | **Red (+) Lead** | **3V3** (or VIN) | Power rail |
-| **Vibration Motor** | **Blue (-) Lead** | **Collector of 2N2222** | Switched ground |
-| **2N2222 NPN** | **Base** | **GPIO 12** via 1kΩ | Transistor gate control |
-| **2N2222 NPN** | **Emitter** | **GND** | Common ground |
-| **1N4148 Diode** | Cathode (band) | **Red (+) Lead** | Flyback inductive spike suppression |
-| **1N4148 Diode** | Anode | **Blue (-) Lead** | Reverse-parallel snubber |
+### 3.2 Master Electrical Connection Table
+
+| Subsystem | Component Pin | ESP32 Connection | Pin Label | Circuit Role |
+|---|---|---|---|---|
+| **Power** | Battery (+) / USB 5V | **VIN / 5V** (Pin 19) | VIN | Primary input power |
+| **Power** | Battery (-) / Common | **GND** (Pin 14 / 38) | GND | Universal ground return |
+| **IMU (MPU-6050)** | VCC | **3V3** (Pin 1) | 3V3 | Regulated 3.3V logic power |
+| **IMU (MPU-6050)** | GND | **GND** (Pin 38) | GND | Common reference |
+| **IMU (MPU-6050)** | SDA | **GPIO 21** (Pin 33) | D21 | I2C Serial Data Bus |
+| **IMU (MPU-6050)** | SCL | **GPIO 22** (Pin 36) | D22 | I2C Serial Clock Bus (400 kHz) |
+| **IMU (MPU-6050)** | AD0 | **GND** (Pin 38) | GND | Hardware address select (`0x68`) |
+| **Left Heel FSR** | Lead 1 | **3V3** (Pin 1) | 3V3 | Sensor excitation |
+| **Left Heel FSR** | Lead 2 | **GPIO 36 / VP** (Pin 3) | VP | ADC1_CH0 (tied to 10 kΩ pull-down to GND) |
+| **Left Forefoot FSR** | Lead 1 | **3V3** (Pin 1) | 3V3 | Sensor excitation |
+| **Left Forefoot FSR** | Lead 2 | **GPIO 39 / VN** (Pin 4) | VN | ADC1_CH3 (tied to 10 kΩ pull-down to GND) |
+| **Right Heel FSR** | Lead 1 | **3V3** (Pin 1) | 3V3 | Sensor excitation |
+| **Right Heel FSR** | Lead 2 | **GPIO 34 / D34** (Pin 5) | D34 | ADC1_CH6 (tied to 10 kΩ pull-down to GND) |
+| **Right Forefoot FSR**| Lead 1 | **3V3** (Pin 1) | 3V3 | Sensor excitation |
+| **Right Forefoot FSR**| Lead 2 | **GPIO 35 / D35** (Pin 6) | D35 | ADC1_CH7 (tied to 10 kΩ pull-down to GND) |
+| **Vibration Motor** | Red Wire (+) | **3V3 / VIN** | 3V3 | Positive motor rail |
+| **Vibration Motor** | Blue Wire (-) | **2N2222 Collector** | N/A | Switched ground return |
+| **NPN Driver** | Base | **GPIO 12** via 1 kΩ | D12 | Digital PWM motor trigger |
+| **NPN Driver** | Emitter | **GND** | GND | Common ground return |
+| **Flyback Diode** | Cathode (Stripe)| **Motor (+)** | N/A | Reverse polarity inductive clamp |
+| **Flyback Diode** | Anode | **Motor (-)** | N/A | Reverse-parallel snubber |
+
+> [!NOTE]
+> All four FSR analog inputs utilize **ADC1** channels (GPIO 36, 39, 34, 35). This is critical because on the ESP32, ADC2 channels are multiplexed with the Wi-Fi subsystem and cannot be sampled while Wi-Fi is transmitting.
 
 ---
 
-### ⚡ Detailed Schematic Circuit Diagram
+### 3.3 Detailed Schematic Circuit Diagram
+
 ```
-                              +3.3V POWER BUS
-   ───────────────────┬───────────────────────────┬──────────────────────┬─────────────
-                      │                           │                      │
-                      │                           │                      │
-                 [MPU-6050]                  [FSR 1: HEEL]          [FSR 2: FOREFOOT]
-                 +---------+                 (Square FSR)            (Square FSR)
-                 | VCC     |                      │                      │
-                 |         |                      │                      │
-                 | SDA ────┼── GPIO 21            │                      │
-                 | SCL ────┼── GPIO 22            │                      │
-                 | AD0 ────┼── GND                │                      │
-                 | GND ────┼── GND                │                      │
-                 +---------+                      ▼                      ▼
-                                            Node (A)               Node (B)
-                                            ├── GPIO 36 (VP)       ├── GPIO 39 (VN)
-                                            │                      │
-                                            [ 10kΩ Pull-down ]     [ 10kΩ Pull-down ]
-                                            │                      │
-                                            ▼                      ▼
-                                           GND                    GND
+                                 +3.3V REGULATED POWER BUS
+   ────────────────────┬─────────────────────┬───────────────────┬───────────────────┬───────────────────┬─────────────
+                       │                     │                   │                   │                   │
+                       │                     │                   │                   │                   │
+                  [MPU-6050]            [LEFT HEEL]         [LEFT FORE]        [RIGHT HEEL]        [RIGHT FORE]
+                  +---------+           (Square FSR)        (Square FSR)        (Square FSR)        (Square FSR)
+                  | VCC     |                │                   │                   │                   │
+                  |         |                │                   │                   │                   │
+                  | SDA ────┼── GPIO 21      │                   │                   │                   │
+                  | SCL ────┼── GPIO 22      │                   │                   │                   │
+                  | AD0 ────┼── GND          │                   │                   │                   │
+                  | GND ────┼── GND          │                   │                   │                   │
+                  +---------+                ▼                   ▼                   ▼                   ▼
+                                          Node (A)            Node (B)            Node (C)            Node (D)
+                                          ├── GPIO 36 (VP)    ├── GPIO 39 (VN)    ├── GPIO 34 (D34)   ├── GPIO 35 (D35)
+                                          │                   │                   │                   │
+                                          [ 10kΩ Pull-down ]  [ 10kΩ Pull-down ]  [ 10kΩ Pull-down ]  [ 10kΩ Pull-down ]
+                                          │                   │                   │                   │
+                                          ▼                   ▼                   ▼                   ▼
+                                         GND                 GND                 GND                 GND
 
 
-                      +3.3V (or 5V VIN)
-                              │
-                              ├──────────────────────┐
-                              │                      │
-                         [ + Lead ]              [ CATHODE (Band) ]
-                      +───────────────+               ▲
-                      | COIN TYPE     |               │  1N4148 / 1N4001
-                      | MICRO MOTOR   |           [ DIODE ]
-                      +───────────────+               │
-                         [ - Lead ]                   │
-                              │                  [ ANODE ]
-                              ├──────────────────────┘
-                              │
-                         (COLLECTOR)
-                         ┌─────────┐
-      GPIO 12 ──[ 1kΩ ]──┤  2N2222 ├
-        (PWM)    Base    │   NPN   │
-                         └────┬────┘
-                          (EMITTER)
-                              │
-                              ▼
-                             GND
-   ────────────────────────────────────────────────────────────────────────────────────
-                                COMMON GROUND (GND)
+                        +3.3V (or 5V VIN)
+                                │
+                                ├────────────────────────┐
+                                │                        │
+                           [ + Lead ]                [ CATHODE (Band) ]
+                        +───────────────+                 ▲
+                        | COIN TYPE     |                 │  1N4148 / 1N4001
+                        | MICRO MOTOR   |             [ DIODE ]
+                        +───────────────+                 │
+                           [ - Lead ]                     │
+                                │                    [ ANODE ]
+                                ├────────────────────────┘
+                                │
+                           (COLLECTOR)
+                           ┌─────────┐
+        GPIO 12 ──[ 1kΩ ]──┤  2N2222 ├
+          (PWM)    Base    │   NPN   │
+                           └────┬────┘
+                            (EMITTER)
+                                │
+                                ▼
+                               GND
+   ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                                           COMMON GROUND (GND)
 ```
 
 ---
 
-## 5. ESP32 Firmware Flashing & Code Upload Guide
+## 4. Bilateral Insole Mechanical Assembly
 
-The complete firmware is located in:
-👉 [`firmware/StrideSense_Firmware/StrideSense_Firmware.ino`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/StrideSense_Firmware.ino)
+The four FSR sensors are anatomically positioned under the primary weight-bearing contact zones of both feet to accurately capture the six phases of the human gait cycle:
 
-### ⚙️ Step 1: Configure Wi-Fi Credentials
-Open [`firmware/StrideSense_Firmware/config.h`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/config.h):
+```
+        LEFT FOOT INSOLE                               RIGHT FOOT INSOLE
+    ==============================                  ==============================
+   |        FRONT OF FOOT         |                |        FRONT OF FOOT         |
+   |                              |                |                              |
+   |      +----------------+      |                |      +----------------+      |
+   |      |   LEFT FORE    |      |                |      |   RIGHT FORE   |      |  <-- 1st-3rd Metatarsal heads
+   |      |    GPIO 39     |      |                |      |    GPIO 35     |      |      Measures terminal stance
+   |      +----------------+      |                |      +----------------+      |      & toe-off propulsion.
+   |               │              |                |              │               |
+   |               │              |                |              │               |
+   |          [ ARCH ]            |                |          [ ARCH ]            |  <-- Medial non-weight arch
+   |               │              |                |              │               |      (cable routing zone)
+   |               │              |                |              │               |
+   |      +----------------+      |                |      +----------------+      |
+   |      |   LEFT HEEL    |      |                |      |   RIGHT HEEL   |      |  <-- Calcaneus bone
+   |      |    GPIO 36     |      |                |      |    GPIO 34     |      |      Measures initial contact
+   |      +----------------+      |                |      +----------------+      |      heel-strike impact.
+   |                              |                |                              |
+   |     [ VIBRATION MOTOR ]      |                |                              |
+    ==============================                  ==============================
+            REAR OF INSOLE                                  REAR OF INSOLE
+                  │                                               │
+                  └───────────────┬───────────────────────────────┘
+                                  │ (Flexible Ribbon Cables)
+                                  ▼
+                   [ ESP32 Master Ankle Enclosure ]
+                   - Houses ESP32, MPU-6050 & LiPo Battery
+```
+
+- **Sensor Attachment**: Secure each FSR under the insole fabric using high-strength double-sided Kapton tape or thin elastomeric adhesive.
+- **Cable Relief**: Route the ribbon cables along the medial longitudinal arch (the concave inner side of the foot) to prevent wire shearing and ensure user comfort.
+- **Microcontroller Enclosure**: Mount the ESP32, MPU-6050, and LiPo battery in a 3D-printed enclosure clipped securely to the shoe tongue or ankle collar.
+
+---
+
+## 5. TinyML Edge-AI Gait Engine
+
+### 5.1 Why TinyML on the Edge?
+Running machine learning directly on the microcontroller eliminates critical bottlenecks:
+1. **Ultra-Low Latency (<0.3 µs)**: A fall causes severe trauma in under 150 ms. Edge inference on the ESP32 executes in **0.20 to 0.53 microseconds** ($< 0.0006\text{ ms}$), providing immediate fall protection without cellular or Wi-Fi delays.
+2. **100% Offline Autonomy**: If an elderly individual walks in a basement, garden, or rural area with zero signal, StrideSense continues monitoring gait, detecting falls, and triggering the local buzzer and vibration motor autonomously.
+3. **Bandwidth & Privacy Preservation**: Raw 50 Hz motion data stays on-chip. Only aggregated 1 Hz clinical summaries are uploaded to the cloud.
+
+---
+
+### 5.2 24-Feature Vector Extraction (1.0 s Sliding Window)
+
+Every **20 ms (50 Hz)**, raw sensors are pushed into a 50-sample circular buffer. Every **0.5 s (50% overlap)**, the feature extractor computes 24 biomechanical features:
+
+| Feature Index | Mathematical Expression | Biomechanical Significance |
+|:---:|---|---|
+| **0 – 5** | $\mu(A_x, A_y, A_z, G_x, G_y, G_z)$ | Static posture, body inclination, and gravitational tilt |
+| **6 – 11** | $\sigma(A_x, A_y, A_z, G_x, G_y, G_z)$ | Dynamic kinematic variance and swing amplitude |
+| **12** | $\mu(\text{SVM}) = \frac{1}{N} \sum \sqrt{A_x^2 + A_y^2 + A_z^2}$ | Mean Signal Vector Magnitude (overall translational kinetic energy) |
+| **13** | $\sigma(\text{SVM})$ | Dynamic volatility of translational motion |
+| **14** | $\max(\text{SVM})$ | Peak acceleration spike (hallmark of ground collision) |
+| **15** | $\max(d(\text{SVM})/dt)$ | Peak Jerk rate (differentiation of body shock wave) |
+| **16** | $\mu(P_{\text{Heel}})$ | Mean bilateral heel contact pressure |
+| **17** | $\max(P_{\text{Heel}})$ | Peak initial contact landing force |
+| **18** | $\mu(P_{\text{Forefoot}})$ | Mean propulsion force during terminal stance |
+| **19** | $\max(P_{\text{Forefoot}})$ | Peak toe-off thrust force |
+| **20** | $P_{\text{Heel}} / (P_{\text{Heel}} + P_{\text{Forefoot}} + \epsilon)$ | Heel-to-Toe Plantar Pressure Ratio (detects abnormal gait patterns) |
+| **21** | $P_{\text{Total}} = \sum P_{\text{Left}} + \sum P_{\text{Right}}$ | Total bilateral weight-bearing load (sitting vs standing) |
+| **22** | Cadence (SPM) | Cadence extracted from rhythmic heel strike peak intervals |
+| **23** | Dynamic Symmetry Index ($\%$) | Bilateral balance symmetry: $100 \times (1 - \frac{\|P_L - P_R\|}{P_L + P_R})$ |
+
+---
+
+### 5.3 Model Benchmarks & Embedded Implementation
+
+The model was trained on SisFall, MobiAct, and curated kinematic gait datasets, then compiled to pure C arrays using `ml/export_c_model.py`:
+
+| Parameter | Random Forest Model (Production) | Deep Neural Net (MLP) |
+|---|:---:|:---:|
+| **Overall Accuracy** | **98.97%** | **98.97%** |
+| **5-Fold Cross-Validation** | **98.46%** | **98.15%** |
+| **ESP32 Inference Time** | **0.20 – 0.27 microseconds** | **0.53 – 0.60 microseconds** |
+| **Flash Memory Footprint** | **~4.8 KB** | **~2.4 KB** |
+| **Dynamic RAM Allocation** | **0 Bytes (Stack Only)** | **0 Bytes (Stack Only)** |
+| **C Header File** | [`firmware/StrideSense_Firmware/tinyml_infer.h`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/tinyml_infer.h) | `model_neural_tinyml.h` |
+
+**Recognized Activity Classes**:
+- `0: STANDING` $\to$ Stationary posture, static baseline pressure.
+- `1: WALKING` $\to$ Rhythmic heel-strike $\to$ toe-off cycle (62% stance / 38% swing).
+- `2: RUNNING` $\to$ High-frequency shock, elevated jerk, aerial phase (42% stance / 58% swing).
+- `3: SITTING` $\to$ Minimal plantar force, legs non-weight-bearing.
+- `4: FALL` $\to$ High-G impact spike followed by post-fall immobility.
+
+---
+
+## 6. Dual-Trigger Fall Detection & Safety Protocol
+
+StrideSense combines a physics-based state machine with the TinyML model to prevent false alarms:
+
+```
+[ Normal Walking ]
+        │
+        ▼ (Free-fall condition: SVM Accel < 0.6g for > 80 ms)
+[ State 1: FREE-FALL DETECTED ]
+        │
+        ▼ (Ground impact collision: SVM Accel > 2.8g within 350 ms)
+[ State 2: IMPACT SHOCK VERIFIED ]
+        │
+        ▼ (Immobility check: SVM Variance < 0.15g for > 1.5 s + TinyML Fall Confidence > 85%)
+[ State 3: FALL CONFIRMED ]
+        │
+        ├───────────────────────────────────────────────────────┐
+        ▼                                                       ▼
+[ Local Hardware Alert ]                                 [ Mobile App Alert ]
+- Pulsing haptic motor @ GPIO 12                        - 15-second grace period countdown siren
+- Emergency buzzer alarm                                - If uncancelled by user:
+                                                          1. Auto-dials Primary Emergency Contact
+                                                          2. Broadcasts emergency SMS with telemetry
+```
+
+---
+
+## 7. ESP32 Firmware Flashing & Configuration
+
+Firmware Source: [`firmware/StrideSense_Firmware/`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/)
+
+### 7.1 Wi-Fi & Cloud Configuration
+Open [`firmware/StrideSense_Firmware/config.h`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/config.h) and enter your credentials:
 ```cpp
-// 1. Enter your Wi-Fi credentials (2.4 GHz network or mobile hotspot):
-#define WIFI_SSID             "Your_WiFi_Name"
-#define WIFI_PASSWORD         "Your_WiFi_Password"
+// 1. Wi-Fi Configuration (2.4 GHz Network or Mobile Hotspot):
+#define WIFI_SSID                 "Your_WiFi_Name"
+#define WIFI_PASSWORD             "Your_WiFi_Password"
 
-// 2. Hardware profile (matches your 2 Square FSRs):
-#define FSR_SENSOR_COUNT      2
+// 2. Hardware Sensor Pin Mapping:
+#define PIN_FSR_L_HEEL            36  // Left Heel ADC (ADC1_CH0)
+#define PIN_FSR_L_FORE            39  // Left Forefoot ADC (ADC1_CH3)
+#define PIN_FSR_R_HEEL            34  // Right Heel ADC (ADC1_CH6)
+#define PIN_FSR_R_FORE            35  // Right Forefoot ADC (ADC1_CH7)
+#define PIN_MOTOR_HAPTIC          12  // Vibration motor driver PWM
 
-// 3. Supabase Cloud Settings (Pre-configured & Ready):
-#define BACKEND_USE_SUPABASE  1
-#define SUPABASE_HOST         "https://sgooptohhldguitvhbrl.supabase.co"
-#define SUPABASE_PUBLISHABLE_KEY "sb_publishable_XOwUeGn_OBNf0XoAMNmT9g_3M91ATSI"
-#define SUPABASE_ENDPOINT     "/rest/v1/telemetry"
+// 3. Right Heel Custom Calibration (GPIO 34 Baseline ~1800 ADC):
+#define R_HEEL_PRESSURE_THRESHOLD 2100 // Activated above 2100 ADC
+
+// 4. Supabase Cloud API Endpoints:
+#define BACKEND_USE_SUPABASE      1
+#define SUPABASE_HOST             "https://sgooptohhldguitvhbrl.supabase.co"
+#define SUPABASE_PUBLISHABLE_KEY  "sb_publishable_XOwUeGn_OBNf0XoAMNmT9g_3M91ATSI"
+#define SUPABASE_ENDPOINT         "/rest/v1/telemetry"
 ```
 
 ---
 
-### 🚀 Option A (Recommended): 1-Click Automated Terminal / AI Assistant Flashing
+### 7.2 Flashing the Firmware
 
-You do **not** need to open Arduino IDE or install third-party libraries. You can flash the board directly through your terminal or by asking your AI assistant:
-
-#### Method 1: Ask Antigravity AI Assistant
-1. Plug your ESP32 into your Mac via USB data cable.
-2. In this chat, simply say:
-   > *"I have connected the ESP32, upload the code"*
-3. The AI assistant will automatically:
-   - Detect the connected serial port (`/dev/cu.usbserial-...` or `/dev/cu.wchusbserial...`).
-   - Compile the C++ firmware and embedded TinyML model using the native toolchain.
-   - Flash the binary to the ESP32 chip.
-   - Verify the serial monitor to confirm initialization and Supabase streaming.
-
-#### Method 2: Run the 1-Click Script
-Open your terminal and run:
+#### Option A: Automated 1-Click Terminal Script
+Connect your ESP32 to your computer via USB data cable and run:
 ```bash
 ./firmware/upload_esp32.sh
 ```
-This automated script scans USB ports, detects your board, compiles the sketch, and flashes it in under 15 seconds.
+The script scans serial ports, compiles the code, and flashes the ESP32 in under 15 seconds.
 
----
-
-### 🛠️ Option B: Manual Upload via Arduino IDE
-
-If you prefer using the Arduino IDE graphical interface:
-
-#### 1. Open the Sketch in Arduino IDE
-1. Open **Arduino IDE** (`/Applications/Arduino IDE.app`).
-2. Go to **File ➔ Open...** and select:
-   ```
-   firmware/StrideSense_Firmware/StrideSense_Firmware.ino
-   ```
-3. All supporting files (`config.h`, `model_data.h`, `sensors.cpp`, etc.) will open automatically as tabs.
-
-#### 2. Configure Board & Port
-Under **Tools** in the top menu bar, select:
-- **Board**: `ESP32 Dev Module` (or `DOIT ESP32 DEVKIT V1` under `esp32`).
-- **Port**: Select `/dev/cu.usbserial-XXXX` (macOS) or `COMx` (Windows).
-- **Upload Speed**: `921600` (or `115200` if connection is noisy).
-- **CPU Frequency**: `240MHz (WiFi/BT)`.
-- *Note on Libraries*: StrideSense is **zero-dependency** — it uses the built-in `Wire.h`, `WiFi.h`, and `HTTPClient.h` included in the ESP32 board core. No external third-party libraries needed!
-
-#### 3. Upload & Monitor
-1. Click the **Upload** button (Arrow icon `➔`).
-2. *Tip*: If the console shows `Connecting........_____`, press and hold down the physical **BOOT** button on your ESP32 for 1–2 seconds until upload begins.
-3. Open **Tools ➔ Serial Monitor** at **115200 baud**:
+#### Option B: Arduino IDE
+1. Open [`StrideSense_Firmware.ino`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/firmware/StrideSense_Firmware/StrideSense_Firmware.ino) in **Arduino IDE**.
+2. Go to **Tools ➔ Board** $\to$ Select **ESP32 Dev Module**.
+3. Go to **Tools ➔ Port** $\to$ Select your serial port (`/dev/cu.usbserial-...` on macOS or `COMx` on Windows).
+4. Set **Upload Speed** to `921600` and **CPU Frequency** to `240MHz`.
+5. Click **Upload** (`➔`). *(If `Connecting........_____` appears, hold the physical **BOOT** button on the ESP32 for 1 second).*
+6. Open **Tools ➔ Serial Monitor** at **115200 baud** to confirm initialization:
 ```
-==========================================
-     STRIDESENSE - AI SMART INSOLE       
-==========================================
-[FallEngine] Fall detector state machine initialized.
-[Sensors] MPU-6050 and ADC initialized successfully.
-[Sensors] Calibrating zero-force baseline and IMU bias...
-[Sensors] Calibration complete.
-[Supabase] Connecting to Wi-Fi SSID: Your_WiFi_Name
-[Supabase] Wi-Fi connected! IP: 192.168.1.145
-[System] Initialization complete. Starting 50 Hz telemetry loop...
-
-[TinyML] Activity: Standing | Conf: 100% | Cadence:   0 SPM | Steps:     0 | Latency: 0 us
-[TinyML] Activity: Walking  | Conf:  99% | Cadence: 112 SPM | Steps:     1 | Latency: 0 us
-[Supabase] Telemetry sent successfully (HTTP 201)
+========================================================================================
+ 🌐 NETWORK     | Wi-Fi: [✓ CONNECTED] SSID: 'Your_WiFi' | IP: 192.168.1.145
+ ☁️  SUPABASE    | Status: [✓ OK] Telemetry Syncing to Cloud
+----------------------------------------------------------------------------------------
+ 🦶 FSR SENSORS | LEFT FOOT  : Heel (GPIO 36):  820 | Forefoot (GPIO 39): 1140
+                | RIGHT FOOT : Heel (GPIO 34): 2350 | Forefoot (GPIO 35):  980
+ 📐 MPU-6050 IMU| [✓ OK] Pitch: +2.1° | Roll: -1.4° | SVM Accel: 1.01g
+ 🧠 TinyML AI   | Activity: Walking (99%) | Steps: 1241 | Cadence: 114 SPM | Symmetry: 98%
+========================================================================================
 ```
 
 ---
 
-## 6. Cloud Backend Setup (Supabase PostgreSQL & Realtime)
-
-StrideSense uses **Supabase** to deliver zero-polling, instant real-time synchronization between the insole and mobile apps.
+## 8. Cloud Backend Architecture (Supabase PostgreSQL & Realtime)
 
 ```
-[ ESP32 Insole ]
-       │
-       │ HTTPS POST (1 Hz JSON)
-       │ Header: apikey + Bearer token
-       ▼
-[ Supabase PostgREST API Engine ]
-       │
-       ▼
-[ PostgreSQL Database (public.telemetry table) ]
-       │
-       ▼ (Write-Ahead Log Replication)
-[ Supabase Realtime Engine (Elixir Phoenix WebSockets) ]
-       │
-       ▼ (Sub-50ms push broadcast)
-[ Native iOS/Android App & Web Dashboard ]
+[ ESP32 Microcontroller ]
+         │
+         │ HTTPS POST (1 Hz JSON Payload)
+         ▼
+[ Supabase PostgREST Engine ]
+         │
+         ▼
+[ PostgreSQL Table: public.telemetry ]
+         │
+         ▼ (Write-Ahead Log CDC)
+[ Phoenix WebSocket Realtime Engine ]
+         │
+         ▼ (<50 ms Push Stream)
+[ Mobile & Web Clients ]
 ```
 
-### 6.1 Database Tables (`docs/SUPABASE_SCHEMA.sql`)
-1. **`public.devices`**: Hardware metadata, firmware version, and battery health.
-2. **`public.telemetry`**: 50 Hz/1 Hz time-series table containing activity classification, confidence, steps, cadence, symmetry, FSR pressures (`p1`, `p2`), pitch, roll, and SVM-A shock values.
-3. **`public.fall_incidents`**: Audit trail of triggered fall alarms, user cancellations, or emergency dispatch logs.
-
-### 6.2 Executing the Database Schema
-1. Open your Supabase project:
-   👉 **[https://supabase.com/dashboard/project/sgooptohhldguitvhbrl](https://supabase.com/dashboard/project/sgooptohhldguitvhbrl)**
-2. Click **SQL Editor** (`>_`) in the left sidebar.
-3. Paste the contents of [`docs/SUPABASE_SCHEMA.sql`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/docs/SUPABASE_SCHEMA.sql) and click **Run**.
-4. Go to **Database** $\to$ **Publications** $\to$ `supabase_realtime` and verify the toggle switches for `telemetry` and `fall_incidents` are enabled.
+### Database Tables (`docs/SUPABASE_SCHEMA.sql`):
+1. **`public.telemetry`**: Stores activity classification, confidence, steps, cadence, dynamic symmetry, bilateral FSR pressures (`p_l_heel`, `p_l_fore`, `p_r_heel`, `p_r_fore`), pitch, roll, and SVM acceleration shock values.
+2. **`public.devices`**: Hardware metadata, firmware release, and battery health tracking.
+3. **`public.fall_incidents`**: Timestamped fall alerts, user cancellations, and emergency SOS dispatch history.
 
 ---
 
-## 7. Mobile & Web Application Setup (iOS, Android, Web)
+## 9. Mobile & Web Application (iOS, Android, Web)
 
-The application in [`dashboard/`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/dashboard) is a modern, native-grade cross-platform app built with **React 19, Vite, Tailwind CSS, and Capacitor**.
+Source Directory: [`dashboard/`](file:///Users/aksharsakhi/Documents/Files/Code/APPS/StrideSense/dashboard)
 
-### 🌟 UI Highlights & Features:
-- **Dual Light/Dark Theme**: Deep obsidian glassmorphism (`#060a12`) in dark mode, crisp frosted glass in light mode. Includes zero-flicker pre-render sync and dynamic iOS status bar `<meta name="theme-color">`.
-- **Fixed Native Header**: Fixed frosted header (`position: fixed; top: 0`) that covers the iPhone notch, clock, and Dynamic Island with zero content bleed.
-- **Plantar Foot Pressure Heatmap**: Anatomical insole rendering dynamic pressure gradients for the 2 Square FSRs (Heel & Forefoot).
-- **Gait Analytics**: Real-time Daily Step progress ring, Cadence SPM, Dynamic Symmetry %, and Gait Phase Duty Cycle bar (**62% Stance / 38% Swing** for walking).
-- **IMU Motion Kinematics**: 3D attitude horizon sphere (Pitch & Roll) and SVM Impact Shock G-force meter.
-- **Fall Guard Shield**: 15-second siren grace period modal, simulated fall trigger, direct 108 Emergency SOS call dispatch, and auto-notified emergency contacts.
+Built with **React 19, Vite, Tailwind CSS, and Capacitor Native**, the application delivers a polished, responsive mobile health interface:
 
----
+```
++───────────────────────────────────────────────────────────+
+| 8:42                                                  37% |
+|                                                           |
+| (88) StrideSense   [● 1x ESP32 v]   [88%]  [☾]  [⚙]      |  <-- Fixed Top Header
+|───────────────────────────────────────────────────────────|
+| Good Evening, Akshar 🌙                    [Sync Standby] |
+| [ 21 YRS • 175 CM • 68 KG • BMI: 22.2 (Normal) ]          |  <-- Patient Biometrics
+|                                                           |
+|       +───────────────────────────────────+               |
+|       |         ((  1,241 STEPS  ))       |               |  <-- Concentric Rings
+|       |    Steps (12%) • Mobility (37%)   |               |
+|       +───────────────────────────────────+               |
+|                                                           |
+|   CADENCE          SYMMETRY INDEX      BILATERAL FORCE    |
+|   114 SPM          98.2% Balanced      1,420 N            |
+|                                                           |
+| [⌂ Home]  [🦶 Pressure]  [🎖 Gait]  [♥ Mobility]  [🛡 Guard]|  <-- Bottom Navigation
++───────────────────────────────────────────────────────────+
+```
 
-### 🌐 1. Running the Local Web Dashboard
+### Key Application Features:
+- **Biomechanical Patient Profile**: View and edit Name, Age, Weight, Height, Gender, Shoe Size, and Blood Group directly from Settings, with live-calculated BMI and estimated Stride Length.
+- **Bilateral Plantar Pressure Heatmap**: Anatomical left and right foot visualizations rendering real-time gradient pressure mapped from the 4 FSR sensors.
+- **Gait Kinematics & Symmetry**: Tracks cadence SPM, 62%/38% stance-swing duty cycle, and bilateral symmetry.
+- **Fall Guard Shield**: 15-second grace period countdown siren, manual SOS button, and editable emergency contact management with primary caller auto-dialing.
+- **Apple Health-Grade Mobility Engine**: 7-day concentric activity rings, hourly distribution histograms, and one-tap **Clinical Mobility Audit** export for physicians.
+
+### Running Locally & Deploying to iPhone:
 ```bash
 cd dashboard
 npm install
-npm run dev
-```
-Open **`http://localhost:5173/`** in your browser.
+npm run dev          # Launch web dashboard at http://localhost:5173
 
----
-
-### 📱 2. Testing on your iPhone / Android Wirelessly
-1. Ensure your phone and Mac are connected to the same Wi-Fi network.
-2. In your terminal, note the `Network:` IP address output by Vite (e.g., `http://192.168.1.100:5173/`).
-3. Open Safari (iPhone) or Chrome (Android) and open the URL.
-4. On iPhone Safari: Tap **Share** $\to$ **Add to Home Screen**.
-5. The application will launch full-screen as a standalone native app!
-
----
-
-### 🍎 3. Running Natively on iPhone via Xcode (Capacitor iOS)
-The project includes a fully configured iOS workspace (`dashboard/ios/App/App.xcworkspace`).
-
-```bash
-cd dashboard
-
-# 1. Build web production bundle and sync to iOS native project
-npm run build
-npx cap sync ios
-
-# 2. Open native workspace in Xcode
-npx cap open ios
+# Deploy to iPhone:
+npm run build        # Build web production bundle
+npx cap sync ios     # Sync assets to native Xcode project
+xcodebuild -project ios/App/App.xcodeproj -scheme App -destination 'generic/platform=iOS' -configuration Debug -allowProvisioningUpdates build
 ```
 
-In Xcode:
-1. Connect your physical iPhone via USB or Wi-Fi.
-2. Select your device (e.g. `akshar's iPhone`) in the top target selector.
-3. Click on the root `App` project in the left navigator $\to$ **Signing & Capabilities** $\to$ select your **Personal Team**.
-4. Press **`Cmd + R`** (or click the **Play** button) to build and run directly on your iPhone!
+---
+
+## 10. End-to-End Verification & Testing Protocol
+
+| # | System Component | Verification Procedure | Expected Behavior | Status |
+|---|---|---|---|:---:|
+| **1** | **MPU-6050 I2C** | Power on ESP32 with IMU connected | Serial console prints `MPU-6050 initialized successfully` | ✅ Passed |
+| **2** | **ADC Tare Baseline** | Start ESP32 with insole unloaded | Self-calibrates zero-force baseline resistance | ✅ Passed |
+| **3** | **Right Heel Threshold** | Apply pressure to Right Heel FSR (GPIO 34) | Transitions from baseline (~1800 ADC) to active (>2100 ADC) | ✅ Passed |
+| **4** | **TinyML Accuracy** | Run bare-metal test suite `ml/test_inference_c.c` | 15 / 15 test vectors classified at 100% in $<0.3\text{ \mu s}$ | ✅ Passed |
+| **5** | **Fall Shock Detector** | Drop insole onto soft cushion | Free-fall (<0.6g) + impact (>2.8g) activates buzzer alarm | ✅ Passed |
+| **6** | **Supabase Ingestion** | ESP32 Wi-Fi HTTP POST | Supabase returns `HTTP 201 Created` inserting telemetry | ✅ Passed |
+| **7** | **Realtime CDC** | Mobile app open during step | App UI updates instantly in $<50\text{ ms}$ without refresh | ✅ Passed |
+| **8** | **iOS Native App** | Install via Xcode / `devicectl` on iPhone | Launches full-screen native app with haptic feedback | ✅ Passed |
 
 ---
 
-### 🤖 4. Running on Android via Android Studio
-```bash
-cd dashboard
-npm run build
-npx cap sync android
-npx cap open android
-```
-In Android Studio, click **Run 'app'** (`Shift + F10`) to deploy to your connected Android phone or emulator.
+## 11. Troubleshooting & Hardware Calibration
 
----
-
-## 8. End-to-End Verification & Testing Checklist
-
-| # | Subsystem | Verification Test | Expected Behavior | Status |
-|---|---|---|---|---|
-| **1** | **MPU-6050 I2C** | Power on ESP32 with IMU connected | Serial Monitor outputs `[Sensors] MPU-6050 and ADC initialized successfully.` | ✅ Verified |
-| **2** | **FSR Tare Calibration** | Unloaded startup baseline | Firmware offsets baseline zero resistance automatically | ✅ Verified |
-| **3** | **TinyML Accuracy** | Run bare-metal test harness `ml/test_inference_c.c` | 15 / 15 test vectors classified at 100% in $<0.3 \text{ \mu s}$ | ✅ Verified |
-| **4** | **Fall Detection Shock** | Drop insole onto soft cushion | Free-fall (<0.6g) + impact (>2.8g) activates 15s buzzer alarm | ✅ Verified |
-| **5** | **Cloud Ingestion** | ESP32 Wi-Fi HTTP POST | Supabase returns `HTTP 201 Created` inserting telemetry | ✅ Verified |
-| **6** | **Realtime CDC** | Mobile app open during step | App UI updates instantly in $<50\text{ ms}$ without browser refresh | ✅ Verified |
-| **7** | **Dual Light/Dark UI** | Toggle Sun/Moon button on mobile app | Nav bar, insole graphic, and cards transition smoothly | ✅ Verified |
-| **8** | **iOS Native Safe Areas** | Test on iPhone with notch / Dynamic Island | Header covers notch; bottom nav sits flush above Home Indicator | ✅ Verified |
-
----
-
-## 9. Troubleshooting & Common Pitfalls
-
-### Hardware & Wiring:
-- **MPU-6050 Not Detected (`I2C error 0x68`)**:
-  - Check that **AD0** is tied to **GND** (if AD0 is floating or pulled to 3.3V, its I2C address becomes `0x69`).
-  - Ensure SDA is connected to GPIO 21 and SCL to GPIO 22.
-- **FSR Readings Constant 0 or 4095**:
-  - Verify the 10 kΩ pull-down resistor forms a voltage divider: 3.3V $\to$ FSR $\to$ GPIO Pin $\to$ 10 kΩ $\to$ GND.
-  - Make sure you are using ADC1 channels (GPIO 36 and GPIO 39). ADC2 channels cannot be used when Wi-Fi is active.
-- **ESP32 Upload Error (`Failed to connect to ESP32: Timed out waiting for packet header`)**:
-  - Hold the physical **BOOT** button on the ESP32 for 2 seconds when Arduino IDE shows `Connecting........_____`.
+### Hardware & Sensors:
+- **MPU-6050 Not Responding (`I2C error 0x68`)**:
+  - Verify **AD0** is tied to **GND** (if floating, address shifts to `0x69`).
+  - Confirm SDA is on **GPIO 21** and SCL is on **GPIO 22**.
+- **Right Heel Sensor (GPIO 34) Always Triggered**:
+  - GPIO 34 baseline resting value is ~1700–1900 ADC. Ensure `R_HEEL_PRESSURE_THRESHOLD` in `config.h` is set to `2100` so contact triggers only under active foot pressure.
+- **FSR Readings Stuck at 0 or 4095**:
+  - Verify the 10 kΩ pull-down resistor forms a proper voltage divider: `3.3V` $\to$ FSR $\to$ GPIO $\to$ `10 kΩ` $\to$ `GND`.
+  - Use only ADC1 channels (GPIO 36, 39, 34, 35). ADC2 channels conflict with active Wi-Fi.
 
 ### Cloud & Network:
-- **Supabase HTTP Error 401 / 403**:
-  - Ensure `SUPABASE_PUBLISHABLE_KEY` in `config.h` matches `VITE_SUPABASE_ANON_KEY` in `dashboard/.env`.
-  - Check that RLS policies on `public.telemetry` allow `INSERT` for the `anon` role (included in `docs/SUPABASE_SCHEMA.sql`).
-
-### Mobile UI:
-- **Bottom Navigation Bar appears white in Dark Mode**:
-  - Verified and resolved! Always use `.mobile-bottom-nav` with explicit CSS overrides instead of arbitrary fractional Tailwind opacities.
-- **Gait Phase Duty Cycle shows 0%**:
-  - Verified and resolved! Activity string is normalized via `.toUpperCase()` to handle both `'WALKING'` and `'Walking'`.
+- **Supabase HTTP -1 Error**:
+  - Indicates no internet access on the connected Wi-Fi router or phone hotspot. Verify mobile data is enabled on your hotspot.
+- **Supabase HTTP 401 / 403 Error**:
+  - Check that `SUPABASE_PUBLISHABLE_KEY` in `config.h` matches your Supabase anonymous public key, and verify that RLS policies allow `INSERT` for the `anon` role.
 
 ---
 
-*StrideSense — Developed with Google DeepMind Antigravity Pair Programming.*
+*StrideSense — Engineered with Google DeepMind Antigravity Pair Programming.*

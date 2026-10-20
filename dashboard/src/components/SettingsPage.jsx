@@ -5,23 +5,37 @@ import {
   Sun, Moon, Monitor, Palette, Sparkles, Shield,
   PhoneCall, MessageSquare, Plus, Trash2, Edit3,
   Star, Smartphone, Check, X, AlertTriangle, Send,
-  ChevronRight
+  ChevronRight, User
 } from 'lucide-react';
 import { nativeBridge } from '../services/native.js';
 import { emergencyContactsService } from '../services/emergencyContacts.js';
+import { userProfileService } from '../services/userProfile.js';
 import SystemDetailView from './SystemDetailView.jsx';
 
 function SettingsPageComponent({
   batteryPct = 88,
   batteryVoltage = 3.96,
   isCloudConnected = false,
-  selectedDeviceId = 'insole_left_01',
+  selectedDeviceId = 'stridesense_esp32_01',
   onOpenDeviceSelector = () => {},
   theme = 'system',
   onThemeChange = () => {}
 }) {
   const [hapticEnabled, setHapticEnabled] = useState(true);
   const [notifications, setNotifications] = useState(true);
+
+  // Patient / User Profile State
+  const [profile, setProfile] = useState(() => userProfileService.getProfile());
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: profile.name,
+    age: profile.age,
+    weightKg: profile.weightKg,
+    heightCm: profile.heightCm,
+    gender: profile.gender,
+    shoeSize: profile.shoeSize,
+    bloodGroup: profile.bloodGroup
+  });
 
   // Emergency Contacts & Settings State
   const [contacts, setContacts] = useState(() => emergencyContactsService.getContacts());
@@ -39,11 +53,17 @@ function SettingsPageComponent({
   const [activeDetail, setActiveDetail] = useState(null);
 
   useEffect(() => {
-    const unsub = emergencyContactsService.subscribe((updatedContacts, updatedSettings) => {
+    const unsubProfile = userProfileService.subscribe((updatedProfile) => {
+      setProfile(updatedProfile);
+    });
+    const unsubEmergency = emergencyContactsService.subscribe((updatedContacts, updatedSettings) => {
       setContacts(updatedContacts);
       setEmergencySettings(updatedSettings);
     });
-    return unsub;
+    return () => {
+      unsubProfile();
+      unsubEmergency();
+    };
   }, []);
 
   const batteryColor = batteryPct > 60
@@ -98,6 +118,30 @@ function SettingsPageComponent({
   const handleThemeSelect = (newTheme) => {
     nativeBridge.impactMedium();
     onThemeChange(newTheme);
+  };
+
+  // Patient / User Profile handlers
+  const handleOpenEditProfile = () => {
+    nativeBridge.impactLight();
+    setProfileForm({
+      name: profile.name,
+      age: profile.age,
+      weightKg: profile.weightKg,
+      heightCm: profile.heightCm,
+      gender: profile.gender,
+      shoeSize: profile.shoeSize,
+      bloodGroup: profile.bloodGroup
+    });
+    setIsProfileModalOpen(true);
+  };
+
+  const handleSaveProfile = (e) => {
+    e.preventDefault();
+    if (!profileForm.name.trim()) return;
+    nativeBridge.impactMedium();
+    nativeBridge.notificationSuccess();
+    userProfileService.saveProfile(profileForm);
+    setIsProfileModalOpen(false);
   };
 
   // Emergency contact modal handlers
@@ -189,10 +233,91 @@ function SettingsPageComponent({
       {/* Header */}
       <div className="animate-fade-in-scale">
         <h1 className="text-2xl sm:text-3xl font-bold font-display text-slate-900 dark:text-white">Settings</h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Emergency SOS, device hardware & system preferences</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Patient profile, emergency SOS & device hardware</p>
       </div>
 
-      {/* ─── EMERGENCY CONTACTS & SOS DISPATCH (NEW TOP SECTION) ─── */}
+      {/* ─── PATIENT & USER BIOMECHANICAL PROFILE (TOP SECTION) ─── */}
+      <div className="glass-panel p-5 sm:p-6 animate-fade-in-scale border-cyan-500/30">
+        <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-emerald-400 p-[2px] shadow-lg shadow-cyan-500/20 flex-shrink-0">
+              <div className="w-full h-full bg-white dark:bg-slate-950 rounded-[14px] flex items-center justify-center font-extrabold text-base font-display text-cyan-600 dark:text-cyan-400">
+                {profile.name?.trim().split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'US'}
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-xl font-bold font-display text-slate-900 dark:text-white">
+                  {profile.name}
+                </h2>
+                <span className="badge badge-cyan text-[9px] font-mono">
+                  {profile.clinicalId}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {profile.gender} • {profile.age} yrs • Blood Group: {profile.bloodGroup}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenEditProfile}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-white shadow-md shadow-cyan-500/20 flex items-center gap-1.5 active-press transition-all"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>Edit Profile</span>
+          </button>
+        </div>
+
+        {/* Biomechanical Metrics Grid: Age, Weight, Height, BMI */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/60 dark:border-white/[0.05]">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Age</span>
+            <div className="text-lg font-mono font-bold text-slate-900 dark:text-white mt-0.5">
+              {profile.age} <span className="text-xs font-normal text-slate-400">yrs</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/60 dark:border-white/[0.05]">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Weight</span>
+            <div className="text-lg font-mono font-bold text-slate-900 dark:text-white mt-0.5">
+              {profile.weightKg} <span className="text-xs font-normal text-slate-400">kg</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/60 dark:border-white/[0.05]">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Height</span>
+            <div className="text-lg font-mono font-bold text-slate-900 dark:text-white mt-0.5">
+              {profile.heightCm} <span className="text-xs font-normal text-slate-400">cm</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/60 dark:border-white/[0.05]">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Body Mass Index</span>
+            <div className="text-lg font-mono font-bold text-slate-900 dark:text-white mt-0.5 flex items-baseline gap-1.5">
+              <span>{profile.bmi}</span>
+              <span className={`text-[10px] font-sans font-bold ${profile.bmiColor}`}>
+                ({profile.bmiCategory})
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Secondary Info Chips */}
+        <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-white/[0.04] flex flex-wrap items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-2">
+          <div className="flex items-center gap-3">
+            <span>Estimated Stride: <strong className="text-slate-900 dark:text-white font-mono">{profile.estimatedStrideCm} cm</strong></span>
+            <span>•</span>
+            <span>Insole Fit: <strong className="text-slate-900 dark:text-white">{profile.shoeSize}</strong></span>
+          </div>
+          <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400">
+            Active Biomechanical Patient Data
+          </span>
+        </div>
+      </div>
+
+      {/* ─── EMERGENCY CONTACTS & SOS DISPATCH ─── */}
       <div className="glass-panel p-5 sm:p-6 animate-fade-in-scale border-rose-500/30">
         <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
           <div className="flex items-center gap-3">
@@ -243,7 +368,8 @@ function SettingsPageComponent({
           {contacts.map((contact) => (
             <div
               key={contact.id}
-              className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
+              onClick={() => openEditModal(contact)}
+              className={`p-4 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer active-press hover:border-cyan-500/40 ${
                 contact.isPrimary
                   ? 'bg-rose-500/[0.06] dark:bg-rose-500/[0.08] border-rose-500/40 shadow-sm'
                   : 'bg-slate-100/70 dark:bg-slate-900/50 border-slate-200/80 dark:border-white/[0.05]'
@@ -279,20 +405,27 @@ function SettingsPageComponent({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => openEditModal(contact)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditModal(contact);
+                    }}
                     title="Edit Contact"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-slate-200/50 dark:hover:bg-white/[0.05] transition-colors"
+                    className="px-2.5 py-1 rounded-xl text-xs font-bold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/25 active-press flex items-center gap-1 transition-all"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
+                    <span>Edit</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDeleteContact(contact.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteContact(contact.id);
+                    }}
                     title="Delete Contact"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 active-press transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -498,6 +631,204 @@ function SettingsPageComponent({
         </div>
       )}
 
+      {/* Edit Patient & User Profile Modal */}
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.1] rounded-3xl p-5 sm:p-6 shadow-2xl animate-fade-in-scale my-auto">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-200/70 dark:border-white/[0.06]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Patient & User Profile
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Biomechanical attributes for gait & clinical reporting
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsProfileModalOpen(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="flex flex-col gap-3.5">
+              {/* Full Name */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                  Full Name / Patient Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Akshar Sakhi"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                  className="w-full text-sm py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/[0.08] text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              {/* Age & Gender in 2 cols */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                    Age (years)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    max="120"
+                    placeholder="21"
+                    value={profileForm.age}
+                    onChange={(e) => setProfileForm({ ...profileForm, age: e.target.value })}
+                    className="w-full text-sm font-mono py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/[0.08] text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                    Gender
+                  </label>
+                  <select
+                    value={profileForm.gender}
+                    onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
+                    className="w-full text-sm py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/[0.08] text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Weight & Height in 2 cols */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                    Weight (kg)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    required
+                    min="20"
+                    max="300"
+                    placeholder="68"
+                    value={profileForm.weightKg}
+                    onChange={(e) => setProfileForm({ ...profileForm, weightKg: e.target.value })}
+                    className="w-full text-sm font-mono py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/[0.08] text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                    Height (cm)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    required
+                    min="50"
+                    max="250"
+                    placeholder="175"
+                    value={profileForm.heightCm}
+                    onChange={(e) => setProfileForm({ ...profileForm, heightCm: e.target.value })}
+                    className="w-full text-sm font-mono py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/[0.08] text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              {/* Shoe Size & Blood Group */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                    Insole / Shoe Size
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="EU 43 / US 10"
+                    value={profileForm.shoeSize}
+                    onChange={(e) => setProfileForm({ ...profileForm, shoeSize: e.target.value })}
+                    className="w-full text-sm py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/[0.08] text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                    Blood Group
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="O+"
+                    value={profileForm.bloodGroup}
+                    onChange={(e) => setProfileForm({ ...profileForm, bloodGroup: e.target.value })}
+                    className="w-full text-sm font-mono py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/[0.08] text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              {/* Live Biomechanical Computed Card */}
+              {(() => {
+                const hM = (parseFloat(profileForm.heightCm) || 0) / 100;
+                const wKg = parseFloat(profileForm.weightKg) || 0;
+                const liveBmi = hM > 0 && wKg > 0 ? (wKg / (hM * hM)).toFixed(1) : '--';
+                const liveStride = (parseFloat(profileForm.heightCm) || 0) > 0
+                  ? Math.round((parseFloat(profileForm.heightCm) || 0) * 0.415)
+                  : '--';
+                let bmiCat = 'Normal';
+                let bmiColor = 'text-emerald-500';
+                const bmiVal = parseFloat(liveBmi);
+                if (!isNaN(bmiVal)) {
+                  if (bmiVal < 18.5) { bmiCat = 'Underweight'; bmiColor = 'text-amber-500'; }
+                  else if (bmiVal < 25) { bmiCat = 'Normal Weight'; bmiColor = 'text-emerald-500'; }
+                  else if (bmiVal < 30) { bmiCat = 'Overweight'; bmiColor = 'text-amber-500'; }
+                  else { bmiCat = 'Obese'; bmiColor = 'text-rose-500'; }
+                }
+
+                return (
+                  <div className="p-3 rounded-xl bg-cyan-500/[0.08] border border-cyan-500/20 text-xs">
+                    <span className="text-[10px] font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider block mb-1">
+                      Computed Biomechanical Parameters (Live)
+                    </span>
+                    <div className="grid grid-cols-2 gap-2 text-slate-700 dark:text-slate-300">
+                      <div>
+                        Calculated BMI: <strong className="font-mono text-slate-900 dark:text-white">{liveBmi}</strong>{' '}
+                        <span className={`font-semibold ${bmiColor}`}>({bmiCat})</span>
+                      </div>
+                      <div>
+                        Est. Stride Length: <strong className="font-mono text-slate-900 dark:text-white">{liveStride} cm</strong>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="flex gap-2.5 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.08] text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-bold shadow-md shadow-cyan-500/20 flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  Save Profile
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Responsive 2-Column Grid on Desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
@@ -521,16 +852,18 @@ function SettingsPageComponent({
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
-                    {selectedDeviceId === 'bilateral_hw'
-                      ? 'Bilateral ESP32 Hardware Kit'
+                    {selectedDeviceId === 'stridesense_esp32_01' || selectedDeviceId === 'bilateral_hw'
+                      ? 'StrideSense Unified Hardware (1x ESP32, 4x FSR)'
                       : (selectedDeviceId === 'bilateral_sim'
-                          ? 'Bilateral 3D Simulation'
+                          ? 'Bilateral 3D Simulation (Studio)'
                           : (selectedDeviceId.includes('02') ? '3D Virtual Simulation Insole' : 'ESP32 Physical Insole'))}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5 truncate">
-                    {selectedDeviceId.startsWith('bilateral')
-                      ? 'Dual Foot Setup • Left + Right Sync'
-                      : `Single Insole • ${selectedDeviceId}`}
+                    {selectedDeviceId === 'stridesense_esp32_01' || selectedDeviceId === 'bilateral_hw'
+                      ? 'Single ESP32 MCU • 4x FSR Bilateral • 1x MPU6050'
+                      : (selectedDeviceId.startsWith('bilateral')
+                          ? 'Dual Foot Setup • Left + Right Sync'
+                          : `Single Insole • ${selectedDeviceId}`)}
                   </p>
                   <div className="flex items-center gap-2 mt-1.5">
                     <span className={`badge text-[9px] ${
@@ -540,7 +873,7 @@ function SettingsPageComponent({
                       {isCloudConnected ? 'Active Sync' : 'Standby / Offline'}
                     </span>
                     <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                      {selectedDeviceId.includes('sim') || selectedDeviceId.includes('02') ? 'v1.4.2-VirtualSim' : 'v1.4.2-TinyML'}
+                      {selectedDeviceId.includes('sim') || selectedDeviceId.includes('02') ? 'v1.4.2-VirtualSim' : 'v1.5.0-Unified-TinyML'}
                     </span>
                   </div>
                 </div>
@@ -696,7 +1029,7 @@ function SettingsPageComponent({
             </div>
             <div className="glass-panel px-4">
               {[
-                { id: 'microcontroller', icon: HardDrive, color: 'bg-slate-500/15 text-slate-600 dark:text-slate-400', label: 'Microcontroller', val: 'ESP32 Dual-Core 240 MHz' },
+                { id: 'microcontroller', icon: HardDrive, color: 'bg-slate-500/15 text-slate-600 dark:text-slate-400', label: 'Microcontroller', val: '1x ESP32 Dual-Core (4x FSR + 1x IMU)' },
                 { id: 'tinyml', icon: Zap, color: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400', label: 'TinyML Latency', val: '< 0.38 ms On-Chip' },
                 { id: 'sampling', icon: Cpu, color: 'bg-violet-500/15 text-violet-600 dark:text-violet-400', label: 'Sampling Rate', val: '50 Hz (20ms cycle)' },
                 { id: 'calibration', icon: Sliders, color: 'bg-amber-500/15 text-amber-600 dark:text-amber-400', label: 'Calibration', val: 'Zero-Tare Baseline OK' },

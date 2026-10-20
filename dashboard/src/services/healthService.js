@@ -50,7 +50,7 @@ export function createEmptyDayRecord(date = new Date(), goal = DEFAULT_STEP_GOAL
 
 class HealthService {
   constructor() {
-    this.deviceId = (typeof localStorage !== 'undefined' && localStorage.getItem('stridesense_selected_device')) || 'insole_left_01';
+    this.deviceId = (typeof localStorage !== 'undefined' && localStorage.getItem('stridesense_selected_device')) || 'stridesense_esp32_01';
     this.recordsByDevice = {}; // { [deviceId]: { [dateKey]: record } }
     this.stepGoal = DEFAULT_STEP_GOAL;
     this.activeMinutesGoal = DEFAULT_ACTIVE_MINUTES_GOAL;
@@ -374,7 +374,7 @@ class HealthService {
     return {
       reportId: `SS-MED-${Date.now().toString(36).toUpperCase()}`,
       generatedAt: new Date().toISOString(),
-      patientDevice: deviceId === 'insole_left_01' ? 'ESP32 Hardware Insole' : '3D Virtual Simulation Insole',
+      patientDevice: (deviceId === 'stridesense_esp32_01' || deviceId?.includes('hw') || deviceId === 'insole_left_01') ? 'StrideSense Unified Hardware (1x ESP32, 4x FSR)' : '3D Virtual Simulation Insole',
       date: rec.date,
       dailySummary: {
         steps: rec.steps,

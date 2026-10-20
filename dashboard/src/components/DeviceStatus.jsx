@@ -2,10 +2,10 @@ import React from 'react';
 import { Battery, Wifi, Cpu, Sliders, CheckCircle2 } from 'lucide-react';
 
 export default function DeviceStatus({
-  batteryPct = 88,
-  batteryVoltage = 3.96,
+  batteryPct = 95,
+  batteryVoltage = 4.08,
   isCloudConnected = false,
-  deviceId = 'insole_left_01',
+  deviceId = 'stridesense_esp32_01',
   onSwitchDevice
 }) {
   const batteryColor = batteryPct > 60
@@ -22,7 +22,9 @@ export default function DeviceStatus({
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className="text-lg font-bold font-display text-slate-900 dark:text-white tracking-wide">Device Status</h2>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">ESP32 smart insole telemetry link</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+            {deviceId.includes('sim') ? '3D Virtual Simulation Studio Twin' : '1x Central ESP32 • 4x FSR • 1x MPU-6050 Unified Kit'}
+          </p>
         </div>
         <span className="badge badge-emerald text-[10px] flex items-center gap-1">
           <CheckCircle2 className="w-3 h-3" />
@@ -34,7 +36,9 @@ export default function DeviceStatus({
         {/* Battery */}
         <div className="metric-card animate-fade-in">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Battery</span>
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              {deviceId.includes('sim') ? 'Battery' : '1x ESP32 Battery'}
+            </span>
             <Battery className={`w-4 h-4 ${batteryColor}`} />
           </div>
           <div className="text-2xl font-mono font-bold text-slate-900 dark:text-white tracking-tight leading-none">
@@ -82,7 +86,9 @@ export default function DeviceStatus({
           <div className="text-2xl font-mono font-bold text-slate-900 dark:text-white tracking-tight leading-none">
             50<span className="text-xs font-normal text-slate-400 ml-1">Hz</span>
           </div>
-          <div className="text-[10px] text-violet-600 dark:text-violet-300 mt-1.5">20ms cycle • 6-DOF</div>
+          <div className="text-[10px] text-violet-600 dark:text-violet-300 mt-1.5">
+            {deviceId.includes('sim') ? '20ms cycle • Virtual Twin • 6-DOF' : '20ms cycle • 4x FSR • 1x MPU-6050'}
+          </div>
         </div>
 
         {/* Calibration */}
@@ -95,7 +101,9 @@ export default function DeviceStatus({
             <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span className="text-base font-bold text-slate-900 dark:text-white">Calibrated</span>
           </div>
-          <div className="text-[10px] text-amber-600 dark:text-amber-300 mt-1.5">Zero-tare baseline: OK</div>
+          <div className="text-[10px] text-amber-600 dark:text-amber-300 mt-1.5">
+            {deviceId.includes('sim') ? 'Virtual Twin Antiphase OK' : 'R-Heel ≥2100 & 4x FSR Baseline OK'}
+          </div>
         </div>
       </div>
 
@@ -113,7 +121,7 @@ export default function DeviceStatus({
         </div>
         <div>
           FW: <span className="font-mono text-cyan-600 dark:text-cyan-400 font-bold">
-            {deviceId === 'insole_left_01' ? 'v1.4.2-TinyML' : 'v1.4.2-VirtualSim'}
+            {deviceId === 'stridesense_esp32_01' || deviceId?.includes('hw') ? 'v1.5.0-Unified-TinyML' : 'v1.4.2-VirtualSim'}
           </span>
         </div>
       </div>

@@ -22,15 +22,21 @@ export const SYSTEM_DETAILS = {
         text: 'The ESP32-D0WD-V3 features an Xtensa 32-bit Dual-Core LX6 processor running at 240 MHz. It has 520 KB of on-chip SRAM and 4 MB of SPI Flash memory. Core 0 is dedicated to high-speed sensor reading (50 Hz) and TinyML inference, while Core 1 handles non-blocking Wi-Fi communication without starving real-time tasks.'
       },
       {
-        title: 'Hardware Pinout Configuration',
+        title: 'Hardware Pinout Configuration (1x ESP32 Bilateral Kit)',
         type: 'pins',
         items: [
-          { pin: 'GPIO 26 & 27', desc: 'Hardware I2C Bus (SDA / SCL) running at 400 kHz Fast-Mode for MPU-6050 6-DOF IMU' },
-          { pin: 'GPIO 34 (ADC1_CH6)', desc: '12-bit Analog input for Calcaneus (Heel) Square FSR Pressure Sensor' },
-          { pin: 'GPIO 35 (ADC1_CH7)', desc: '12-bit Analog input for Metatarsal (Forefoot Ball) Square FSR Pressure Sensor' },
-          { pin: 'GPIO 14', desc: 'Emergency SOS / Fall Cancel button (Active LOW with internal pull-up)' },
-          { pin: 'GPIO 18 / 19 / 25', desc: 'Status Indicator LEDs for Wi-Fi, Cloud Sync, and Emergency Alert' }
+          { pin: 'GPIO 36 (ADC1_CH0)', desc: 'Left Heel Calcaneus FSR (10kΩ divider, Wi-Fi safe ADC1)' },
+          { pin: 'GPIO 39 (ADC1_CH3)', desc: 'Left Forefoot Metatarsal FSR (10kΩ divider, Wi-Fi safe ADC1)' },
+          { pin: 'GPIO 34 (ADC1_CH6)', desc: 'Right Heel Calcaneus FSR (Calibrated ~1900 baseline, threshold ≥2100)' },
+          { pin: 'GPIO 35 (ADC1_CH7)', desc: 'Right Forefoot Metatarsal FSR (10kΩ divider, Wi-Fi safe ADC1)' },
+          { pin: 'GPIO 21 & 22', desc: 'Hardware I2C Bus (SDA / SCL) for MPU-6050 6-DOF IMU' },
+          { pin: 'GPIO 2', desc: 'Onboard Multi-Status System & Wi-Fi Activity Heartbeat LED' },
+          { pin: 'GPIO 14', desc: 'Emergency SOS / Fall Cancel button (Active LOW with internal pull-up)' }
         ]
+      },
+      {
+        title: 'Single ESP32 vs Dual-MCU Architecture',
+        text: 'Unlike complex setups that use two separate microcontrollers communicating over Bluetooth Low Energy (which introduces wireless sync latency, clock drift, and twin battery maintenance), StrideSense utilizes 1 central ESP32 to directly sample all 4 FSR channels across both feet (GPIO 36, 39, 34, 35) and the 6-DOF IMU simultaneously at 50 Hz. This guarantees microsecond-accurate bilateral symmetry calculation with zero sync jitter.'
       },
       {
         title: 'Why ESP32 was Chosen for Insole Tracking',
@@ -190,7 +196,7 @@ export const SYSTEM_DETAILS = {
         title: 'End-to-End System Flow',
         text: 'StrideSense bridges physical human biomechanics with modern cloud analytics across 5 integrated tiers:',
         list: [
-          'Tier 1: Smart Footbed: Flexible insole embedded with dual 12-bit square FSRs and a 6-DOF IMU.',
+          'Tier 1: Smart Footbed: Flexible bilateral insoles with 4x FSR sensors (2 Left + 2 Right) and 1x MPU-6050 6-DOF IMU wired to 1 central ESP32.',
           'Tier 2: Edge Firmware: Deterministic 50 Hz loop on ESP32 running custom bare-metal I2C and ADC drivers.',
           'Tier 3: Edge TinyML AI: Real-time neural network classifier executing in <0.4ms without external dependencies.',
           'Tier 4: Cloud Pipeline: Non-blocking TLS/HTTPS telemetry to Supabase with real-time WebSocket replication.',
@@ -199,7 +205,7 @@ export const SYSTEM_DETAILS = {
       },
       {
         title: 'Multi-Device Isolation',
-        text: 'The architecture natively supports multi-device pairing. It isolates telemetry from the physical hardware (device_id: insole_left_01) from the laptop 3D Simulation Studio (device_id: insole_left_02), allowing simultaneous testing, benchmarking, and real-world deployment.'
+        text: 'The architecture natively supports multi-device pairing. It isolates telemetry from the physical hardware (device_id: stridesense_esp32_01) from the laptop 3D Simulation Studio (device_id: bilateral_sim), allowing simultaneous testing, benchmarking, and real-world deployment.'
       }
     ]
   }

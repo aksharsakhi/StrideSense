@@ -61,7 +61,6 @@ export class SupabaseBridge {
         cadence: 0,
         symmetry: 100,
         fall_alert: false,
-        fall_emergency: false,
         p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0,
         pitch: 0, roll: 0, svm_a: 1.0
       });

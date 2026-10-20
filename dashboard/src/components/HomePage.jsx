@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { healthService } from '../services/healthService.js';
 import { nativeBridge } from '../services/native.js';
+import { userProfileService } from '../services/userProfile.js';
 
 function HomePageComponent({ telemetry = {}, deviceId = 'bilateral_sim', isOnline = false, onSwitchDevice, onNavigate }) {
   const {
@@ -24,6 +25,7 @@ function HomePageComponent({ telemetry = {}, deviceId = 'bilateral_sim', isOnlin
   } = telemetry;
 
   const [todayRecord, setTodayRecord] = useState(() => healthService.getTodayRecord(deviceId));
+  const [profile, setProfile] = useState(() => userProfileService.getProfile());
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [calibrating, setCalibrating] = useState(false);
 
@@ -36,6 +38,13 @@ function HomePageComponent({ telemetry = {}, deviceId = 'bilateral_sim', isOnlin
       return null;
     }
   });
+
+  useEffect(() => {
+    const unsub = userProfileService.subscribe((updatedProfile) => {
+      setProfile(updatedProfile);
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     setTodayRecord(healthService.getTodayRecord(deviceId));
@@ -76,7 +85,8 @@ function HomePageComponent({ telemetry = {}, deviceId = 'bilateral_sim', isOnlin
   const off3 = c3 * (1 - symmetryPct / 100);
 
   // Bilateral load calculations
-  const isBilateral = Boolean(telemetry.isBilateral || deviceId?.startsWith('bilateral'));
+  const isBilateral = Boolean(telemetry.isBilateral || deviceId?.startsWith('bilateral') || deviceId === 'stridesense_esp32_01');
+  const isHardware = deviceId === 'stridesense_esp32_01' || deviceId?.includes('hw') || deviceId?.includes('01');
   const leftPct = bilateral?.leftPct ?? 50.0;
   const rightPct = bilateral?.rightPct ?? 50.0;
   const totalNewtons = bilateral?.estNewtons ?? Math.round((((sensors.p1 || 0) + (sensors.p2 || 0)) / 4400) * 340);
@@ -127,10 +137,8 @@ function HomePageComponent({ telemetry = {}, deviceId = 'bilateral_sim', isOnlin
   };
 
   const getDeviceTitle = () => {
-    if (deviceId === 'bilateral_hw') return 'Bilateral Hardware Kit (Dual ESP32)';
-    if (deviceId === 'bilateral_sim') return 'Bilateral 3D Simulation (Studio Dual Feet)';
-    if (deviceId === 'insole_left_01') return 'Left ESP32 Insole (Hardware)';
-    if (deviceId === 'insole_right_01') return 'Right ESP32 Insole (Hardware)';
+    if (deviceId === 'stridesense_esp32_01' || deviceId === 'bilateral_hw') return 'StrideSense Unified Hardware (1x ESP32, 4x FSR)';
+    if (deviceId === 'bilateral_sim') return 'Bilateral 3D Simulation (Studio Twin)';
     if (deviceId === 'insole_left_02') return 'Left Insole (3D Virtual)';
     if (deviceId === 'insole_right_02') return 'Right Insole (3D Virtual)';
     return deviceId;
@@ -140,36 +148,45 @@ function HomePageComponent({ telemetry = {}, deviceId = 'bilateral_sim', isOnlin
     <div className="flex flex-col gap-5 animate-fade-in stagger-children">
 
       {/* ─── GREETING & BIOMECHANICAL STATUS HEADER ─── */}
-      <div className="animate-fade-in-scale flex flex-wrap justify-between items-end gap-2 px-1">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-slate-900 dark:text-white">
-              {greeting}, Akshar {greetEmoji}
-            </h1>
+      <div className="animate-fade-in-scale flex flex-col gap-2 px-1">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-xl sm:text-3xl font-extrabold font-display tracking-tight text-slate-900 dark:text-white truncate">
+            {greeting}, {profile.name ? profile.name.trim().split(/\s+/)[0] : 'User'} {greetEmoji}
+          </h1>
+
+          {/* Live / Standby Status Capsule */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {isDeviceLive ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 shadow-sm">
+                <span className="live-dot" />
+                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                  {deviceId === 'stridesense_esp32_01' ? 'ESP32 Live' : 'Live Stream'}
+                </span>
+                <span className="text-[9px] font-mono text-emerald-500/80 hidden sm:inline">• 50Hz</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 shadow-sm">
+                <WifiOff className="w-3 h-3 text-amber-500 status-pulse" />
+                <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                  {todaySteps > 0 ? 'Sync Standby' : 'Standby'}
+                </span>
+              </div>
+            )}
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {isBilateral ? 'Synchronized bilateral dual-insole biomechanical monitoring' : 'Real-time plantar pedobarography & kinematics'}
-          </p>
         </div>
 
-        {/* Live Status Capsule */}
-        <div className="flex items-center gap-2">
-          {isDeviceLive ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 shadow-sm">
-              <span className="live-dot" />
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                {isBilateral ? 'Bilateral Live (L + R)' : 'Live Stream'}
-              </span>
-              <span className="text-[10px] font-mono text-emerald-500/80 hidden sm:inline">• 50Hz</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 shadow-sm">
-              <WifiOff className="w-3.5 h-3.5 text-amber-500 status-pulse" />
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                {todaySteps > 0 ? 'Sync Standby' : 'Awaiting Insole Telemetry…'}
-              </span>
-            </div>
-          )}
+        {/* Patient Biomechanical Demographics Pill */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-xs text-slate-700 dark:text-slate-300">
+            <span className="font-mono font-bold text-cyan-600 dark:text-cyan-400 text-[11px]">
+              {profile.age} YRS • {profile.heightCm} CM • {profile.weightKg} KG
+            </span>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <span className="text-[11px]">
+              BMI: <strong className="font-mono text-slate-900 dark:text-white">{profile.bmi}</strong>{' '}
+              <span className={`font-semibold ${profile.bmiColor}`}>({profile.bmiCategory})</span>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -546,11 +563,15 @@ function HomePageComponent({ telemetry = {}, deviceId = 'bilateral_sim', isOnlin
                   onClick={onSwitchDevice}
                   className="badge badge-cyan text-[9px] px-2 py-0.5 active-press"
                 >
-                  Switch Insole
+                  Switch Setup
                 </button>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                {deviceId} • 4x FSR + 2x 6-DOF IMU • 50 Hz Telemetry
+                {deviceId === 'stridesense_esp32_01'
+                  ? '1x Central ESP32 • 4x FSR (GPIO 36, 39, 34, 35) • 1x MPU-6050 • 50 Hz'
+                  : (deviceId.includes('sim')
+                      ? `${deviceId} • 4x FSR + 2x 6-DOF IMU (Virtual Twin) • 50 Hz`
+                      : `${deviceId} • 50 Hz Telemetry`)}
               </p>
             </div>
           </div>
@@ -578,31 +599,68 @@ function HomePageComponent({ telemetry = {}, deviceId = 'bilateral_sim', isOnlin
         {/* Collapsible Dual Node Diagnostic Cards */}
         {showDiagnostics && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-200/60 dark:border-white/[0.06] animate-fade-in">
+            {/* Central Hardware Summary for 1x ESP32 */}
+            {deviceId === 'stridesense_esp32_01' && (
+              <div className="sm:col-span-2 p-3.5 rounded-xl bg-gradient-to-r from-cyan-500/[0.08] to-emerald-500/[0.08] border border-cyan-500/25">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <Cpu className="w-3.5 h-3.5 text-cyan-500" />
+                    SINGLE CENTRAL ESP32 HARDWARE CONTROLLER
+                  </span>
+                  <span className="badge badge-emerald text-[9px] font-mono">1x MCU ARCHITECTURE</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono text-slate-600 dark:text-slate-300">
+                  <div className="bg-white/60 dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200/50 dark:border-white/[0.04]">
+                    <span className="text-[10px] text-slate-400 block font-sans">Central MCU</span>
+                    <span className="font-bold text-slate-900 dark:text-white">ESP32 Dual-Core</span>
+                  </div>
+                  <div className="bg-white/60 dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200/50 dark:border-white/[0.04]">
+                    <span className="text-[10px] text-slate-400 block font-sans">Power (1x LiPo)</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">{telemetry.batteryPct ?? 95}% ({((telemetry.batteryVoltage ?? 4.08)).toFixed(2)}V)</span>
+                  </div>
+                  <div className="bg-white/60 dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200/50 dark:border-white/[0.04]">
+                    <span className="text-[10px] text-slate-400 block font-sans">Kinematic IMU</span>
+                    <span className="font-bold text-cyan-600 dark:text-cyan-400">MPU-6050 (I2C)</span>
+                  </div>
+                  <div className="bg-white/60 dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200/50 dark:border-white/[0.04]">
+                    <span className="text-[10px] text-slate-400 block font-sans">Firmware / Cloud</span>
+                    <span className="font-bold text-violet-600 dark:text-violet-400">v1.5.0 • Supabase</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Left Foot Node */}
             <div className="p-3.5 rounded-xl bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/[0.04]">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                  LEFT INSOLE NODE
+                  LEFT INSOLE CHANNELS
                 </span>
                 <span className="text-[10px] font-mono font-semibold text-slate-500">
-                  {deviceId.includes('sim') ? 'insole_left_02' : 'insole_left_01'}
+                  {deviceId.includes('sim') ? 'insole_left_02' : 'stridesense_esp32_01'}
                 </span>
               </div>
               <div className="space-y-1.5 text-[11px] font-mono text-slate-600 dark:text-slate-400">
                 <div className="flex justify-between">
-                  <span>Battery State:</span>
+                  <span>Power State:</span>
                   <span className="font-bold text-slate-900 dark:text-white">
-                    {telemetry.left?.batteryPct ?? telemetry.batteryPct ?? 90}% • {(telemetry.left?.batteryVoltage ?? telemetry.batteryVoltage ?? 4.05).toFixed(2)}V
+                    {deviceId === 'stridesense_esp32_01'
+                      ? `ESP32 LiPo • ${telemetry.batteryPct ?? 95}% (${(telemetry.batteryVoltage ?? 4.08).toFixed(2)}V)`
+                      : `${telemetry.left?.batteryPct ?? 100}% • ${(telemetry.left?.batteryVoltage ?? 4.2).toFixed(2)}V`}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Sensors (Heel/Ball):</span>
-                  <span className="font-bold text-cyan-600 dark:text-cyan-400">GPIO 34 / GPIO 35</span>
+                  <span className="font-bold text-cyan-600 dark:text-cyan-400">
+                    {deviceId.includes('sim') ? 'Virtual S1 / S2' : 'GPIO 36 / GPIO 39'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>BLE RSSI / Signal:</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">-58 dBm (Optimal)</span>
+                  <span>Network Link:</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {deviceId.includes('sim') ? 'Virtual Sim Loop' : 'ESP32 Wi-Fi (50 Hz)'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Zero-Drift Tare:</span>
@@ -616,26 +674,32 @@ function HomePageComponent({ telemetry = {}, deviceId = 'bilateral_sim', isOnlin
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  RIGHT INSOLE NODE
+                  RIGHT INSOLE CHANNELS
                 </span>
                 <span className="text-[10px] font-mono font-semibold text-slate-500">
-                  {deviceId.includes('sim') ? 'insole_right_02' : 'insole_right_01'}
+                  {deviceId.includes('sim') ? 'insole_right_02' : 'stridesense_esp32_01'}
                 </span>
               </div>
               <div className="space-y-1.5 text-[11px] font-mono text-slate-600 dark:text-slate-400">
                 <div className="flex justify-between">
-                  <span>Battery State:</span>
+                  <span>Power State:</span>
                   <span className="font-bold text-slate-900 dark:text-white">
-                    {telemetry.right?.batteryPct ?? telemetry.batteryPct ?? 90}% • {(telemetry.right?.batteryVoltage ?? telemetry.batteryVoltage ?? 4.05).toFixed(2)}V
+                    {deviceId === 'stridesense_esp32_01'
+                      ? `ESP32 LiPo • ${telemetry.batteryPct ?? 95}% (${(telemetry.batteryVoltage ?? 4.08).toFixed(2)}V)`
+                      : `${telemetry.right?.batteryPct ?? 100}% • ${(telemetry.right?.batteryVoltage ?? 4.2).toFixed(2)}V`}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Sensors (Heel/Ball):</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">GPIO 34 / GPIO 35</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {deviceId.includes('sim') ? 'Virtual S3 / S4' : 'GPIO 34 / GPIO 35'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>BLE RSSI / Signal:</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">-61 dBm (Optimal)</span>
+                  <span>Heel Calibration:</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {deviceId.includes('sim') ? 'Virtual Synced' : '≥2100 ADC Floor OK'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Zero-Drift Tare:</span>

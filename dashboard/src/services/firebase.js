@@ -6,7 +6,7 @@
 class FirebaseService {
   constructor() {
     this.databaseUrl = "https://stridesense-iot-default-rtdb.firebaseio.com";
-    this.deviceId = "insole_left_01";
+    this.deviceId = "stridesense_esp32_01";
     this.eventSource = null;
     this.pollInterval = null;
     this.listeners = new Set();

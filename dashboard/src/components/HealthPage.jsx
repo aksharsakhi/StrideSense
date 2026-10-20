@@ -25,8 +25,9 @@ import {
 } from 'lucide-react';
 import { healthService, toDateKey, parseDateKey } from '../services/healthService.js';
 import { nativeBridge } from '../services/native.js';
+import { userProfileService } from '../services/userProfile.js';
 
-export default function HealthPage({ telemetry, deviceId = 'insole_left_01', onNavigate = () => {} }) {
+export default function HealthPage({ telemetry, deviceId = 'stridesense_esp32_01', onNavigate = () => {} }) {
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()));
   const [activeMetricView, setActiveMetricView] = useState('steps'); // 'steps' | 'distance' | 'minutes'
   const [ringFocus, setRingFocus] = useState('steps'); // 'steps' | 'minutes' | 'calories'
@@ -44,6 +45,15 @@ export default function HealthPage({ telemetry, deviceId = 'insole_left_01', onN
   const [dailyRecord, setDailyRecord] = useState(() => healthService.getDailyRecord(selectedDateKey, deviceId));
   const [weekSummary, setWeekSummary] = useState(() => healthService.getWeekSummary(parseDateKey(selectedDateKey), deviceId));
   const [streakInfo, setStreakInfo] = useState(() => healthService.getStreakInfo(deviceId));
+  const [profile, setProfile] = useState(() => userProfileService.getProfile());
+
+  // Listen for user profile updates
+  useEffect(() => {
+    const unsub = userProfileService.subscribe((updatedProfile) => {
+      setProfile(updatedProfile);
+    });
+    return unsub;
+  }, []);
 
   // Listen for health data changes (including live telemetry updates)
   useEffect(() => {
@@ -63,43 +73,53 @@ export default function HealthPage({ telemetry, deviceId = 'insole_left_01', onN
   }, [selectedDateKey, deviceId]);
 
   const isToday = selectedDateKey === toDateKey(new Date());
+  const todayLiveSteps = Math.max(dailyRecord?.steps || 0, (isToday && telemetry?.steps) || 0);
 
   // Safe daily record with defaults
   const rec = {
     date: selectedDateKey,
-    steps: 0,
-    goal: 10000,
-    distanceKm: 0,
-    activeMinutes: 0,
+    steps: isToday ? todayLiveSteps : (dailyRecord?.steps || 0),
+    goal: dailyRecord?.goal || 10000,
+    distanceKm: isToday && todayLiveSteps > 0 ? Number(((todayLiveSteps * 0.74) / 1000).toFixed(2)) : (dailyRecord?.distanceKm || 0),
+    activeMinutes: isToday && todayLiveSteps > 0 ? Math.round(todayLiveSteps / 105) : (dailyRecord?.activeMinutes || 0),
     activeMinutesGoal: 45,
-    calories: 0,
+    calories: isToday && todayLiveSteps > 0 ? Math.round(todayLiveSteps * 0.044) : (dailyRecord?.calories || 0),
     caloriesGoal: 400,
-    cadence: 0,
-    speedKmh: 0,
-    symmetry: 100,
-    asymmetry: 0,
-    groundContactMs: 610,
-    doubleSupportPct: 28,
-    steadiness: 'Very Good',
-    hourlySteps: new Array(24).fill(0),
-    completedGoal: false,
+    cadence: isToday && telemetry?.cadence > 0 ? Math.round(telemetry.cadence) : (dailyRecord?.cadence || 0),
+    speedKmh: isToday && telemetry?.cadence > 0 ? Number(((telemetry.cadence * 0.74 * 60) / 1000).toFixed(1)) : (dailyRecord?.speedKmh || 0),
+    symmetry: isToday && telemetry?.symmetry > 0 ? Number(telemetry.symmetry.toFixed(1)) : (dailyRecord?.symmetry || 100),
+    asymmetry: isToday && telemetry?.symmetry > 0 ? Number(Math.max(0, (100 - telemetry.symmetry)).toFixed(1)) : (dailyRecord?.asymmetry || 0),
+    groundContactMs: dailyRecord?.groundContactMs || 610,
+    doubleSupportPct: dailyRecord?.doubleSupportPct || 28,
+    steadiness: dailyRecord?.steadiness || 'Optimal',
+    hourlySteps: dailyRecord?.hourlySteps || new Array(24).fill(0),
+    completedGoal: (isToday ? todayLiveSteps : (dailyRecord?.steps || 0)) >= (dailyRecord?.goal || 10000),
     ...dailyRecord
   };
+  if (isToday && todayLiveSteps > 0) {
+    rec.steps = todayLiveSteps;
+    rec.distanceKm = Number(((todayLiveSteps * 0.74) / 1000).toFixed(2));
+    rec.activeMinutes = Math.round(todayLiveSteps / 105);
+    rec.calories = Math.round(todayLiveSteps * 0.044);
+    rec.completedGoal = todayLiveSteps >= rec.goal;
+  }
 
-  // Quick 7-Day Strip window (centered or ending near selected date)
+  // Quick 7-Day Strip window (always 7 full days ending at selected date or today)
   const quickStripDays = useMemo(() => {
-    const ref = parseDateKey(selectedDateKey);
     const list = [];
     const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    // Show 3 days before, selected day, 3 days after (or up to today)
     const today = new Date();
-    for (let i = -3; i <= 3; i++) {
-      const d = new Date(ref);
+    const ref = parseDateKey(selectedDateKey);
+    const end = ref > today ? today : ref;
+    for (let i = -6; i <= 0; i++) {
+      const d = new Date(end);
       d.setDate(d.getDate() + i);
-      if (d > today) continue; // don't show future days in strip
       const key = toDateKey(d);
       const dayRec = healthService.getDailyRecord(key, deviceId) || {};
-      const daySteps = dayRec.steps || 0;
+      let daySteps = dayRec.steps || 0;
+      if (key === toDateKey(today)) {
+        daySteps = Math.max(daySteps, telemetry?.steps || 0);
+      }
       const dayGoal = dayRec.goal || 10000;
       list.push({
         key,
@@ -114,7 +134,7 @@ export default function HealthPage({ telemetry, deviceId = 'insole_left_01', onN
       });
     }
     return list;
-  }, [selectedDateKey, deviceId]);
+  }, [selectedDateKey, deviceId, telemetry?.steps]);
 
   // Handle day selection
   const handleSelectDay = useCallback((key) => {
@@ -184,6 +204,13 @@ Report ID: ${report.reportId}
 Date: ${report.date}
 Device: ${report.patientDevice}
 ----------------------------------------
+PATIENT DEMOGRAPHICS:
+• Patient: ${profile.name}
+• Age / Sex: ${profile.age} yrs / ${profile.gender}
+• Height / Weight: ${profile.heightCm} cm / ${profile.weightKg} kg (BMI: ${profile.bmi} - ${profile.bmiCategory})
+• Insole Fit: ${profile.shoeSize} (Est. Stride: ${profile.estimatedStrideCm} cm)
+• Clinical ID: ${profile.clinicalId}
+----------------------------------------
 DAILY METRICS:
 • Steps: ${report.dailySummary.steps.toLocaleString()} / Goal: ${report.dailySummary.goal.toLocaleString()}
 • Distance: ${report.dailySummary.distanceKm} km
@@ -232,32 +259,32 @@ BIOMECHANICAL INTEGRITY:
     <div className="flex flex-col gap-5 animate-fade-in stagger-children">
 
       {/* ─── TOP BAR: DATE NAVIGATION & ACTIONS ─── */}
-      <div className="glass-panel p-4 flex flex-wrap items-center justify-between gap-3 animate-fade-in-scale">
-        <div className="flex items-center gap-3">
+      <div className="glass-panel p-3 sm:p-4 flex items-center justify-between gap-2 animate-fade-in-scale">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200/80 dark:border-white/[0.06]">
             <button
               type="button"
               onClick={handlePrevDay}
-              className="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 active-press transition-colors text-slate-700 dark:text-slate-300"
+              className="p-1 sm:p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 active-press transition-colors text-slate-700 dark:text-slate-300"
               title="Previous Day"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
-            <span className="text-xs font-bold font-mono px-2 text-slate-900 dark:text-white">
+            <span className="text-[11px] sm:text-xs font-bold font-mono px-1.5 sm:px-2 text-slate-900 dark:text-white truncate">
               {isToday ? 'Today' : formattedHeaderDate}
             </span>
             <button
               type="button"
               onClick={handleNextDay}
               disabled={isToday}
-              className={`p-1.5 rounded-xl transition-colors ${
+              className={`p-1 sm:p-1.5 rounded-xl transition-colors ${
                 isToday
                   ? 'opacity-30 cursor-not-allowed text-slate-400'
                   : 'hover:bg-slate-200 dark:hover:bg-white/10 active-press text-slate-700 dark:text-slate-300'
               }`}
               title="Next Day"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
 
@@ -265,25 +292,25 @@ BIOMECHANICAL INTEGRITY:
             <button
               type="button"
               onClick={handleJumpToday}
-              className="px-2.5 py-1 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 text-xs font-bold active-press transition-all"
+              className="px-2 py-1 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 text-[10px] sm:text-xs font-bold active-press transition-all whitespace-nowrap"
             >
-              Jump to Today
+              Today
             </button>
           )}
         </div>
 
         {/* Calendar Picker & Report Export Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           <button
             type="button"
             onClick={() => {
               nativeBridge.impactLight();
               setIsCalendarOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] hover:border-cyan-500/40 text-xs font-semibold text-slate-800 dark:text-white active-press transition-all"
+            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] hover:border-cyan-500/40 text-xs font-semibold text-slate-800 dark:text-white active-press transition-all"
           >
             <CalendarIcon className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-            <span>Calendar</span>
+            <span className="hidden sm:inline">Calendar</span>
           </button>
 
           <button
@@ -292,10 +319,11 @@ BIOMECHANICAL INTEGRITY:
               nativeBridge.impactLight();
               setIsExportOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] hover:border-cyan-500/40 text-xs font-semibold text-slate-800 dark:text-white active-press transition-all"
+            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/[0.06] hover:border-cyan-500/40 text-xs font-semibold text-slate-800 dark:text-white active-press transition-all"
           >
             <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Export Report</span>
+            <span className="hidden sm:inline">Export Report</span>
+            <span className="sm:hidden text-xs">Export</span>
           </button>
         </div>
       </div>
@@ -1044,7 +1072,10 @@ BIOMECHANICAL INTEGRITY:
                   <span>{rec.date}</span>
                 </div>
                 <div className="text-slate-900 dark:text-white font-bold text-sm mt-0.5">
-                  Device: {deviceId === 'insole_left_02' ? '3D Virtual Simulation Insole' : 'ESP32 Hardware Plantar Sensor (Left)'}
+                  Patient: {profile.name} ({profile.age} yrs • {profile.heightCm}cm • {profile.weightKg}kg • BMI {profile.bmi})
+                </div>
+                <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                  Device: {deviceId.includes('02') || deviceId.includes('sim') ? '3D Virtual Simulation Insole' : 'StrideSense Unified Hardware (1x ESP32, 4x FSR)'}
                 </div>
               </div>
 

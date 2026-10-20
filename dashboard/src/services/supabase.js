@@ -14,7 +14,7 @@ const STORAGE_KEY_DEVICE = 'stridesense_selected_device';
 const INITIAL_DEVICE_ID =
   (typeof localStorage !== 'undefined' && localStorage.getItem(STORAGE_KEY_DEVICE)) ||
   env.VITE_DEVICE_ID ||
-  'bilateral_sim';
+  'stridesense_esp32_01';
 
 export const FALLBACK_DEVICES = [
   {
@@ -313,32 +313,26 @@ class SupabaseService {
    * Fetches available devices from Supabase public.devices including bilateral pairs
    */
   async fetchAvailableDevices() {
+    const list = [...FALLBACK_DEVICES];
     if (this.client) {
       try {
         const { data, error } = await this.client.from('devices').select('*');
         if (!error && data && data.length > 0) {
-          return data.map((d) => {
-            const isUnified = d.id === 'stridesense_esp32_01' || d.id === 'bilateral_hw';
-            const isSim = d.id.includes('02') || d.id.includes('sim');
-            return {
-              id: d.id,
-              name: d.name || (isUnified ? 'StrideSense Unified Hardware' : d.id),
-              type: isUnified ? 'pair' : 'single',
-              side: isUnified ? 'bilateral' : (d.id.includes('right') ? 'right' : 'left'),
-              leftId: isUnified ? d.id : (d.id.includes('left') ? d.id : null),
-              rightId: isUnified ? d.id : (d.id.includes('right') ? d.id : null),
-              battery_pct: d.battery_pct ?? (isSim ? 100 : 95),
-              battery_voltage: d.battery_voltage ?? (isSim ? 4.20 : 4.08),
-              firmware_version: d.firmware_version || 'v1.5.0-Unified-TinyML',
-              badge: isUnified ? 'UNIFIED HW' : (isSim ? 'SIM' : 'HW')
+          const hw = data.find((d) => d.id === 'stridesense_esp32_01');
+          if (hw) {
+            list[0] = {
+              ...list[0],
+              battery_pct: hw.battery_pct ?? 95,
+              battery_voltage: hw.battery_voltage ?? 4.08,
+              firmware_version: hw.firmware_version || 'v1.5.0-Unified-TinyML'
             };
-          });
+          }
         }
       } catch (e) {
-        console.warn('[Supabase] Using fallback devices list:', e);
+        console.warn('[Supabase] Error reading devices table:', e);
       }
     }
-    return FALLBACK_DEVICES;
+    return list;
   }
 
   /**
@@ -639,8 +633,8 @@ class SupabaseService {
       symmetry: Number(row.symmetry) || 100,
       fallAlert: isOnline && isFall,
       fallEmergency: isOnline && Boolean(row.fall_emergency),
-      batteryPct: isSim ? 100 : 88,
-      batteryVoltage: isSim ? 4.20 : 3.96,
+      batteryPct: isSim ? 100 : 95,
+      batteryVoltage: isSim ? 4.20 : 4.08,
       sensors: isFresh ? {
         p1: Number(row.p1) || 0,
         p2: Number(row.p2) || 0,
