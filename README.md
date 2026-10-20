@@ -12,7 +12,21 @@
 
 ---
 
+## 👥 Engineering Team & Individual Contributions
+
+This project was engineered collaboratively with equal distribution of responsibilities across the full IoT stack:
+
+| Team Member | Engineering Role & Core Focus | Key Responsibilities & Deliverables | Contribution Share |
+|---|---|---|:---:|
+| **Akshar Sakhi** | **System Architecture, Mobile Application & Cloud Integration** | • End-to-end system architecture & multi-subsystem integration lead<br>• Cross-platform mobile app development (Capacitor iOS/Android + React 19)<br>• Real-time Supabase PostgreSQL cloud sync & Phoenix WebSocket stream<br>• Biomechanical Patient Profile (BMI, Stride) & Emergency SOS auto-dialer | **25%** |
+| **Diya Bhat** | **Edge-AI & TinyML Machine Learning Pipeline** | • Dataset curation, biomechanical gait synthesis & data preprocessing<br>• 24-feature vector extraction algorithm (SVM, Jerk, Energy, Variance, Ratios)<br>• Model training, hyperparameter optimization & 5-fold cross-validation (98.97%)<br>• Embedded zero-dependency C code generation (`tinyml_infer.h`, <0.3 µs) | **25%** |
+| **Nishanth S Gowda** | **Sensor Hardware, Prototyping & Mechanical Assembly** | • Bilateral insole circuit design & 4x FSR sensor voltage divider circuits<br>• MPU-6050 6-Axis IMU integration & 400 kHz fast-mode I2C bus wiring<br>• Mechanical insole fabrication & zero-pressure medial arch wire routing<br>• Ankle enclosure design & hardware mounting for ESP32, IMU, and LiPo | **25%** |
+| **Siddhartha Ladda** | **Embedded Firmware, Fall Detection Engine & Power** | • ESP32 dual-core C++ firmware development & 50 Hz timer sampling loop<br>• Dual-trigger fall detector state machine (free-fall + impact + immobility)<br>• Haptic vibration motor driver circuit (2N2222 NPN switch & flyback diode)<br>• ADC tare baseline self-calibration & custom GPIO34 threshold calibration | **25%** |
+
+---
+
 ## 📋 Table of Contents
+- [👥 Engineering Team & Individual Contributions](#-engineering-team--individual-contributions)
 1. [System Overview & Architecture](#1-system-overview--architecture)
 2. [Hardware Components & Bill of Materials (BOM)](#2-hardware-components--bill-of-materials-bom)
 3. [Circuit Diagram & Electrical Schematics](#3-circuit-diagram--electrical-schematics)
