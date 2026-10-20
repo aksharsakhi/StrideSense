@@ -12,11 +12,15 @@ SensorsManager Sensors;
 SensorsManager::SensorsManager()
     : ax_offset(0), ay_offset(0), az_offset(0),
       gx_offset(0), gy_offset(0), gz_offset(0),
+      r_heel_threshold(FSR_R_HEEL_DEFAULT_THRESHOLD),
+      last_raw_r_heel(0),
+      last_r_heel_pressed(false),
       mpu_i2c_addr(MPU6050_I2C_ADDR),
       mpu_connected(false) {
     for (int i = 0; i < 4; i++) {
         fsr_baseline[i] = 0;
     }
+    fsr_baseline[2] = 1900; // Expected untouched baseline for Right Heel (GPIO 34)
 }
 
 bool SensorsManager::begin() {
@@ -145,13 +149,31 @@ bool SensorsManager::readSample(SensorSample &sample) {
     uint16_t raw_r_heel     = readAveragedADC(PIN_FSR_R_HEEL);
     uint16_t raw_r_forefoot = readAveragedADC(PIN_FSR_R_FOREFOOT);
 
-    // Apply baseline subtraction (zero-tare) with safe floor
+    last_raw_r_heel = raw_r_heel;
+
+    // Standard 3 FSRs (Left Heel, Left Forefoot, Right Forefoot) - untouched baseline sits near 0
     sample.p1 = (raw_l_heel > fsr_baseline[0]) ? (raw_l_heel - fsr_baseline[0]) : 0;
     sample.p2 = (raw_l_forefoot > fsr_baseline[1]) ? (raw_l_forefoot - fsr_baseline[1]) : 0;
-    sample.p3 = (raw_r_heel > fsr_baseline[2]) ? (raw_r_heel - fsr_baseline[2]) : 0;
     sample.p4 = (raw_r_forefoot > fsr_baseline[3]) ? (raw_r_forefoot - fsr_baseline[3]) : 0;
     sample.p5 = sample.p2; // Map Left forefoot reading to zone 5
     sample.p6 = sample.p4; // Map Right forefoot reading to zone 6
+
+    // Dedicated Right Heel (GPIO 34) Threshold & Pressure Detection Logic:
+    // Untouched ADC reading is ~1700 - 1950.
+    // When pressed, ADC reading increases to >= r_heel_threshold (validated >= 2100).
+    bool r_pressed = (raw_r_heel >= r_heel_threshold);
+    last_r_heel_pressed = r_pressed;
+
+    sample.raw_r_heel = raw_r_heel;
+    sample.r_heel_pressed = r_pressed;
+
+    // Net pressure p3 for Right Heel:
+    // If pressed, compute active pressure above baseline; if untouched, set to 0.
+    if (r_pressed) {
+        sample.p3 = (raw_r_heel > fsr_baseline[2]) ? (raw_r_heel - fsr_baseline[2]) : (raw_r_heel - 1900);
+    } else {
+        sample.p3 = 0; // Untouched resting baseline -> 0 pressure
+    }
 
     // Read MPU6050
     readMPU6050(sample.ax, sample.ay, sample.az, sample.gx, sample.gy, sample.gz);
@@ -188,8 +210,22 @@ void SensorsManager::calibrateZeroBaseline(int samples) {
 
     for (int i = 0; i < 4; i++) {
         uint16_t avg = (uint16_t)(p_sums[i] / samples);
-        // Cap baseline to 100 max so an accidental boot touch never zeroes out the sensors
-        fsr_baseline[i] = (avg > 100) ? 100 : avg;
+        if (i == 2) {
+            // Right Heel FSR (GPIO 34): Untouched resting reading is ~1700 - 1950 ADC.
+            // Determine dynamic threshold based on actual calibrated sensor reading.
+            if (avg >= 1500 && avg <= FSR_R_HEEL_MAX_UNTOUCHED) {
+                fsr_baseline[2] = avg;
+                uint16_t calc_thresh = avg + FSR_R_HEEL_DELTA_THRESHOLD;
+                r_heel_threshold = (calc_thresh > FSR_R_HEEL_DEFAULT_THRESHOLD) ? calc_thresh : FSR_R_HEEL_DEFAULT_THRESHOLD;
+            } else {
+                // If touched or outside typical resting range at boot, use validated defaults
+                fsr_baseline[2] = 1900;
+                r_heel_threshold = FSR_R_HEEL_DEFAULT_THRESHOLD;
+            }
+        } else {
+            // Standard FSRs (L_Heel, L_Forefoot, R_Forefoot) sit near 0; cap baseline to 100 max
+            fsr_baseline[i] = (avg > 100) ? 100 : avg;
+        }
     }
 
     ax_offset = ax_sum / samples;
@@ -199,8 +235,8 @@ void SensorsManager::calibrateZeroBaseline(int samples) {
     gy_offset = gy_sum / samples;
     gz_offset = gz_sum / samples;
 
-    Serial.printf("[Sensors] Calibration complete. FSR Baselines: L_Heel=%u, L_Forefoot=%u, R_Heel=%u, R_Forefoot=%u\n",
-                  fsr_baseline[0], fsr_baseline[1], fsr_baseline[2], fsr_baseline[3]);
+    Serial.printf("[Sensors] Calibration complete. FSR Baselines: L_Heel=%u, L_Forefoot=%u, R_Heel=%u (Dynamic Thresh: %u), R_Forefoot=%u\n",
+                  fsr_baseline[0], fsr_baseline[1], fsr_baseline[2], r_heel_threshold, fsr_baseline[3]);
 }
 
 float SensorsManager::readBatteryVoltage() {

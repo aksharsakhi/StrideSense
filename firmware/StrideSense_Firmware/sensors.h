@@ -18,6 +18,9 @@ struct SensorSample {
     uint16_t p5; // Left Forefoot medial mapped
     uint16_t p6; // Right Forefoot medial mapped
 
+    uint16_t raw_r_heel;     // Raw ADC reading for Right Heel (GPIO 34: ~1700-1950 untouched, >2100 pressed)
+    bool     r_heel_pressed; // Dedicated pressure-detection status for Right Heel (GPIO 34)
+
     float ax;    // Accel X (g)
     float ay;    // Accel Y (g)
     float az;    // Accel Z (g)
@@ -42,6 +45,13 @@ public:
     int getBatteryPercentage();
     bool isMPUConnected() const { return mpu_connected; }
 
+    // Dedicated Right Heel (GPIO 34) Accessors
+    uint16_t getRightHeelRawADC() const { return last_raw_r_heel; }
+    bool isRightHeelPressed() const { return last_r_heel_pressed; }
+    uint16_t getRightHeelThreshold() const { return r_heel_threshold; }
+    uint16_t getRightHeelBaseline() const { return fsr_baseline[2]; }
+    void setRightHeelThreshold(uint16_t thresh) { r_heel_threshold = thresh; }
+
 private:
     void initMPU6050();
     void readMPU6050(float &ax, float &ay, float &az, float &gx, float &gy, float &gz);
@@ -55,6 +65,10 @@ private:
     float gz_offset;
 
     uint16_t fsr_baseline[4];
+    uint16_t r_heel_threshold;
+    uint16_t last_raw_r_heel;
+    bool last_r_heel_pressed;
+
     uint8_t mpu_i2c_addr;
     bool mpu_connected;
 };

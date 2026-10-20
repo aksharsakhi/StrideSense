@@ -77,6 +77,22 @@
 #define SUPABASE_PUBLISHABLE_KEY "sb_publishable_XOwUeGn_OBNf0XoAMNmT9g_3M91ATSI"
 #define SUPABASE_ENDPOINT     "/rest/v1/telemetry"
 
+// ==========================================
+// 5. FSR PRESSURE DETECTION THRESHOLDS
+// ==========================================
+// Standard FSR Pressure Threshold (for Left Heel GPIO 36, Left Forefoot GPIO 39, Right Forefoot GPIO 35)
+// Standard FSRs sit near 0-50 ADC counts when untouched.
+#define FSR_STANDARD_THRESHOLD        120 
+
+// Dedicated Right Heel FSR Threshold Configuration (GPIO 34)
+// Hardware characteristics: GPIO 34 sits at ~1700-1950 ADC counts when untouched.
+// Pressure application drives readings > 2100 ADC counts up to 3500+.
+#define FSR_R_HEEL_PIN                PIN_FSR_R_HEEL  // GPIO 34
+#define FSR_R_HEEL_DEFAULT_THRESHOLD  2100            // Validated empirical pressure threshold
+#define FSR_R_HEEL_DELTA_THRESHOLD    180             // Dynamic margin above calibrated resting baseline
+#define FSR_R_HEEL_MIN_THRESHOLD      2000            // Absolute minimum threshold floor
+#define FSR_R_HEEL_MAX_UNTOUCHED      2040            // Upper ceiling for resting baseline validation
+
 // Firebase Configuration (Optional Fallback)
 #define FIREBASE_HOST         "https://stridesense-iot-default-rtdb.firebaseio.com"
 #define FIREBASE_AUTH_KEY     "YOUR_FIREBASE_DATABASE_SECRET"

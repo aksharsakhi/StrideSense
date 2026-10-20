@@ -99,8 +99,12 @@ void loop() {
         // 3. Multi-Modal Step Counting Engine (FSR + IMU Kinematic Fusion)
         float svm_acc = sqrtf(sample.ax * sample.ax + sample.ay * sample.ay + sample.az * sample.az);
 
-        // Plantar contact on either Left foot (p1, p2) or Right foot (p3, p4)
-        bool plantar_contact = (sample.p1 > 120 || sample.p2 > 120 || sample.p3 > 120 || sample.p4 > 120);
+        // Plantar contact: standard threshold for p1, p2, p4 (120), dedicated threshold for Right Heel
+        bool r_heel_contact = sample.r_heel_pressed || (sample.raw_r_heel >= Sensors.getRightHeelThreshold());
+        bool plantar_contact = (sample.p1 > FSR_STANDARD_THRESHOLD || 
+                                sample.p2 > FSR_STANDARD_THRESHOLD || 
+                                r_heel_contact || 
+                                sample.p4 > FSR_STANDARD_THRESHOLD);
         bool refractory_ok = (now - last_step_time >= 250); // Max 240 steps/min
         bool step_detected = false;
 
@@ -237,9 +241,12 @@ void loop() {
             Serial.printf(" 🌐 NETWORK     | Wi-Fi: [❌ DISCONNECTED] (Searching SSID: '%s'...)\n", WIFI_SSID);
             Serial.println(F(" ☁️  SUPABASE    | Status: [⏸ PAUSED - WAITING FOR WI-FI]"));
         }
+        const char* r_heel_status = latest.r_heel_pressed ? "PRESSED" : "UNTOUCHED";
         Serial.println(F("----------------------------------------------------------------------------------------"));
         Serial.printf(" 🦶 FSR SENSORS | LEFT FOOT  : Heel (GPIO 36): %4u | Forefoot (GPIO 39): %4u\n", send_p1, send_p2);
         Serial.printf("                | RIGHT FOOT : Heel (GPIO 34): %4u | Forefoot (GPIO 35): %4u\n", send_p3, send_p4);
+        Serial.printf(" 🎯 R-HEEL TEST | GPIO 34 ADC: %4u | Baseline: %4u | Thresh: %4u | Status: [%s]\n",
+                      latest.raw_r_heel, Sensors.getRightHeelBaseline(), Sensors.getRightHeelThreshold(), r_heel_status);
         if (Sensors.isMPUConnected()) {
             Serial.printf(" 📐 MPU-6050 IMU| [✓ OK] Pitch: %+5.1f° | Roll: %+5.1f° | SVM Accel: %4.2fg\n",
                 latest.pitch, latest.roll, payload.svm_a);
