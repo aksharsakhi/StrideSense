@@ -5,11 +5,12 @@ options:
     watchOS: "9.0"
 settings:
   base:
-    DEVELOPMENT_TEAM: 96799QVDJ7
+    DEVELOPMENT_TEAM: SK8MF2F6WV
     CODE_SIGN_STYLE: Automatic
     SWIFT_VERSION: "5.9"
     CURRENT_PROJECT_VERSION: 1
     MARKETING_VERSION: 1.0.0
+    GENERATE_INFOPLIST_FILE: NO
 targets:
   StrideSenseWatch:
     type: application
@@ -19,6 +20,10 @@ targets:
       - path: Resources/Assets.xcassets
     info:
       path: Resources/Info.plist
+      properties:
+        CFBundleDisplayName: StrideSense
+        WKApplication: true
+        WKWatchOnly: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.aksharsakhi.stridesense.watch
@@ -27,3 +32,5 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_PREVIEWS: YES
         TARGETED_DEVICE_FAMILY: "4"
+        INFOPLIST_KEY_WKApplication: YES
+        INFOPLIST_KEY_WKWatchOnly: YES

@@ -46,3 +46,7 @@ Thumbs.db
 *.tar.gz
 *.rar
 *.7z
+
+# Xcode User Data
+xcuserdata/
+*.xcuserdata
