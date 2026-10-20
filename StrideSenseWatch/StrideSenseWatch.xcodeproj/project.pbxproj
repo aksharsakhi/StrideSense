@@ -1,0 +1,389 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0C3944F819F9272B81CF296D /* StrideSenseWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B2345D605C6A98DEB1FB0F /* StrideSenseWatchApp.swift */; };
+		0E761F74BAC3E9E86B54E99C /* SupabaseWatchClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E749C859CCB9782FCE6CDC /* SupabaseWatchClient.swift */; };
+		2BB07DC2B5907920A1D49998 /* MotionWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 277DD8110D2FEEE66926EB69 /* MotionWatchView.swift */; };
+		4FD9EFA765AD0CE53ADD7EDA /* WatchTelemetryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9186FC4DCCC721F7B95645B /* WatchTelemetryViewModel.swift */; };
+		6AE8B1D519C5E1BA1B58750D /* FallGuardWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 404B53B08CE5080D41C5134F /* FallGuardWatchView.swift */; };
+		6D0C4A7B616F05EB904712EF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9DF893750B4DBD4DCD61DCA0 /* Assets.xcassets */; };
+		ACA27803668FFFE4787B129B /* TelemetryData.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA4F0C04ACFDB670960E8A5C /* TelemetryData.swift */; };
+		B10651A826FB3B0342BC3759 /* MainWatchTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69E7F42B1D00725AD86E67F /* MainWatchTabView.swift */; };
+		D6B90A238AA9E3AB3B8075E5 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BC7189D348853FCCA29CD3 /* HapticManager.swift */; };
+		DC46FA59448CDDB1FB9C765B /* PatientProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4916BB4A094AFB09BE6FE0C1 /* PatientProfile.swift */; };
+		E228C8F79AF118D1E0AE496C /* GaitBiomechanicsWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3460573F198D29E2D63BAA28 /* GaitBiomechanicsWatchView.swift */; };
+		EEB526B2FAA64A0052CE21B6 /* PlantarPressureWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BB30CCA764C4FC02FA3AC5A /* PlantarPressureWatchView.swift */; };
+		F39D2D9C3C60BEB4A9CD77A2 /* SettingsWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C2BB78FF9C8405F219FB400 /* SettingsWatchView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		01E749C859CCB9782FCE6CDC /* SupabaseWatchClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseWatchClient.swift; sourceTree = "<group>"; };
+		277DD8110D2FEEE66926EB69 /* MotionWatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionWatchView.swift; sourceTree = "<group>"; };
+		30BDFEF376B84B22138E38C7 /* StrideSenseWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StrideSenseWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3460573F198D29E2D63BAA28 /* GaitBiomechanicsWatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaitBiomechanicsWatchView.swift; sourceTree = "<group>"; };
+		404B53B08CE5080D41C5134F /* FallGuardWatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallGuardWatchView.swift; sourceTree = "<group>"; };
+		4916BB4A094AFB09BE6FE0C1 /* PatientProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientProfile.swift; sourceTree = "<group>"; };
+		7BB30CCA764C4FC02FA3AC5A /* PlantarPressureWatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlantarPressureWatchView.swift; sourceTree = "<group>"; };
+		9C2BB78FF9C8405F219FB400 /* SettingsWatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWatchView.swift; sourceTree = "<group>"; };
+		9DF893750B4DBD4DCD61DCA0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A69E7F42B1D00725AD86E67F /* MainWatchTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWatchTabView.swift; sourceTree = "<group>"; };
+		A6B2345D605C6A98DEB1FB0F /* StrideSenseWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrideSenseWatchApp.swift; sourceTree = "<group>"; };
+		C1BC7189D348853FCCA29CD3 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
+		E9186FC4DCCC721F7B95645B /* WatchTelemetryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchTelemetryViewModel.swift; sourceTree = "<group>"; };
+		EA4F0C04ACFDB670960E8A5C /* TelemetryData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryData.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		1ACEDE68D11C9CF767753E0B = {
+			isa = PBXGroup;
+			children = (
+				B9E44DD8BCD1D608CC9EE036 /* Resources */,
+				E0BD2C18BB4B092CF2A91533 /* Sources */,
+				B90E3AD414548897C8C47D5C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		2411FB935DAAA1D1208A38B4 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				404B53B08CE5080D41C5134F /* FallGuardWatchView.swift */,
+				3460573F198D29E2D63BAA28 /* GaitBiomechanicsWatchView.swift */,
+				A69E7F42B1D00725AD86E67F /* MainWatchTabView.swift */,
+				277DD8110D2FEEE66926EB69 /* MotionWatchView.swift */,
+				7BB30CCA764C4FC02FA3AC5A /* PlantarPressureWatchView.swift */,
+				9C2BB78FF9C8405F219FB400 /* SettingsWatchView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		293B0F8177DB21420B61848B /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				4916BB4A094AFB09BE6FE0C1 /* PatientProfile.swift */,
+				EA4F0C04ACFDB670960E8A5C /* TelemetryData.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		4EC120932CF4F1DA63AF2AAB /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				C1BC7189D348853FCCA29CD3 /* HapticManager.swift */,
+				01E749C859CCB9782FCE6CDC /* SupabaseWatchClient.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		5F9523115460C0E3CCC5757B /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				E9186FC4DCCC721F7B95645B /* WatchTelemetryViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		B90E3AD414548897C8C47D5C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				30BDFEF376B84B22138E38C7 /* StrideSenseWatch.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B9E44DD8BCD1D608CC9EE036 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				9DF893750B4DBD4DCD61DCA0 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		E0BD2C18BB4B092CF2A91533 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				A6B2345D605C6A98DEB1FB0F /* StrideSenseWatchApp.swift */,
+				293B0F8177DB21420B61848B /* Models */,
+				4EC120932CF4F1DA63AF2AAB /* Services */,
+				5F9523115460C0E3CCC5757B /* ViewModels */,
+				2411FB935DAAA1D1208A38B4 /* Views */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A113342CFC47398CEF68C9FC /* StrideSenseWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DA5812E866252ED1EE833AD5 /* Build configuration list for PBXNativeTarget "StrideSenseWatch" */;
+			buildPhases = (
+				D0C26057680E5D5D39E82BED /* Sources */,
+				A7F35D72F6EC4EC0F7E0AF5D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = StrideSenseWatch;
+			packageProductDependencies = (
+			);
+			productName = StrideSenseWatch;
+			productReference = 30BDFEF376B84B22138E38C7 /* StrideSenseWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C79D44E953FE8B2B6FB5AF15 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					A113342CFC47398CEF68C9FC = {
+						DevelopmentTeam = 96799QVDJ7;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = F9CB5005335EB6CCE963DD4B /* Build configuration list for PBXProject "StrideSenseWatch" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 1ACEDE68D11C9CF767753E0B;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = B90E3AD414548897C8C47D5C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A113342CFC47398CEF68C9FC /* StrideSenseWatch */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A7F35D72F6EC4EC0F7E0AF5D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6D0C4A7B616F05EB904712EF /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D0C26057680E5D5D39E82BED /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6AE8B1D519C5E1BA1B58750D /* FallGuardWatchView.swift in Sources */,
+				E228C8F79AF118D1E0AE496C /* GaitBiomechanicsWatchView.swift in Sources */,
+				D6B90A238AA9E3AB3B8075E5 /* HapticManager.swift in Sources */,
+				B10651A826FB3B0342BC3759 /* MainWatchTabView.swift in Sources */,
+				2BB07DC2B5907920A1D49998 /* MotionWatchView.swift in Sources */,
+				DC46FA59448CDDB1FB9C765B /* PatientProfile.swift in Sources */,
+				EEB526B2FAA64A0052CE21B6 /* PlantarPressureWatchView.swift in Sources */,
+				F39D2D9C3C60BEB4A9CD77A2 /* SettingsWatchView.swift in Sources */,
+				0C3944F819F9272B81CF296D /* StrideSenseWatchApp.swift in Sources */,
+				0E761F74BAC3E9E86B54E99C /* SupabaseWatchClient.swift in Sources */,
+				ACA27803668FFFE4787B129B /* TelemetryData.swift in Sources */,
+				4FD9EFA765AD0CE53ADD7EDA /* WatchTelemetryViewModel.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1411072B2C3BC148B4668CB0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 96799QVDJ7;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
+			};
+			name = Release;
+		};
+		4E0856CA309476879B70449D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 96799QVDJ7;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
+			};
+			name = Debug;
+		};
+		561AA0A3141AD09C55747BBC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = Resources/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aksharsakhi.stridesense.watch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
+			};
+			name = Debug;
+		};
+		62D0EC0710F1EE9D05F4CED8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = Resources/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aksharsakhi.stridesense.watch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DA5812E866252ED1EE833AD5 /* Build configuration list for PBXNativeTarget "StrideSenseWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				561AA0A3141AD09C55747BBC /* Debug */,
+				62D0EC0710F1EE9D05F4CED8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F9CB5005335EB6CCE963DD4B /* Build configuration list for PBXProject "StrideSenseWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4E0856CA309476879B70449D /* Debug */,
+				1411072B2C3BC148B4668CB0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C79D44E953FE8B2B6FB5AF15 /* Project object */;
+}
