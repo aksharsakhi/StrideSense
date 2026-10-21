@@ -73,7 +73,9 @@ export default function HealthPage({ telemetry, deviceId = 'stridesense_esp32_01
   }, [selectedDateKey, deviceId]);
 
   const isToday = selectedDateKey === toDateKey(new Date());
-  const todayLiveSteps = Math.max(dailyRecord?.steps || 0, (isToday && telemetry?.steps) || 0);
+  const safeDailySteps = (dailyRecord?.steps === 1241 && !telemetry?.isOnline) ? 0 : (dailyRecord?.steps || 0);
+  const safeLiveSteps = (telemetry?.steps === 1241 && !telemetry?.isOnline) ? 0 : (telemetry?.isOnline ? (telemetry?.steps || 0) : 0);
+  const todayLiveSteps = Math.max(safeDailySteps, isToday ? safeLiveSteps : 0);
 
   // Safe daily record with defaults
   const rec = {
@@ -374,7 +376,7 @@ BIOMECHANICAL INTEGRITY:
       </div>
 
       {/* ─── HERO: TRIPLE ACTIVITY RINGS & DAILY VITAL SUMMARY ─── */}
-      <div className="glass-panel hero-mesh p-5 sm:p-6 animate-fade-in-scale relative overflow-hidden">
+      <div className="glass-panel p-5 sm:p-6 animate-fade-in-scale relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-center gap-6">
 
           {/* Triple Concentric Rings Visualizer */}

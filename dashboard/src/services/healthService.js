@@ -84,6 +84,15 @@ class HealthService {
       const savedRecords = localStorage.getItem(STORAGE_KEY_RECORDS);
       if (savedRecords) {
         this.recordsByDevice = JSON.parse(savedRecords);
+        const todayKey = toDateKey(new Date());
+        let hadStale = false;
+        Object.keys(this.recordsByDevice).forEach((devId) => {
+          if (this.recordsByDevice[devId]?.[todayKey]?.steps === 1241) {
+            this.recordsByDevice[devId][todayKey] = createEmptyDayRecord(new Date(), this.stepGoal);
+            hadStale = true;
+          }
+        });
+        if (hadStale) this.saveStorage();
       } else {
         this.recordsByDevice = {};
       }
@@ -201,9 +210,11 @@ class HealthService {
     }
 
     const deviceRecords = this.recordsByDevice[deviceId];
-    if (!deviceRecords[dateKey]) {
-      // Returns an EMPTY day record (ZERO mock data)
-      return createEmptyDayRecord(parseDateKey(dateKey), this.stepGoal);
+    const todayKey = toDateKey(new Date());
+    if (!deviceRecords[dateKey] || (dateKey === todayKey && deviceRecords[dateKey]?.steps === 1241)) {
+      deviceRecords[dateKey] = createEmptyDayRecord(parseDateKey(dateKey), this.stepGoal);
+      this.saveStorage();
+      return deviceRecords[dateKey];
     }
     return deviceRecords[dateKey];
   }

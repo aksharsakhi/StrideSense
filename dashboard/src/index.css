@@ -481,21 +481,10 @@ button, a, input, select, [role="button"], .cursor-pointer, .active-press, .metr
 }
 .gradient-border {
   position: relative;
+  border: 1px solid var(--border-card);
 }
-.gradient-border::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-emerald), var(--accent-purple), var(--accent-cyan));
-  background-size: 300% 300%;
-  animation: gradientShift 4s ease infinite;
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-.gradient-border:hover::before {
-  opacity: 1;
+.gradient-border:hover {
+  border-color: var(--border-card-highlight);
 }
 
 /* ─── HERO MESH GRADIENT ────────────────────────────── */

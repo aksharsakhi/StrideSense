@@ -54,8 +54,10 @@ function HomePageComponent({ telemetry = {}, deviceId = 'bilateral_sim', isOnlin
     return unsub;
   }, [deviceId]);
 
-  // Today's steps for active device
-  const todaySteps = Math.max(todayRecord?.steps || 0, steps || 0);
+  // Today's steps for active device (sanitize stale 1241 when offline)
+  const safeRecordSteps = (todayRecord?.steps === 1241 && !isOnline) ? 0 : (todayRecord?.steps || 0);
+  const safeLiveSteps = (steps === 1241 && !isOnline) ? 0 : (isOnline ? (steps || 0) : 0);
+  const todaySteps = Math.max(safeRecordSteps, safeLiveSteps);
   const confPct = Math.round(confidence * 100);
   const stepGoal = todayRecord?.goal || 10000;
   const stepPct = Math.min(100, Math.round((todaySteps / stepGoal) * 100));
@@ -191,11 +193,11 @@ function HomePageComponent({ telemetry = {}, deviceId = 'bilateral_sim', isOnlin
       </div>
 
       {/* ─── APPLE HEALTH-STYLE CONCENTRIC TRIPLE RINGS HERO CARD ─── */}
-      <div className="glass-panel hero-mesh p-5 sm:p-6 relative overflow-hidden animate-fade-in-scale gradient-border">
-        {/* Ambient atmospheric glow */}
+      <div className="glass-panel p-5 sm:p-6 relative overflow-hidden animate-fade-in-scale">
+        {/* Subtle atmospheric ambient glow */}
         <div
-          className="absolute -right-8 -top-8 w-56 h-56 rounded-full blur-3xl pointer-events-none animate-breathe"
-          style={{ backgroundColor: activity === 'Fall' ? 'rgba(244,63,94,0.22)' : 'rgba(2,132,199,0.14)' }}
+          className="absolute -right-8 -top-8 w-40 h-40 rounded-full blur-3xl pointer-events-none opacity-20"
+          style={{ backgroundColor: activity === 'Fall' ? 'rgba(244,63,94,0.3)' : 'rgba(0,229,255,0.15)' }}
         />
 
         <div className="relative flex flex-col md:flex-row items-center gap-6">

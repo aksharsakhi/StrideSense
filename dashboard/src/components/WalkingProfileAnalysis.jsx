@@ -618,7 +618,7 @@ export default function WalkingProfileAnalysis({ telemetry = {}, onNavigate }) {
         <div className="flex flex-col gap-5 animate-fade-in">
           
           {/* ARCHETYPE HERO CARD */}
-          <div className="glass-panel hero-mesh p-6 relative overflow-hidden gradient-border">
+          <div className="glass-panel p-6 relative overflow-hidden">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 border border-cyan-500/30 flex items-center justify-center flex-shrink-0 shadow-lg shadow-cyan-500/10">
