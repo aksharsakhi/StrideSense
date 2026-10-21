@@ -14,6 +14,7 @@ const ENDPOINT = "/rest/v1/telemetry";
 
 const DEVICE_LEFT = "insole_left_02";
 const DEVICE_RIGHT = "insole_right_02";
+const DEVICE_HARDWARE = "stridesense_esp32_01";
 
 const engine = new PhysicsEngine();
 let stepsLeft = 0;
@@ -116,6 +117,28 @@ setInterval(async () => {
       ) || 1.0).toFixed(2))
     };
 
+    // Build Unified Hardware Insole Payload (stridesense_esp32_01)
+    const payloadHardware = {
+      device_id: DEVICE_HARDWARE,
+      activity: isFallActive ? 'Fall' : (inference.activityName || "Walking"),
+      confidence: parseFloat((inference.confidence || 0.95).toFixed(2)),
+      steps: totalSteps,
+      cadence: dynamicCadence,
+      symmetry: parseFloat((sample.bilateral?.symmetryIndex || 98.2).toFixed(1)),
+      fall_alert: isFallActive,
+      p1: Math.round(sample.left?.p1 || 0),   // Left Forefoot
+      p2: Math.round(sample.left?.p2 || 0),   // Left Heel
+      p3: Math.round(sample.right?.p1 || 0),  // Right Forefoot
+      p4: Math.round(sample.right?.p2 || 0),  // Right Heel
+      p5: Math.round(sample.left?.p2 || 0),
+      p6: Math.round(sample.right?.p2 || 0),
+      pitch: parseFloat((sample.left?.pitch || 0).toFixed(1)),
+      roll: parseFloat((sample.left?.roll || 0).toFixed(1)),
+      svm_a: parseFloat((Math.sqrt(
+        (sample.left?.ax || 0) ** 2 + (sample.left?.ay || 0) ** 2 + (sample.left?.az || 1) ** 2
+      ) || 1.0).toFixed(2))
+    };
+
     try {
       const headers = {
         "Content-Type": "application/json",
@@ -124,13 +147,14 @@ setInterval(async () => {
         "Prefer": "return=minimal"
       };
 
-      // Broadcast both feet concurrently
+      // Broadcast all feet & hardware concurrently
       await Promise.all([
         fetch(`${SUPABASE_HOST}${ENDPOINT}`, { method: "POST", headers, body: JSON.stringify(payloadLeft) }),
-        fetch(`${SUPABASE_HOST}${ENDPOINT}`, { method: "POST", headers, body: JSON.stringify(payloadRight) })
+        fetch(`${SUPABASE_HOST}${ENDPOINT}`, { method: "POST", headers, body: JSON.stringify(payloadRight) }),
+        fetch(`${SUPABASE_HOST}${ENDPOINT}`, { method: "POST", headers, body: JSON.stringify(payloadHardware) })
       ]);
 
-      console.log(`[${new Date().toLocaleTimeString()}] ✅ Bilateral Sent | Steps: ${totalSteps} | L[H:${payloadLeft.p1}, F:${payloadLeft.p2}] R[H:${payloadRight.p1}, F:${payloadRight.p2}] | Sym: ${sample.bilateral?.symmetryIndex}%`);
+      console.log(`[${new Date().toLocaleTimeString()}] ✅ Bilateral + HW Sent | Steps: ${totalSteps} | L[H:${payloadLeft.p1}, F:${payloadLeft.p2}] R[H:${payloadRight.p1}, F:${payloadRight.p2}] | Sym: ${sample.bilateral?.symmetryIndex}%`);
     } catch (err) {
       console.error(`[${new Date().toLocaleTimeString()}] ❌ Network error:`, err.message);
     }
