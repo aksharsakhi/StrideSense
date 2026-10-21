@@ -442,9 +442,15 @@ export default function App() {
         setIsConnected(false);
         const emptyState = supabaseService.getEmptyTelemetryForDevice(selectedDeviceId);
         if (latest) {
-          emptyState.steps = latest.steps || 0;
+          const packetDate = new Date(latest.timestamp || 0);
+          const isFromToday = packetDate.toDateString() === new Date().toDateString();
+          if (isFromToday) {
+            emptyState.steps = latest.steps || 0;
+            healthService.updateLiveTelemetry(latest, selectedDeviceId);
+          } else {
+            emptyState.steps = 0;
+          }
           emptyState.timestamp = latest.timestamp || Date.now();
-          healthService.updateLiveTelemetry(latest, selectedDeviceId);
         }
         setTelemetry(emptyState);
       }

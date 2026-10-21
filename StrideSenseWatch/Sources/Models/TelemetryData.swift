@@ -106,7 +106,7 @@ public struct TelemetryData: Codable, Equatable {
         stanceRatio: Double = 62.0,
         swingRatio: Double = 38.0,
         symmetryPct: Double = 0.0,
-        steps: Int = 1241,
+        steps: Int = 0,
         pitch: Double = 0.0,
         roll: Double = 0.0,
         svmA: Double = 1.0,

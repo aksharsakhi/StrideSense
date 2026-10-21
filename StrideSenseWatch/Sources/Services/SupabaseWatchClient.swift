@@ -129,7 +129,7 @@ public actor SupabaseWatchClient {
             stanceRatio: 62.0,
             swingRatio: 38.0,
             symmetryPct: isOnline ? (row.symmetry ?? 0.0) : 0.0,
-            steps: row.steps ?? 1241, // Cumulative daily steps retained
+            steps: Calendar.current.isDateInToday(packetDate) ? (row.steps ?? 0) : 0,
             pitch: isOnline ? (row.pitch ?? 0.0) : 0.0,
             roll: isOnline ? (row.roll ?? 0.0) : 0.0,
             svmA: isOnline ? (row.svm_a ?? 1.0) : 1.0,

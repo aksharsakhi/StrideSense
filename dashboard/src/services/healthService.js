@@ -124,6 +124,15 @@ class HealthService {
    */
   updateLiveTelemetry(telemetry, deviceId = this.deviceId) {
     if (!telemetry) return;
+
+    // Discard stale historical packets from prior dates so they don't pollute today's steps
+    if (telemetry.timestamp) {
+      const packetDate = new Date(telemetry.timestamp);
+      if (packetDate.toDateString() !== new Date().toDateString()) {
+        return;
+      }
+    }
+
     if (!this.recordsByDevice[deviceId]) {
       this.recordsByDevice[deviceId] = {};
     }
@@ -201,6 +210,16 @@ class HealthService {
 
   getTodayRecord(deviceId = this.deviceId) {
     return this.getDailyRecord(toDateKey(new Date()), deviceId);
+  }
+
+  resetTodayRecord(deviceId = this.deviceId) {
+    const todayKey = toDateKey(new Date());
+    if (!this.recordsByDevice[deviceId]) {
+      this.recordsByDevice[deviceId] = {};
+    }
+    this.recordsByDevice[deviceId][todayKey] = createEmptyDayRecord(new Date(), this.stepGoal);
+    this.saveStorage();
+    this.notify();
   }
 
   setStepGoal(newGoal) {
